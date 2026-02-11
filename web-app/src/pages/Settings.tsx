@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScoringRule } from '../types/database';
 import { Plus, Trash2, Save, AlertCircle } from 'lucide-react';
@@ -6,7 +6,7 @@ import { Plus, Trash2, Save, AlertCircle } from 'lucide-react';
 export default function Settings() {
     const [rules, setRules] = useState<ScoringRule[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
 
     // New rule form state
     const [newRule, setNewRule] = useState<Partial<ScoringRule>>({

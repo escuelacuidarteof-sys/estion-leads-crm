@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Lead, ScoringRule, TeamMember } from '../types/database';
 import { calculateScore } from '../lib/scoring';
 import LeadModal from '../components/LeadModal';
-import { Search, MessageCircle, Calendar } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -186,7 +186,7 @@ export default function LeadBoard() {
                                     <div className="flex items-center gap-2">
                                         <div className="font-medium text-gray-900">{lead.name}</div>
                                         {lead.appointment_at && (
-                                            <Calendar size={12} className="text-blue-500" title={`Cita: ${format(new Date(lead.appointment_at), 'dd/MM HH:mm')}`} />
+                                            <Calendar size={12} className="text-blue-500" />
                                         )}
                                     </div>
                                     <div className="text-xs text-gray-400">{lead.phone}</div>
