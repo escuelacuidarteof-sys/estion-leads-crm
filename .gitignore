@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.DS_Store
+*.local
+web-app/node_modules/
+web-app/dist/
+brain/
+.system_generated/
+*.sql
