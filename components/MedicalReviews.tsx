@@ -18,9 +18,8 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
 
     // Form State
     const [formData, setFormData] = useState<Partial<MedicalReview>>({
-        diabetes_type: client.medical?.diabetesType || 'No diabético',
-        insulin_usage: client.medical?.insulin,
-        insulin_dose: client.medical?.insulinDose,
+        oncology_status: client.medical?.oncology_status || '',
+        treatment_details: client.medical?.currentTreatment || '',
         medication: client.medical?.medication,
         comments: '',
         report_type: 'Analítica',
@@ -99,9 +98,8 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
             setShowForm(false);
             // Reset form but keep some defaults
             setFormData({
-                diabetes_type: client.medical?.diabetesType || 'No diabético',
-                insulin_usage: client.medical?.insulin,
-                insulin_dose: client.medical?.insulinDose,
+                oncology_status: client.medical?.oncology_status || '',
+                treatment_details: client.medical?.currentTreatment || '',
                 medication: client.medical?.medication,
                 comments: '',
                 report_type: 'Analítica',
@@ -186,41 +184,24 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">¿Eres Diabético?</label>
-                                    <select
+                                    <label className="text-sm font-bold text-slate-700">Estado oncológico</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: En remisión, En tratamiento activo..."
                                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                                        value={formData.diabetes_type}
-                                        onChange={e => setFormData({ ...formData, diabetes_type: e.target.value })}
-                                    >
-                                        <option value="No diabético">No soy diabético</option>
-                                        <option value="Tipo 1">Tipo 1</option>
-                                        <option value="Tipo 2">Tipo 2</option>
-                                        <option value="Gestacional">Gestacional</option>
-                                    </select>
+                                        value={formData.oncology_status || ''}
+                                        onChange={e => setFormData({ ...formData, oncology_status: e.target.value })}
+                                    />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">¿Usas Insulina?</label>
-                                        <select
-                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                                            value={formData.insulin_usage}
-                                            onChange={e => setFormData({ ...formData, insulin_usage: e.target.value })}
-                                        >
-                                            <option value="No">No</option>
-                                            <option value="Si">Sí</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">Dosis</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Ej: 10u Lantus"
-                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                                            value={formData.insulin_dose || ''}
-                                            onChange={e => setFormData({ ...formData, insulin_dose: e.target.value })}
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700">Tratamiento actual</label>
+                                    <textarea
+                                        placeholder="Describe el tratamiento oncológico actual..."
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none min-h-[80px]"
+                                        value={formData.treatment_details || ''}
+                                        onChange={e => setFormData({ ...formData, treatment_details: e.target.value })}
+                                    />
                                 </div>
                             </div>
 

@@ -85,9 +85,9 @@ export enum ClientStatus {
   COMPLETED = 'completed'
 }
 
-// --- DATOS MÉDICOS (Genérico para cualquier especialidad de salud) ---
+// --- DATOS MÉDICOS (Oncología / Salud) ---
 export interface MedicalData {
-  diagnosis?: string;          // Diagnóstico principal
+  diagnosis?: string;          // Diagnóstico principal (ej: "Cáncer de mama - estadio IIA")
   diagnosisDate?: string;      // Fecha del diagnóstico
   currentTreatment?: string;   // Tratamiento actual
   pathologies?: string;        // Otras patologías / enfermedades actuales
@@ -95,6 +95,30 @@ export interface MedicalData {
   medicalNotes?: string;       // Notas médicas generales
   medicalReviews?: string;
   otherConditions?: string;
+
+  // --- Oncología ---
+  oncology_status?: string;              // Estado oncológico (ej: "En remisión - hormonoterapia activa")
+  treatment_chemotherapy?: boolean;
+  treatment_radiotherapy?: boolean;
+  treatment_hormonotherapy?: boolean;
+  treatment_immunotherapy?: boolean;
+  treatment_none?: boolean;
+  treatment_start_date?: string;
+  medication_affects_weight?: boolean;
+  medication_affects_weight_details?: string;
+  exercise_medical_limitations?: boolean;
+  exercise_medical_limitations_details?: string;
+
+  // --- Síntomas (escala 0-10) ---
+  symptom_fatigue?: number;
+  symptom_pain?: number;
+  symptom_nausea?: number;
+  symptom_vomiting?: number;
+  symptom_diarrhea?: number;
+  symptom_constipation?: number;
+  symptom_appetite_loss?: number;
+  symptom_bloating?: number;
+  symptom_sleep_quality?: number;
 }
 
 export interface NutritionData {
@@ -314,6 +338,22 @@ export interface Client {
   general_notes?: string;
   history?: string;
   history_food_behavior?: string;
+
+  // Funcionalidad y energía
+  energy_level?: number;
+  recovery_capacity?: number;
+  fatigue_interference?: number;
+  current_strength_score?: number;
+  functional_limitation_carry_bag?: boolean;
+  functional_limitation_stand_up?: boolean;
+  functional_limitation_stairs?: boolean;
+  functional_limitation_falls?: boolean;
+
+  // Relación con la comida (scores)
+  food_fear_score?: number;
+  food_guilt_score?: number;
+  food_peace_score?: number;
+  body_trust_score?: number;
 
   // Onboarding
   onboarding_token?: string;

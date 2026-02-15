@@ -126,9 +126,8 @@ const CreateMedicalReport: React.FC<CreateMedicalReportProps> = ({ currentUser }
           client_id: selectedClient.id,
           coach_id: selectedClient.coach_id || null,
           submission_date: new Date().toISOString(),
-          diabetes_type: selectedClient.medical?.diabetesType || 'No especificado',
-          insulin_usage: selectedClient.medical?.insulin || 'No',
-          insulin_dose: selectedClient.medical?.insulinDose || null,
+          oncology_status: selectedClient.medical?.oncology_status || '',
+          active_treatments: selectedClient.medical?.currentTreatment || '',
           medication: selectedClient.medical?.medication || null,
           comments: `Informe médico creado por Dr/a. ${form.doctorName}${form.collegiateNumber ? ` (Col. ${form.collegiateNumber})` : ''} para ${selectedClient.firstName} ${selectedClient.surname}.`,
           report_type: 'Informe Médico',
@@ -266,7 +265,7 @@ const CreateMedicalReport: React.FC<CreateMedicalReportProps> = ({ currentUser }
                 <h2 className="text-xl font-bold">{selectedClient.firstName} {selectedClient.surname}</h2>
                 <p className="text-purple-200 text-sm">
                   {selectedClient.email} {selectedClient.age ? `· ${selectedClient.age} años` : ''}
-                  {selectedClient.medical?.diabetesType && selectedClient.medical.diabetesType !== 'N/A' ? ` · ${selectedClient.medical.diabetesType}` : ''}
+                  {selectedClient.medical?.oncology_status ? ` · ${selectedClient.medical.oncology_status}` : (selectedClient.medical?.diabetesType && selectedClient.medical.diabetesType !== 'N/A' ? ` · ${selectedClient.medical.diabetesType}` : '')}
                 </p>
               </div>
             </div>

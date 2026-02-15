@@ -26,7 +26,7 @@ import { ClientAnnouncements } from '../ClientAnnouncements';
 import { SecurityMigrationBanner } from './SecurityMigrationBanner';
 import MedicalReviews from '../../components/MedicalReviews';
 import { useToast } from '../../components/ToastProvider';
-import { GlucoseCard } from './GlucoseCard';
+import { SymptomTrackerCard } from './SymptomTrackerCard';
 import { BodyMeasurementsCard } from './BodyMeasurementsCard';
 import { WellnessCard } from './WellnessCard';
 import { AchievementsCard } from './AchievementsCard';
@@ -1060,14 +1060,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 </div>
                                 <div className="space-y-4 text-sm">
                                     <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Diabetes</p>
+                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Estado oncológico</p>
                                         <p className="font-medium text-slate-900 flex items-center gap-2">
-                                            {medical.diabetesType || 'No especificada'}
+                                            {medical.oncology_status || medical.diagnosis || 'No especificado'}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Glicosilada (HbA1c)</p>
-                                        <p className="font-medium text-slate-900">{medical.lastHba1c ? `${medical.lastHba1c}%` : '--'}</p>
+                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Tratamiento actual</p>
+                                        <p className="font-medium text-slate-900">{medical.currentTreatment || '--'}</p>
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
@@ -1466,9 +1466,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
 
 
-                        {/* 5. NEW: GLUCOSE & MEASUREMENTS CARDS */}
+                        {/* 5. SYMPTOM TRACKER & MEASUREMENTS CARDS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <GlucoseCard clientId={client.id} />
+                            <SymptomTrackerCard medical={client.medical} energyLevel={client.energy_level} recoveryCapacity={client.recovery_capacity} />
                             <BodyMeasurementsCard
                                 clientId={client.id}
                                 initialAbdominal={client.abdominal_perimeter}

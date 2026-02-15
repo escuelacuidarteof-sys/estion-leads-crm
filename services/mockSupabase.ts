@@ -257,6 +257,30 @@ export const mapRowToClient = (row: any): Client => {
       pathologies: row.pathologies,
       medication: row.medication,
       medicalNotes: row.medical_notes,
+
+      // Oncología
+      oncology_status: row.oncology_status,
+      treatment_chemotherapy: row.treatment_chemotherapy,
+      treatment_radiotherapy: row.treatment_radiotherapy,
+      treatment_hormonotherapy: row.treatment_hormonotherapy,
+      treatment_immunotherapy: row.treatment_immunotherapy,
+      treatment_none: row.treatment_none,
+      treatment_start_date: row.treatment_start_date,
+      medication_affects_weight: row.medication_affects_weight,
+      medication_affects_weight_details: row.medication_affects_weight_details,
+      exercise_medical_limitations: row.exercise_medical_limitations,
+      exercise_medical_limitations_details: row.exercise_medical_limitations_details,
+
+      // Síntomas
+      symptom_fatigue: row.symptom_fatigue,
+      symptom_pain: row.symptom_pain,
+      symptom_nausea: row.symptom_nausea,
+      symptom_vomiting: row.symptom_vomiting,
+      symptom_diarrhea: row.symptom_diarrhea,
+      symptom_constipation: row.symptom_constipation,
+      symptom_appetite_loss: row.symptom_appetite_loss,
+      symptom_bloating: row.symptom_bloating,
+      symptom_sleep_quality: row.symptom_sleep_quality,
     },
 
     nutrition: {
@@ -308,6 +332,22 @@ export const mapRowToClient = (row: any): Client => {
     },
 
     general_notes: row.general_notes,
+
+    // Funcionalidad y energía
+    energy_level: row.energy_level,
+    recovery_capacity: row.recovery_capacity,
+    fatigue_interference: row.fatigue_interference,
+    current_strength_score: row.current_strength_score,
+    functional_limitation_carry_bag: row.functional_limitation_carry_bag,
+    functional_limitation_stand_up: row.functional_limitation_stand_up,
+    functional_limitation_stairs: row.functional_limitation_stairs,
+    functional_limitation_falls: row.functional_limitation_falls,
+
+    // Scores relación con comida
+    food_fear_score: row.food_fear_score,
+    food_guilt_score: row.food_guilt_score,
+    food_peace_score: row.food_peace_score,
+    body_trust_score: row.body_trust_score,
 
     nutrition_approved: row.nutrition_approved,
     nutrition_approved_at: row.nutrition_approved_at,
@@ -437,7 +477,47 @@ const mapClientToRow = (client: Partial<Client>): any => {
     if (client.medical.pathologies !== undefined) row.pathologies = client.medical.pathologies;
     if (client.medical.medication !== undefined) row.medication = client.medical.medication;
     if (client.medical.medicalNotes !== undefined) row.medical_notes = client.medical.medicalNotes;
+
+    // Oncología
+    if (client.medical.oncology_status !== undefined) row.oncology_status = client.medical.oncology_status;
+    if (client.medical.treatment_chemotherapy !== undefined) row.treatment_chemotherapy = client.medical.treatment_chemotherapy;
+    if (client.medical.treatment_radiotherapy !== undefined) row.treatment_radiotherapy = client.medical.treatment_radiotherapy;
+    if (client.medical.treatment_hormonotherapy !== undefined) row.treatment_hormonotherapy = client.medical.treatment_hormonotherapy;
+    if (client.medical.treatment_immunotherapy !== undefined) row.treatment_immunotherapy = client.medical.treatment_immunotherapy;
+    if (client.medical.treatment_none !== undefined) row.treatment_none = client.medical.treatment_none;
+    if (client.medical.treatment_start_date !== undefined) row.treatment_start_date = client.medical.treatment_start_date;
+    if (client.medical.medication_affects_weight !== undefined) row.medication_affects_weight = client.medical.medication_affects_weight;
+    if (client.medical.medication_affects_weight_details !== undefined) row.medication_affects_weight_details = client.medical.medication_affects_weight_details;
+    if (client.medical.exercise_medical_limitations !== undefined) row.exercise_medical_limitations = client.medical.exercise_medical_limitations;
+    if (client.medical.exercise_medical_limitations_details !== undefined) row.exercise_medical_limitations_details = client.medical.exercise_medical_limitations_details;
+
+    // Síntomas
+    if (client.medical.symptom_fatigue !== undefined) row.symptom_fatigue = client.medical.symptom_fatigue;
+    if (client.medical.symptom_pain !== undefined) row.symptom_pain = client.medical.symptom_pain;
+    if (client.medical.symptom_nausea !== undefined) row.symptom_nausea = client.medical.symptom_nausea;
+    if (client.medical.symptom_vomiting !== undefined) row.symptom_vomiting = client.medical.symptom_vomiting;
+    if (client.medical.symptom_diarrhea !== undefined) row.symptom_diarrhea = client.medical.symptom_diarrhea;
+    if (client.medical.symptom_constipation !== undefined) row.symptom_constipation = client.medical.symptom_constipation;
+    if (client.medical.symptom_appetite_loss !== undefined) row.symptom_appetite_loss = client.medical.symptom_appetite_loss;
+    if (client.medical.symptom_bloating !== undefined) row.symptom_bloating = client.medical.symptom_bloating;
+    if (client.medical.symptom_sleep_quality !== undefined) row.symptom_sleep_quality = client.medical.symptom_sleep_quality;
   }
+
+  // Funcionalidad y energía
+  if (client.energy_level !== undefined) row.energy_level = client.energy_level;
+  if (client.recovery_capacity !== undefined) row.recovery_capacity = client.recovery_capacity;
+  if (client.fatigue_interference !== undefined) row.fatigue_interference = client.fatigue_interference;
+  if (client.current_strength_score !== undefined) row.current_strength_score = client.current_strength_score;
+  if (client.functional_limitation_carry_bag !== undefined) row.functional_limitation_carry_bag = client.functional_limitation_carry_bag;
+  if (client.functional_limitation_stand_up !== undefined) row.functional_limitation_stand_up = client.functional_limitation_stand_up;
+  if (client.functional_limitation_stairs !== undefined) row.functional_limitation_stairs = client.functional_limitation_stairs;
+  if (client.functional_limitation_falls !== undefined) row.functional_limitation_falls = client.functional_limitation_falls;
+
+  // Scores relación con comida
+  if (client.food_fear_score !== undefined) row.food_fear_score = client.food_fear_score;
+  if (client.food_guilt_score !== undefined) row.food_guilt_score = client.food_guilt_score;
+  if (client.food_peace_score !== undefined) row.food_peace_score = client.food_peace_score;
+  if (client.body_trust_score !== undefined) row.body_trust_score = client.body_trust_score;
 
   // Nutrition
   if (client.nutrition) {

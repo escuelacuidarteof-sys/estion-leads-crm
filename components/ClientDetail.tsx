@@ -25,7 +25,7 @@ import { useToast } from './ToastProvider';
 import MedicalReviews from './MedicalReviews';
 import CoachGoalsManager from './CoachGoalsManager';
 import { checkAndUnlockAchievements } from '../services/achievementService';
-import { GlucoseHistoryTable } from './GlucoseHistoryTable';
+// GlucoseHistoryTable removed - replaced by oncology symptom tracking
 import { InvitationLinkModal } from './InvitationLinkModal';
 import { ClientImportantNotes } from './ClientImportantNotes';
 import { ClientRiskAlertSection } from './ClientRiskAlertSection';
@@ -2740,12 +2740,16 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            </div>
                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Salud</p>
                            <div className="flex items-baseline gap-3">
-                              {formData.medical?.lastHba1c ? (
-                                 <p className={`text-lg font-bold ${parseFloat(formData.medical.lastHba1c) > 7 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                    HbA1c: {formData.medical.lastHba1c}%
+                              {formData.medical?.oncology_status ? (
+                                 <p className="text-sm font-semibold text-brand-green truncate max-w-[200px]" title={formData.medical.oncology_status}>
+                                    {formData.medical.oncology_status}
+                                 </p>
+                              ) : formData.medical?.diagnosis ? (
+                                 <p className="text-sm font-semibold text-slate-700 truncate max-w-[200px]" title={formData.medical.diagnosis}>
+                                    {formData.medical.diagnosis}
                                  </p>
                               ) : (
-                                 <p className="text-sm text-slate-400">Sin datos HbA1c</p>
+                                 <p className="text-sm text-slate-400">Sin datos médicos</p>
                               )}
                            </div>
                            {formData.current_weight && formData.initial_weight && (
@@ -3484,52 +3488,62 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
                               {/* ===== PANEL RESUMEN MÉDICO ===== */}
                               <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-lg overflow-hidden">
-                                 <div className="bg-gradient-to-r from-red-700 to-rose-600 px-6 py-4 flex items-center gap-3">
+                                 <div className="bg-gradient-to-r from-brand-green to-brand-green-dark px-6 py-4 flex items-center gap-3">
                                     <HeartPulse className="w-6 h-6 text-white" />
                                     <h3 className="text-lg font-black text-white uppercase tracking-wide">Resumen Médico del Paciente</h3>
                                  </div>
                                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                    {/* Tipo Diabetes */}
-                                    <div className={`p-4 rounded-2xl border-2 ${formData.medical.diabetesType && formData.medical.diabetesType !== 'N/A' ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200'}`}>
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tipo Diabetes</p>
-                                       <p className={`text-xl font-black ${formData.medical.diabetesType === 'Type 1' ? 'text-red-700' : formData.medical.diabetesType === 'Type 2' ? 'text-orange-700' : formData.medical.diabetesType === 'Prediabetes' ? 'text-amber-700' : 'text-slate-600'}`}>
-                                          {formData.medical.diabetesType === 'Type 1' ? 'Tipo 1' : formData.medical.diabetesType === 'Type 2' ? 'Tipo 2' : formData.medical.diabetesType === 'Gestational' ? 'Gestacional' : formData.medical.diabetesType === 'Prediabetes' ? 'Prediabetes' : 'No Diabético'}
+                                    {/* Estado Oncológico */}
+                                    <div className={`p-4 rounded-2xl border-2 ${formData.medical.oncology_status ? 'bg-brand-mint-light border-brand-mint' : 'bg-slate-50 border-slate-200'}`}>
+                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estado Oncológico</p>
+                                       <p className="text-sm font-black text-brand-dark leading-relaxed">
+                                          {formData.medical.oncology_status || formData.medical.diagnosis || 'Sin información'}
                                        </p>
                                     </div>
 
-                                    {/* Insulina */}
-                                    <div className={`p-4 rounded-2xl border-2 ${formData.medical.insulin && formData.medical.insulin.toLowerCase().includes('si') ? 'bg-amber-50 border-amber-300' : 'bg-green-50 border-green-200'}`}>
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Insulina</p>
-                                       <p className={`text-lg font-black ${formData.medical.insulin && formData.medical.insulin.toLowerCase().includes('si') ? 'text-amber-800' : 'text-green-700'}`}>
-                                          {formData.medical.insulin || 'No indicado'}
-                                       </p>
-                                       {formData.medical.insulinDose && (
-                                          <p className="text-sm text-slate-600 mt-1">Dosis: <span className="font-bold">{formData.medical.insulinDose}</span></p>
-                                       )}
-                                       {formData.medical.insulinBrand && (
-                                          <p className="text-sm text-slate-600">Marca: <span className="font-bold">{formData.medical.insulinBrand}</span></p>
+                                    {/* Tratamientos */}
+                                    <div className="p-4 rounded-2xl border-2 bg-amber-50 border-amber-200">
+                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tratamientos</p>
+                                       <div className="space-y-1 mt-1">
+                                          {formData.medical.treatment_chemotherapy && <p className="text-xs font-bold text-amber-800">✓ Quimioterapia</p>}
+                                          {formData.medical.treatment_radiotherapy && <p className="text-xs font-bold text-amber-800">✓ Radioterapia</p>}
+                                          {formData.medical.treatment_hormonotherapy && <p className="text-xs font-bold text-amber-800">✓ Hormonoterapia</p>}
+                                          {formData.medical.treatment_immunotherapy && <p className="text-xs font-bold text-amber-800">✓ Inmunoterapia</p>}
+                                          {formData.medical.treatment_none && <p className="text-xs font-bold text-green-700">Sin tratamiento activo</p>}
+                                          {!formData.medical.treatment_chemotherapy && !formData.medical.treatment_radiotherapy && !formData.medical.treatment_hormonotherapy && !formData.medical.treatment_immunotherapy && !formData.medical.treatment_none && (
+                                             <p className="text-xs text-slate-400 italic">No especificado</p>
+                                          )}
+                                       </div>
+                                       {formData.medical.treatment_start_date && (
+                                          <p className="text-[10px] text-slate-500 mt-2">Inicio: {formData.medical.treatment_start_date}</p>
                                        )}
                                     </div>
 
-                                    {/* Analíticas */}
-                                    <div className="p-4 rounded-2xl bg-blue-50 border-2 border-blue-200">
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Analíticas</p>
-                                       <div className="space-y-2">
-                                          <div>
-                                             <span className="text-xs text-blue-600 font-bold">HbA1c:</span>
-                                             <span className="text-lg font-black text-blue-900 ml-2">{formData.medical.lastHba1c || 'N/D'}</span>
-                                          </div>
-                                          <div>
-                                             <span className="text-xs text-blue-600 font-bold">Glucosa Ayunas:</span>
-                                             <span className="text-lg font-black text-blue-900 ml-2">{formData.medical.glucoseFastingCurrent || 'N/D'}</span>
-                                          </div>
+                                    {/* Síntomas principales */}
+                                    <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-200">
+                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Síntomas</p>
+                                       <div className="space-y-1.5 mt-1">
+                                          {[
+                                             { label: 'Fatiga', val: formData.medical.symptom_fatigue },
+                                             { label: 'Dolor', val: formData.medical.symptom_pain },
+                                             { label: 'Náuseas', val: formData.medical.symptom_nausea },
+                                             { label: 'Sueño', val: formData.medical.symptom_sleep_quality },
+                                          ].filter(s => s.val != null && s.val > 0).slice(0, 3).map(s => (
+                                             <div key={s.label} className="flex items-center justify-between">
+                                                <span className="text-xs text-slate-600">{s.label}</span>
+                                                <span className={`text-xs font-bold ${(s.val || 0) >= 7 ? 'text-red-600' : (s.val || 0) >= 4 ? 'text-amber-600' : 'text-green-600'}`}>{s.val}/10</span>
+                                             </div>
+                                          ))}
+                                          {![formData.medical.symptom_fatigue, formData.medical.symptom_pain, formData.medical.symptom_nausea, formData.medical.symptom_sleep_quality].some(v => v != null && v > 0) && (
+                                             <p className="text-xs text-slate-400 italic">Sin síntomas reportados</p>
+                                          )}
                                        </div>
                                     </div>
 
                                     {/* Medicación */}
                                     <div className={`p-4 rounded-2xl border-2 ${formData.medical.medication ? 'bg-purple-50 border-purple-300' : 'bg-slate-50 border-slate-200'}`}>
                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Medicación Diaria</p>
-                                       <p className={`text-base font-bold leading-relaxed ${formData.medical.medication ? 'text-purple-900' : 'text-slate-400 text-sm italic'}`}>
+                                       <p className={`text-sm font-bold leading-relaxed ${formData.medical.medication ? 'text-purple-900' : 'text-slate-400 italic'}`}>
                                           {formData.medical.medication || 'Sin medicación reportada'}
                                        </p>
                                     </div>
@@ -3552,47 +3566,27 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               {/* ===== DETALLE MÉDICO ===== */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                  <div className="space-y-4">
-                                    <SectionTitle title="Control Diabetes" icon={<Activity className="w-4 h-4 text-red-600" />} />
-                                    <div className="bg-gradient-to-br from-red-50 to-rose-50/50 p-5 rounded-2xl space-y-4 border border-red-100/80 shadow-sm relative overflow-hidden">
-                                       <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                                       <DataField
-                                          label="Tipo Diabetes"
-                                          value={formData.medical.diabetesType}
-                                          path="medical.diabetesType"
-                                          type="select"
-                                          options={[
-                                             { label: 'Tipo 1', value: 'Type 1' },
-                                             { label: 'Tipo 2', value: 'Type 2' },
-                                             { label: 'No Diabético', value: 'N/A' },
-                                             { label: 'Gestacional', value: 'Gestational' },
-                                             { label: 'Prediabetes', value: 'Prediabetes' }
-                                          ]}
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                       />
-                                       <DataField label="Usa Insulina" value={formData.medical.insulin} path="medical.insulin" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <div className="grid grid-cols-2 gap-4">
-                                          <DataField label="Marca Insulina" value={formData.medical.insulinBrand} path="medical.insulinBrand" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Dosis" value={formData.medical.insulinDose} path="medical.insulinDose" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <SectionTitle title="Información Oncológica" icon={<Activity className="w-4 h-4 text-brand-green" />} />
+                                    <div className="bg-gradient-to-br from-brand-mint-light to-white p-5 rounded-2xl space-y-4 border border-brand-mint shadow-sm relative overflow-hidden">
+                                       <div className="absolute top-0 right-0 w-32 h-32 bg-brand-mint/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                                       <DataField label="Estado Oncológico" value={formData.medical.oncology_status} path="medical.oncology_status" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tratamientos recibidos</p>
+                                       <div className="grid grid-cols-2 gap-3">
+                                          <DataField label="Quimioterapia" value={formData.medical.treatment_chemotherapy} path="medical.treatment_chemotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          <DataField label="Radioterapia" value={formData.medical.treatment_radiotherapy} path="medical.treatment_radiotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          <DataField label="Hormonoterapia" value={formData.medical.treatment_hormonotherapy} path="medical.treatment_hormonotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          <DataField label="Inmunoterapia" value={formData.medical.treatment_immunotherapy} path="medical.treatment_immunotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                        </div>
-                                       <DataField label="Hora Inyección" value={formData.medical.insulinTime} path="medical.insulinTime" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-
-                                       {/* Manual Override for Glucose Tracker */}
-                                       <DataField
-                                          label="Forzar Tracker Glucosa"
-                                          value={formData.show_glucose_tracker}
-                                          path="show_glucose_tracker"
-                                          type="checkbox"
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                          className="bg-white/50 p-2 rounded border border-red-200"
-                                       />
-                                       <div className="border-t border-red-200 pt-2 mt-2">
-                                          <DataField label="Usa Sensor (FreeStyle)" value={formData.medical.useSensor} path="medical.useSensor" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="HbA1c (Glicosilada)" value={formData.medical.lastHba1c} path="medical.lastHba1c" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Glucosa Ayunas" value={formData.medical.glucoseFastingCurrent} path="medical.glucoseFastingCurrent" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Fecha inicio tratamiento" value={formData.medical.treatment_start_date} path="medical.treatment_start_date" type="date" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <div className="border-t border-brand-mint pt-3 mt-2 space-y-3">
+                                          <DataField label="¿Medicación afecta al peso?" value={formData.medical.medication_affects_weight} path="medical.medication_affects_weight" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          {formData.medical.medication_affects_weight && (
+                                             <DataField label="Detalles efecto en peso" value={formData.medical.medication_affects_weight_details} path="medical.medication_affects_weight_details" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          )}
+                                          <DataField label="¿Limitaciones para ejercicio?" value={formData.medical.exercise_medical_limitations} path="medical.exercise_medical_limitations" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          {formData.medical.exercise_medical_limitations && (
+                                             <DataField label="Detalles limitaciones" value={formData.medical.exercise_medical_limitations_details} path="medical.exercise_medical_limitations_details" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                          )}
                                        </div>
                                     </div>
                                  </div>
@@ -3608,12 +3602,6 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        </div>
                                     </div>
                                  </div>
-                              </div>
-
-                              {/* Glucose History Table (Visible to Staff) */}
-                              <div className="space-y-4">
-                                 <SectionTitle title="Historial de Glucemia (Últimos 20 registros)" icon={<Activity className="w-4 h-4 text-slate-600" />} />
-                                 <GlucoseHistoryTable clientId={client.id} />
                               </div>
 
                               <MedicalReviews client={formData} currentUserRole={currentUser?.role} />

@@ -40,13 +40,12 @@ export interface OnboardingData {
     healthConditions: string[];
     otherHealthConditions: string;
     dailyMedication: string;
-    usesInsulin: boolean;
-    insulinBrand: string;
-    insulinDose: string;
-    insulinTime: string;
-    usesFreestyleLibre: boolean;
-    glucoseFasting: string;
-    lastHba1c: string;
+    treatments: string[];
+    treatmentStartDate: string;
+    medicationAffectsWeight: boolean;
+    medicationAffectsWeightDetails: string;
+    exerciseLimitations: boolean;
+    exerciseLimitationsDetails: string;
     specialSituations: string[];
     symptoms: string[];
 
@@ -108,13 +107,12 @@ export function OnboardingPage() {
         healthConditions: [],
         otherHealthConditions: '',
         dailyMedication: '',
-        usesInsulin: false,
-        insulinBrand: '',
-        insulinDose: '',
-        insulinTime: '',
-        usesFreestyleLibre: false,
-        glucoseFasting: '',
-        lastHba1c: '',
+        treatments: [],
+        treatmentStartDate: '',
+        medicationAffectsWeight: false,
+        medicationAffectsWeightDetails: '',
+        exerciseLimitations: false,
+        exerciseLimitationsDetails: '',
         specialSituations: [],
         symptoms: [],
         currentWeight: 0,
@@ -275,13 +273,17 @@ export function OnboardingPage() {
                 property_enfermedades: formData.healthConditions.join(', '),
                 property_otras_enfermedades_o_condicionantes: formData.otherHealthConditions,
                 property_medicaci_n: formData.dailyMedication,
-                property_insulina: formData.usesInsulin ? 'Sí' : 'No',
-                property_marca_insulina: formData.insulinBrand || null,
-                property_dosis: formData.insulinDose || null,
-                property_hora_inyecci_n: formData.insulinTime || null,
-                property_usa_sensor_free_style: formData.usesFreestyleLibre,
-                property_glucosa_en_ayunas_actual: formData.glucoseFasting || null,
-                property_ultima_glicosilada_hb_a1c: formData.lastHba1c || null,
+                oncology_status: (formData.healthConditions || []).filter((c: string) => c.toLowerCase().includes('cáncer') || c.toLowerCase().includes('linfoma')).join(', ') || null,
+                treatment_chemotherapy: (formData.treatments || []).includes('Quimioterapia'),
+                treatment_radiotherapy: (formData.treatments || []).includes('Radioterapia'),
+                treatment_hormonotherapy: (formData.treatments || []).includes('Hormonoterapia'),
+                treatment_immunotherapy: (formData.treatments || []).includes('Inmunoterapia'),
+                treatment_surgery: (formData.treatments || []).includes('Cirugía'),
+                treatment_start_date: formData.treatmentStartDate || null,
+                medication_affects_weight: formData.medicationAffectsWeight || false,
+                medication_affects_weight_details: formData.medicationAffectsWeightDetails || null,
+                exercise_medical_limitations: formData.exerciseLimitations || false,
+                exercise_medical_limitations_details: formData.exerciseLimitationsDetails || null,
                 property_situaciones_especiales: formData.specialSituations.join(', '),
                 property_sintomas: formData.symptoms.join(', '),
 
@@ -464,9 +466,9 @@ export function OnboardingPage() {
             // 6. Auto-create initial medical assessment for endocrinologist (Non-blocking)
             (async () => {
                 try {
-                    const diabetesInfo = (formData.healthConditions || []).find(c =>
-                        c.toLowerCase().includes('diabetes') || c.toLowerCase().includes('tipo 1') || c.toLowerCase().includes('tipo 2')
-                    ) || 'No especificado';
+                    const oncologyInfo = (formData.healthConditions || []).filter((c: string) =>
+                        c.toLowerCase().includes('cáncer') || c.toLowerCase().includes('linfoma')
+                    ).join(', ') || 'No especificado';
 
                     await supabase
                         .from('medical_reviews')
@@ -474,11 +476,11 @@ export function OnboardingPage() {
                             client_id: newClient.id,
                             coach_id: saleData.assigned_coach_id || null,
                             submission_date: new Date().toISOString(),
-                            diabetes_type: diabetesInfo,
-                            insulin_usage: formData.usesInsulin ? 'Si' : 'No',
-                            insulin_dose: formData.insulinDose || null,
+                            oncology_status: oncologyInfo,
+                            treatments: (formData.treatments || []).join(', ') || null,
+                            treatment_start_date: formData.treatmentStartDate || null,
                             medication: formData.dailyMedication || null,
-                            comments: `Valoración inicial automática generada al completar el onboarding. Paciente: ${formData.firstName} ${formData.surname}. Condiciones: ${(formData.healthConditions || []).join(', ') || 'Ninguna reportada'}. HbA1c: ${formData.lastHba1c || 'N/D'}. Glucosa ayunas: ${formData.glucoseFasting || 'N/D'}.`,
+                            comments: `Valoración inicial automática generada al completar el onboarding. Paciente: ${formData.firstName} ${formData.surname}. Condiciones: ${(formData.healthConditions || []).join(', ') || 'Ninguna reportada'}. Tratamientos: ${(formData.treatments || []).join(', ') || 'Ninguno'}. Limitaciones ejercicio: ${formData.exerciseLimitations ? (formData.exerciseLimitationsDetails || 'Sí') : 'No'}. Medicación afecta peso: ${formData.medicationAffectsWeight ? (formData.medicationAffectsWeightDetails || 'Sí') : 'No'}.`,
                             report_type: 'Valoración Inicial',
                             status: 'pending'
                         });

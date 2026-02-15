@@ -269,12 +269,12 @@ export function WellnessCard({ clientId }: WellnessCardProps) {
                             Nota Importante del Día
                         </label>
                         <p className="text-xs text-slate-500 mb-2">
-                            Registra aquí eventos importantes: problemas de salud, bajones de glucosa, lesiones, visitas al médico, etc. Tu coach lo revisará.
+                            Registra aquí eventos importantes: problemas de salud, efectos del tratamiento, lesiones, visitas al médico, etc. Tu coach lo revisará.
                         </p>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Ej: Hoy tuve un bajón de glucosa por la mañana y tuve que tomar zumo. Me he sentido mareado hasta el mediodía..."
+                            placeholder="Ej: Hoy he tenido más energía después del paseo matutino. He podido hacer toda la rutina de ejercicios. Me siento más fuerte."
                             rows={3}
                             className="w-full p-3 text-sm border border-slate-200 rounded-xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none resize-none bg-white"
                         />

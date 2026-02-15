@@ -9,10 +9,13 @@ interface Props {
 
 export function MedicalDataStep({ formData, updateField, toggleArrayField }: Props) {
     const healthConditionsList = [
-        'Diabetes tipo 1',
-        'Diabetes tipo 2',
-        'Diabetes MODY',
-        'Diabetes LADA',
+        'Cáncer de mama',
+        'Cáncer de colon',
+        'Cáncer de pulmón',
+        'Linfoma',
+        'Otro tipo de cáncer',
+        'Linfedema',
+        'Neuropatía periférica',
         'Sobrepeso',
         'Obesidad',
         'Hipotiroidismo',
@@ -86,103 +89,68 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                 />
             </div>
 
-            {/* Insulina */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+            {/* Tratamientos oncológicos */}
+            <div className="space-y-4 p-4 bg-white/50 rounded-xl border border-slate-200">
+                <p className="text-sm font-semibold text-slate-700">Tratamientos recibidos o en curso</p>
+                <div className="grid grid-cols-2 gap-3">
+                    {['Quimioterapia', 'Radioterapia', 'Hormonoterapia', 'Inmunoterapia', 'Cirugía', 'Ninguno actualmente'].map(t => (
+                        <label key={t} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={(formData.treatments || []).includes(t)}
+                                onChange={(e) => {
+                                    const current = formData.treatments || [];
+                                    updateField('treatments', e.target.checked ? [...current, t] : current.filter((x: string) => x !== t));
+                                }}
+                                className="w-4 h-4 rounded border-slate-300 text-brand-green focus:ring-brand-green"
+                            />
+                            {t}
+                        </label>
+                    ))}
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Fecha inicio tratamiento</label>
                     <input
-                        type="checkbox"
-                        checked={formData.usesInsulin}
-                        onChange={(e) => updateField('usesInsulin', e.target.checked)}
-                        className="w-5 h-5 text-emerald-600 rounded"
+                        type="date"
+                        value={formData.treatmentStartDate || ''}
+                        onChange={e => updateField('treatmentStartDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
                     />
-                    <span className="font-bold text-slate-900">¿Usas insulina?</span>
-                </label>
+                </div>
+            </div>
 
-                {formData.usesInsulin && (
-                    <div className="mt-4 space-y-3">
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                Marca del boli *
-                            </label>
-                            <input
-                                type="text"
-                                required={formData.usesInsulin}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                value={formData.insulinBrand}
-                                onChange={(e) => updateField('insulinBrand', e.target.value)}
-                                placeholder="Ej: Toujeo, Tresiba, Humalog..."
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                Dosis (Lenta y Rápida) *
-                            </label>
-                            <input
-                                type="text"
-                                required={formData.usesInsulin}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                value={formData.insulinDose}
-                                onChange={(e) => updateField('insulinDose', e.target.value)}
-                                placeholder="Ej: Lenta 20u, Rápida 8u"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                Horario de inyección *
-                            </label>
-                            <input
-                                type="text"
-                                required={formData.usesInsulin}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                value={formData.insulinTime}
-                                onChange={(e) => updateField('insulinTime', e.target.value)}
-                                placeholder="Ej: 8:00 y 22:00"
-                            />
-                        </div>
-                    </div>
+            {/* Medicación y peso */}
+            <div className="space-y-3 p-4 bg-white/50 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={formData.medicationAffectsWeight || false} onChange={e => updateField('medicationAffectsWeight', e.target.checked)} className="w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green" />
+                    <span className="text-sm font-medium text-slate-700">¿Tu medicación afecta a tu peso?</span>
+                </label>
+                {formData.medicationAffectsWeight && (
+                    <textarea
+                        value={formData.medicationAffectsWeightDetails || ''}
+                        onChange={e => updateField('medicationAffectsWeightDetails', e.target.value)}
+                        placeholder="Describe cómo afecta la medicación a tu peso..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
+                        rows={2}
+                    />
                 )}
             </div>
 
-            {/* Sensor */}
-            <div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={formData.usesFreestyleLibre}
-                        onChange={(e) => updateField('usesFreestyleLibre', e.target.checked)}
-                        className="w-5 h-5 text-emerald-600 rounded"
-                    />
-                    <span className="font-bold text-slate-900">¿Usas sensor FreeStyle Libre?</span>
+            {/* Limitaciones para ejercicio */}
+            <div className="space-y-3 p-4 bg-white/50 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={formData.exerciseLimitations || false} onChange={e => updateField('exerciseLimitations', e.target.checked)} className="w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green" />
+                    <span className="text-sm font-medium text-slate-700">¿Tienes limitaciones médicas para el ejercicio?</span>
                 </label>
-            </div>
-
-            {/* Valores opcionales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Glucosa en ayunas (mg/dL) <span className="text-slate-400 font-normal">(opcional)</span>
-                    </label>
-                    <input
-                        type="number"
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                        value={formData.glucoseFasting}
-                        onChange={(e) => updateField('glucoseFasting', e.target.value)}
-                        placeholder="Ej: 110"
+                {formData.exerciseLimitations && (
+                    <textarea
+                        value={formData.exerciseLimitationsDetails || ''}
+                        onChange={e => updateField('exerciseLimitationsDetails', e.target.value)}
+                        placeholder="Describe tus limitaciones (ej: linfedema, fatiga post-tratamiento, neuropatía...)"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
+                        rows={2}
                     />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Última HbA1c (%) <span className="text-slate-400 font-normal">(opcional)</span>
-                    </label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                        value={formData.lastHba1c}
-                        onChange={(e) => updateField('lastHba1c', e.target.value)}
-                        placeholder="Ej: 6.5"
-                    />
-                </div>
+                )}
             </div>
 
             {/* Situaciones especiales */}

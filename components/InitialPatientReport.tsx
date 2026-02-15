@@ -3,7 +3,7 @@ import { Client } from '../types';
 import {
   Heart, Utensils, Dumbbell, Target, Ruler, Pill,
   Droplets, Activity, Scale, Clock, AlertTriangle,
-  Apple, Wine, Sandwich, ChefHat, Syringe
+  Apple, Wine, Sandwich, ChefHat
 } from 'lucide-react';
 
 interface InitialPatientReportProps {
@@ -97,20 +97,11 @@ const InitialPatientReport: React.FC<InitialPatientReportProps> = ({ client }) =
         <SectionHeader title="Historial Médico" icon={<Heart className="w-5 h-5 text-red-500" />} color="bg-red-50" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-          <InfoField label="Tipo de Diabetes" value={m.diabetesType} icon={<Droplets className="w-4 h-4" />} />
+          <InfoField label="Diagnóstico" value={m.diagnosis || m.diabetesType} icon={<Droplets className="w-4 h-4" />} />
           <InfoField label="Años diagnosticado" value={m.yearsDiagnosed} />
-          <InfoField label="Última HbA1c" value={m.lastHba1c} icon={<Activity className="w-4 h-4" />} />
-          <InfoField label="HbA1c Inicial" value={m.initialHba1c} />
-          <InfoField label="Glucosa en Ayunas (actual)" value={m.glucoseFastingCurrent} />
-          <InfoField label="Glucosa en Ayunas (inicial)" value={m.glucoseFastingInitial} />
-        </div>
-
-        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-          <InfoField label="Usa Insulina" value={m.insulin} icon={<Syringe className="w-4 h-4" />} />
-          <InfoField label="Marca de Insulina" value={m.insulinBrand} />
-          <InfoField label="Dosis de Insulina" value={m.insulinDose} />
-          <InfoField label="Hora de Inyección" value={m.insulinTime} />
-          <InfoField label="Usa Sensor FreeStyle" value={m.useSensor} />
+          <InfoField label="Estado Oncológico" value={m.oncology_status} icon={<Activity className="w-4 h-4" />} />
+          <InfoField label="Tratamiento Actual" value={m.currentTreatment} />
+          <InfoField label="Medicación" value={m.medication} icon={<Pill className="w-4 h-4" />} />
         </div>
 
         <div className="mt-5 pt-4 border-t border-slate-100 space-y-4">

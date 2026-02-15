@@ -85,16 +85,16 @@ const ClientCard: React.FC<ClientCardProps> = ({
             {/* Health & Tracking Info */}
             <div className="text-xs text-slate-600 mb-3 p-2.5 bg-slate-50 rounded-lg space-y-1.5">
                 <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-700">
-                        {client.medical.diabetesType === 'N/A' ? 'No Diabético' : client.medical.diabetesType}
+                    <span className="font-semibold text-slate-700 truncate max-w-[180px]">
+                        {client.medical.diagnosis || client.medical.oncology_status || 'Sin diagnóstico'}
                     </span>
-                    {client.medical.lastHba1c && (
+                    {client.energy_level != null && (
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            parseFloat(client.medical.lastHba1c) <= 7 ? 'bg-green-100 text-green-700' :
-                            parseFloat(client.medical.lastHba1c) <= 8 ? 'bg-amber-100 text-amber-700' :
+                            client.energy_level >= 7 ? 'bg-green-100 text-green-700' :
+                            client.energy_level >= 4 ? 'bg-amber-100 text-amber-700' :
                             'bg-red-100 text-red-700'
                         }`}>
-                            HbA1c: {client.medical.lastHba1c}%
+                            Energía: {client.energy_level}/10
                         </span>
                     )}
                 </div>

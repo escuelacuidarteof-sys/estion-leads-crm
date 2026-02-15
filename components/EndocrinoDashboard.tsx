@@ -70,7 +70,7 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
             const searchLower = searchTerm.toLowerCase();
             const clientName = (r as any).client_name || '';
             const matchesSearch = clientName.toLowerCase().includes(searchLower) ||
-                (r.diabetes_type || '').toLowerCase().includes(searchLower) ||
+                (r.diagnosis || r.diabetes_type || '').toLowerCase().includes(searchLower) ||
                 (r.report_type || '').toLowerCase().includes(searchLower);
             return matchesStatus && matchesSearch;
         });
@@ -190,9 +190,9 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
         doc.setFont('helvetica', 'normal');
         doc.text(`Nombre: ${(selectedReview as any).client_name || 'Paciente'}`, margin, yPos);
         yPos += 6;
-        doc.text(`Tipo de Diabetes: ${selectedReview.diabetes_type || 'N/A'}`, margin, yPos);
+        doc.text(`Diagnóstico: ${selectedReview.diagnosis || selectedReview.diabetes_type || 'N/A'}`, margin, yPos);
         yPos += 6;
-        doc.text(`Insulina: ${selectedReview.insulin_usage === 'Si' ? `Sí (${selectedReview.insulin_dose})` : 'No'}`, margin, yPos);
+        doc.text(`Tratamientos: ${selectedReview.active_treatments || selectedReview.treatment_details || 'No reportados'}`, margin, yPos);
         yPos += 6;
         doc.text(`Medicación: ${selectedReview.medication || 'No reportada'}`, margin, yPos);
         yPos += 15;
@@ -283,7 +283,7 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <input
                     type="text"
-                    placeholder="Buscar por alumno, tipo de diabetes..."
+                    placeholder="Buscar por alumno, diagnóstico, tratamiento..."
                     className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 outline-none shadow-sm"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
@@ -342,8 +342,8 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
 
                             <div className="space-y-2 mb-4">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-500">Diabetes:</span>
-                                    <span className="font-medium text-slate-800">{review.diabetes_type}</span>
+                                    <span className="text-slate-500">Diagnóstico:</span>
+                                    <span className="font-medium text-slate-800">{review.diagnosis || review.diabetes_type}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-slate-500">Tipo Informe:</span>
@@ -414,12 +414,12 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
                                             </div>
                                             <div className="bg-white rounded-xl p-4 border border-amber-100 space-y-3">
                                                 <div>
-                                                    <label className="text-xs text-slate-500 block mb-1">Diabetes</label>
-                                                    <p className="font-semibold text-slate-800">{selectedReview.diabetes_type}</p>
+                                                    <label className="text-xs text-slate-500 block mb-1">Diagnóstico</label>
+                                                    <p className="font-semibold text-slate-800">{selectedReview.diagnosis || selectedReview.diabetes_type}</p>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs text-slate-500 block mb-1">Insulina</label>
-                                                    <p className="font-semibold text-slate-800">{selectedReview.insulin_usage === 'Si' ? `Sí (${selectedReview.insulin_dose})` : 'No'}</p>
+                                                    <label className="text-xs text-slate-500 block mb-1">Tratamiento activo</label>
+                                                    <p className="font-semibold text-slate-800">{selectedReview.active_treatments || selectedReview.treatment_details || 'No reportado'}</p>
                                                 </div>
                                                 <div>
                                                     <label className="text-xs text-slate-500 block mb-1">Medicación</label>
@@ -439,12 +439,12 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
                                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Datos del Paciente</h3>
                                     <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="text-xs text-slate-500 block mb-1">Diabetes</label>
-                                            <p className="font-semibold text-slate-800">{selectedReview.diabetes_type}</p>
+                                            <label className="text-xs text-slate-500 block mb-1">Diagnóstico</label>
+                                            <p className="font-semibold text-slate-800">{selectedReview.diagnosis || selectedReview.diabetes_type}</p>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-slate-500 block mb-1">Insulina</label>
-                                            <p className="font-semibold text-slate-800">{selectedReview.insulin_usage === 'Si' ? `Sí (${selectedReview.insulin_dose})` : 'No'}</p>
+                                            <label className="text-xs text-slate-500 block mb-1">Tratamiento activo</label>
+                                            <p className="font-semibold text-slate-800">{selectedReview.active_treatments || selectedReview.treatment_details || 'No reportado'}</p>
                                         </div>
                                         <div className="col-span-2">
                                             <label className="text-xs text-slate-500 block mb-1">Medicación</label>
