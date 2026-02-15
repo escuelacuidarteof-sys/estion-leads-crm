@@ -60,8 +60,8 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
     const filteredLeads = leads.filter(l => {
         const searchLower = searchTerm.toLowerCase();
         return (
-            l.firstName.toLowerCase().includes(searchLower) ||
-            l.surname.toLowerCase().includes(searchLower) ||
+            (l.firstName || '').toLowerCase().includes(searchLower) ||
+            (l.surname || '').toLowerCase().includes(searchLower) ||
             l.email?.toLowerCase().includes(searchLower) ||
             l.phone?.includes(searchLower) ||
             l.instagram_user?.toLowerCase().includes(searchLower)
