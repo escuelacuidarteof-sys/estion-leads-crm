@@ -3,8 +3,21 @@ dist/
 .env
 .DS_Store
 *.local
+
+# Web app leads
 web-app/node_modules/
 web-app/dist/
+
+# CRM
+cuidarte crm/node_modules/
+cuidarte crm/build_prod/
+cuidarte crm/.env.local
+
+# System
 brain/
 .system_generated/
-*.sql
+.claude/
+
+# Ignore migration SQL but keep schema SQL
+*migration*.sql
+*test*.sql

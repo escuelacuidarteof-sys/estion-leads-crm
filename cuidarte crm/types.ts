@@ -1,0 +1,701 @@
+export enum UserRole {
+  ADMIN = 'admin',
+  COACH = 'coach',
+  HEAD_COACH = 'head_coach',
+  CLIENT = 'client',
+  CLOSER = 'closer',
+  CONTABILIDAD = 'contabilidad',
+  PSICOLOGO = 'psicologo',
+  RRSS = 'rrss',
+  SETTER = 'setter',
+  DIRECCION = 'direccion',
+  DIETITIAN = 'dietitian',
+  DOCTOR = 'doctor',
+  SUPER_ADMIN = 'super_admin'
+}
+
+export interface ClassSession {
+  id: string;
+  title: string;
+  description: string;
+  speaker: string;
+  date: string;
+  url?: string;
+  category: 'Entrenamiento' | 'Nutrición' | 'Mindset' | 'General';
+  is_recorded: boolean;
+}
+
+export interface WeeklyCheckin {
+  id: string;
+  client_id: string;
+  created_at: string;
+  responses: Record<string, string>;
+  rating?: number;
+  status: 'pending_review' | 'reviewed';
+  coach_notes?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarUrl?: string;
+  avatar_url?: string;
+  photo_url?: string;
+  bio?: string;
+  phone?: string;
+  specialty?: string;
+  instagram?: string;
+  linkedin?: string;
+  calendar_url?: string;
+  birth_date?: string;
+  address?: string;
+  bank_account?: string;
+
+  bank_account_holder?: string;
+  bank_account_iban?: string;
+  bank_name?: string;
+  bank_swift_bic?: string;
+  tax_id?: string;
+  billing_address?: string;
+
+  commission_percentage?: number;
+  price_per_client?: number;
+  max_clients?: number;
+  items_sold?: number;
+  permissions?: string[];
+  password?: string;
+
+  tier?: 1 | 2 | 3;
+  is_exclusive?: boolean;
+  tier_updated_at?: string;
+  performance_notes?: string;
+  internal_nps?: number;
+  task_compliance_rate?: number;
+  isMockSession?: boolean;
+  collegiate_number?: string;
+}
+
+export enum ClientStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PAUSED = 'paused',
+  DROPOUT = 'dropout',
+  COMPLETED = 'completed'
+}
+
+// --- DATOS MÉDICOS (Genérico para cualquier especialidad de salud) ---
+export interface MedicalData {
+  diagnosis?: string;          // Diagnóstico principal
+  diagnosisDate?: string;      // Fecha del diagnóstico
+  currentTreatment?: string;   // Tratamiento actual
+  pathologies?: string;        // Otras patologías / enfermedades actuales
+  medication?: string;         // Medicación diaria
+  medicalNotes?: string;       // Notas médicas generales
+  medicalReviews?: string;
+  otherConditions?: string;
+}
+
+export interface NutritionData {
+  planUrl?: string;
+  assigned_nutrition_type?: string;
+  assigned_calories?: number;
+  allergies?: string;
+  otherAllergies?: string;
+  dislikes?: string;
+  preferences?: string;
+  consumedFoods?: string;
+  cooksForSelf?: boolean;
+  eatsWithBread?: boolean;
+  breadAmount?: string;
+  waterIntake?: string;
+  alcohol?: string;
+  cravings?: string;
+  cravingsDetail?: string;
+  snacking?: boolean;
+  snackingDetail?: string;
+  eatingDisorder?: string;
+  eatingDisorderDetail?: string;
+  schedules?: {
+    breakfast?: string;
+    morningSnack?: string;
+    lunch?: string;
+    afternoonSnack?: string;
+    dinner?: string;
+  };
+  mealsPerDay?: number;
+  mealsOutPerWeek?: number;
+  willingToWeighFood?: boolean;
+  dietaryNotes?: string;
+  lastRecallMeal?: string;
+}
+
+export interface TrainingData {
+  activityLevel?: string;
+  stepsGoal?: number;
+  strengthTraining?: boolean;
+  trainingLocation?: string;
+  injuries?: string;
+  notes?: string;
+  availability?: string;
+  sensations_report?: string;
+}
+
+export interface AssessmentTest {
+  id: string;
+  title: string;
+  description: string;
+  youtube_id: string;
+  category: string;
+  order_index: number;
+}
+
+export interface GoalsData {
+  motivation?: string;
+  goal_3_months?: string;
+  goal_3_months_status?: 'pending' | 'achieved' | 'failed';
+  goal_6_months?: string;
+  goal_6_months_status?: 'pending' | 'achieved' | 'failed';
+  goal_1_year?: string;
+  goal_1_year_status?: 'pending' | 'achieved' | 'failed';
+  weeklyGoal?: string;
+  next4WeeksGoal?: string;
+  possiblePhaseGoals?: string;
+  successStory?: string;
+  testimonial?: string;
+  testimonialRecorded?: boolean;
+  pathToSuccess?: string;
+}
+
+// --- DATOS DE SUSCRIPCIÓN (Reemplaza el modelo de fases F1-F5) ---
+export interface SubscriptionData {
+  subscriptionType?: string;  // monthly, quarterly, biannual, annual, custom
+  startDate?: string;
+  endDate?: string;
+  amount?: number;
+  autoRenewal?: boolean;
+  durationMonths?: number;
+
+  // Contrato
+  contract_signed?: boolean;
+  contract_signed_at?: string;
+  contract_signature_image?: string;
+  contract_link?: string;
+  contract_visible_to_client?: boolean;
+  assigned_contract_template_id?: string;
+  contract_content_override?: string;
+  contract_date?: string;
+  contract_amount?: number;
+
+  // Historial de renovaciones (genérico, sin fases fijas)
+  renewalHistory?: Array<{
+    date: string;
+    duration: number;
+    amount: number;
+    paymentMethod?: string;
+    receiptUrl?: string;
+  }>;
+
+  [key: string]: any;
+}
+
+export interface Client {
+  id: string;
+
+  // Personal & Info
+  firstName: string;
+  surname: string;
+  name: string;
+  email: string;
+  idNumber?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  zip?: string;
+  instagram?: string;
+  telegramId?: string;
+  telegram_group_id?: string;
+
+  // Demographics
+  age?: number;
+  birthDate?: string;
+  gender?: string;
+  hormonal_status?: 'pre_menopausica' | 'perimenopausica' | 'menopausica';
+  average_cycle_length?: number;
+  hrt_treatment?: string;
+  last_period_start_date?: string;
+
+  // Physical Stats
+  height?: number;
+  current_weight?: number;
+  initial_weight?: number;
+  target_weight?: number;
+  lost_weight?: number;
+  kg_to_goal?: number;
+  abdominal_perimeter?: number;
+  arm_perimeter?: number;
+  thigh_perimeter?: number;
+  last_weight_date?: string;
+
+  // Contract & Status
+  status: ClientStatus;
+  client_state?: string;
+
+  registration_date?: string;
+  start_date: string;
+  contract_end_date: string;
+
+  next_renewal_date?: string;
+  next_renewal_accepted?: boolean;
+  program_duration_months?: number;
+  next_program_duration_months?: number;
+  start_next_contract_date?: string;
+
+  coach_id: string;
+  coach_name?: string; // Nombre del coach (cargado dinámicamente)
+  ltv?: number;
+  payments_status?: string;
+  high_ticket?: boolean;
+
+  // CRM Tracking
+  last_contact_date?: string;
+  recontact_result?: string;
+  recontact_notes?: string;
+
+  // Pausa
+  pauseDate?: string;
+  pauseReason?: string;
+  weeks_paused?: number;
+
+  // Payment & Renewals
+  renewal_payment_link?: string;
+  renewal_payment_status?: 'none' | 'pending' | 'uploaded' | 'verified';
+  renewal_receipt_url?: string;
+  renewal_amount?: number;
+  renewal_duration?: number;
+  renewal_verified_at?: string;
+  renewal_payment_method?: string;
+
+  // Fechas de salida
+  abandonmentDate?: string;
+  abandonmentReason?: string;
+  inactiveDate?: string;
+  inactiveReason?: string;
+
+  call_warning?: string;
+  next_call_date?: string;
+
+  // Revisión semanal
+  weeklyReviewUrl?: string;
+  weeklyReviewDate?: string;
+  weeklyReviewComments?: string;
+
+  last_checkin_submitted?: string;
+  last_checkin_status?: 'pending_review' | 'reviewed';
+  last_checkin_id?: string;
+  last_checkin_reviewed_at?: string;
+  missed_checkins_count?: number;
+  last_checkin_missed_reason?: string;
+
+  // Sub-objects
+  medical: MedicalData;
+  nutrition: NutritionData;
+  training: TrainingData;
+  goals: GoalsData;
+  program: SubscriptionData;
+
+  // Nutrition Approval
+  nutrition_approved?: boolean;
+  nutrition_approved_at?: string;
+  nutrition_approved_by?: string;
+
+  general_notes?: string;
+  history?: string;
+  history_food_behavior?: string;
+
+  // Onboarding
+  onboarding_token?: string;
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string;
+
+  // Account Activation
+  user_id?: string;
+  activation_token?: string;
+  activation_token_created_at?: string;
+
+  // Coach Communication Fields
+  next_appointment_date?: string;
+  next_appointment_time?: string;
+  next_appointment_note?: string;
+  next_appointment_link?: string;
+  next_appointment_status?: string;
+  next_appointment_conclusions?: string;
+  coach_message?: string;
+
+  created_at: string;
+  allow_medical_access?: boolean;
+  updated_at: string;
+  show_health_tracker?: boolean;
+}
+
+export interface MedicalReview {
+  id: string;
+  client_id: string;
+  coach_id?: string;
+  submission_date: string;
+  diagnosis?: string;
+  treatment?: string;
+  medication: string;
+  comments: string;
+  report_type: string;
+  file_urls: string[];
+
+  status: 'pending' | 'reviewed';
+  doctor_notes?: string;
+  doctor_video_url?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  created_at: string;
+  client_name?: string;
+}
+
+export interface Alert {
+  type: 'expiration';
+  clientId: string;
+  clientName: string;
+  daysRemaining: number;
+  contractEndDate: string;
+}
+
+// --- ENTIDADES CRM ---
+
+export interface CoachTask {
+  id: string;
+  coach_id: string;
+  client_id?: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  due_time?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  created_at: string;
+  updated_at: string;
+  client_name?: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  client_id?: string;
+  staff_id?: string;
+  subject: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high';
+  category: 'nutricion' | 'entrenamiento' | 'tecnico_app' | 'facturacion' | 'medico' | 'otros';
+  assigned_to?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  client_name?: string;
+  staff_name?: string;
+  creator_name?: string;
+}
+
+export interface SupportTicketComment {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user_name?: string;
+  user_photo?: string;
+}
+
+export interface CoachInvoice {
+  id: string;
+  coach_id: string;
+  period_date: string;
+  amount: number;
+  invoice_url: string;
+  status: 'pending' | 'approved' | 'paid' | 'rejected';
+  admin_notes?: string;
+  coach_notes?: string;
+  submitted_at: string;
+  updated_at: string;
+  coach_name?: string;
+}
+
+export interface UnifiedNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'assignment' | 'checkin' | 'task' | 'system' | 'ticket';
+  link?: string;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  user_id?: string;
+  action: 'INSERT' | 'UPDATE' | 'DELETE';
+  target_table: string;
+  target_id: string;
+  changes?: Record<string, { old: any; new: any }>;
+  created_at: string;
+  user_name?: string;
+}
+
+// --- MODULE: LEADS (PRE-VENTA) ---
+
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'SCHEDULED' | 'WON' | 'LOST' | 'NO_SHOW' | 'CANCELLED' | 'RE-SCHEDULED' | 'NO_ENTRY';
+
+export interface Lead {
+  id: string;
+  firstName: string;
+  surname: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  instagram_user?: string;
+  status: LeadStatus;
+  source: string;
+  notes?: string;
+  assigned_to?: string;
+  closer_id?: string;
+  last_contact_date?: string;
+  next_followup_date?: string;
+  created_at: string;
+  updated_at?: string;
+
+  in_out?: 'Inbound' | 'Outbound';
+  procedencia_detalle?: string;
+  qualification_level?: number;
+  attended?: boolean;
+  objections?: string;
+  recording_url?: string;
+  sale_price?: number;
+  commission_amount?: number;
+  meeting_link?: string;
+  closer_notes?: string;
+
+  meeting_date?: string;
+  call_date?: string;
+  meeting_time?: string;
+  procedencia?: 'Instagram' | 'Formulario' | 'WhatsApp' | 'YouTube' | 'TikTok' | 'Otro';
+
+  assigned_to_name?: string;
+}
+
+// --- MODULE: CHAT ---
+
+export interface ChatRoom {
+  id: string;
+  type: 'direct' | 'group';
+  name?: string;
+  photo_url?: string;
+  last_message?: string;
+  last_message_at?: string;
+  created_at: string;
+  created_by?: string;
+  metadata?: Record<string, any>;
+
+  participants?: ChatParticipant[];
+  unread_count?: number;
+}
+
+export interface ChatParticipant {
+  room_id: string;
+  user_id: string;
+  joined_at: string;
+  last_read_at?: string;
+
+  user_name?: string;
+  user_photo?: string;
+  user_role?: UserRole;
+}
+
+export interface ChatMessage {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  content: string;
+  type: 'text' | 'image' | 'audio' | 'file';
+  file_url?: string;
+  created_at: string;
+
+  sender_name?: string;
+  sender_photo?: string;
+}
+
+export interface CoachGoal {
+  id: string;
+  client_id: string;
+  title: string;
+  description?: string;
+  start_date?: string;
+  deadline?: string;
+  completed_at?: string;
+  goal_type: 'weekly' | 'monthly' | 'custom';
+  status: 'pending' | 'achieved' | 'failed';
+  feedback?: string;
+  failure_reason?: string;
+  action_plan?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+// --- MODULE: RISK ALERTS (SISTEMA ANTIABANDONO) ---
+
+export type RiskAlertStatus = 'active' | 'resolved' | 'escalated';
+export type RiskReasonCategory = 'no_response' | 'no_checkins' | 'not_following_plan' | 'demotivated' | 'personal_issues' | 'other';
+
+export interface ClientRiskAlert {
+  id: string;
+  client_id: string;
+  coach_id: string;
+  reason_category: RiskReasonCategory;
+  notes?: string;
+  status: RiskAlertStatus;
+  resolved_at?: string;
+  resolved_by?: string;
+  resolution_notes?: string;
+  created_at: string;
+  updated_at: string;
+  client_name?: string;
+  coach_name?: string;
+  resolved_by_name?: string;
+}
+
+// --- MODULE: NUTRITION PLANS ---
+
+export type NutritionPlanStatus = 'draft' | 'published';
+export type RecipeCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export type DietType =
+  | 'Flexible'
+  | 'Sin Gluten'
+  | 'Vegetariano'
+  | 'Pescetariano'
+  | 'Vegano'
+  | 'Sin Carne Roja'
+  | 'Ovolactovegetariano';
+
+export type IngredientSection =
+  | 'Pescadería'
+  | 'Carnicería'
+  | 'Frutería'
+  | 'Lácteos'
+  | 'Despensa'
+  | 'Panadería'
+  | 'Congelados'
+  | 'Otros';
+
+export interface RecipeIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
+  section?: IngredientSection;
+}
+
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface WeeklyPlanSlot {
+  day: number;
+  meal: MealSlot;
+  recipeId: string | null;
+}
+
+export type WeeklyPlanGrid = WeeklyPlanSlot[];
+
+export interface NutritionPlan {
+  id: string;
+  name: string;
+  description?: string;
+  tags: string[];
+  target_calories?: number;
+  diet_type?: DietType;
+  target_month?: number;
+  target_fortnight?: 1 | 2;
+  instructions?: string;
+  intro_content?: string;
+  breakfast_content?: string;
+  lunch_content?: string;
+  dinner_content?: string;
+  snack_content?: string;
+  status: NutritionPlanStatus;
+  published_at?: string;
+  published_by?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  recipes_count?: number;
+  assigned_clients_count?: number;
+}
+
+export interface NutritionRecipe {
+  id: string;
+  plan_id: string;
+  category: RecipeCategory;
+  position: number;
+  name: string;
+  ingredients: RecipeIngredient[];
+  preparation?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  image_url?: string;
+  is_draft: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientNutritionAssignment {
+  id: string;
+  client_id: string;
+  plan_id: string;
+  assigned_at: string;
+  assigned_by?: string;
+  plan_name?: string;
+  client_name?: string;
+}
+
+export interface ClientNutritionOverride {
+  id: string;
+  client_id: string;
+  recipe_id: string;
+  custom_name?: string;
+  custom_ingredients?: RecipeIngredient[];
+  custom_preparation?: string;
+  custom_calories?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NutritionPlanVersion {
+  id: string;
+  plan_id: string;
+  version_number: number;
+  snapshot: any;
+  published_at: string;
+}
+
+export interface ClientMaterial {
+  id: string;
+  client_id: string;
+  created_by: string;
+  title: string;
+  type: 'link' | 'document' | 'video';
+  url: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  creator_name?: string;
+}
