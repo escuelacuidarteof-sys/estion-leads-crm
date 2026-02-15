@@ -50,12 +50,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
       <div className="w-full max-w-md z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Brand Header */}
         <div className="mb-10 text-center">
-          <div className="inline-block p-4 bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 mb-6 shadow-2xl">
-            <img
-              src="/logo.png"
-              alt="Escuela Cuid-Arte"
-              className="w-20 h-20 rounded-[2rem] object-cover shadow-xl"
-            />
+          <div className="inline-block p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2.5rem] border border-white/10 mb-6 shadow-2xl">
+            <span className="flex items-center justify-center w-20 h-20 text-4xl font-black text-white">CA</span>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">
             Escuela Cuid-Arte

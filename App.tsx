@@ -149,8 +149,8 @@ const AppContent: React.FC = () => {
           });
           syncRolePermissions(matrix);
         }
-      } catch (err) {
-        console.error('Error loading dynamic permissions:', err);
+      } catch {
+        // Tabla role_permissions_registry puede no existir aún
       }
     };
 
