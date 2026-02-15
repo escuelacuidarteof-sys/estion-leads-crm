@@ -722,6 +722,27 @@ export const mockAuth = {
       }
     }
 
+    // --- 2B. DIRECT USERS TABLE AUTH (when Supabase Auth is not configured for this user) ---
+    if (!authData?.user && rawEmail.includes('@') && rawPass) {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', rawEmail)
+        .maybeSingle();
+
+      if (dbUser && dbUser.password === rawPass) {
+        console.log(`Login directo via tabla users para ${rawEmail} (Rol: ${dbUser.role})`);
+        return {
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+          role: dbUser.role as UserRole,
+          avatarUrl: dbUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(dbUser.name)}`,
+          isMockSession: false
+        };
+      }
+    }
+
     // --- 3. CLIENT LOGIN BY EMAIL ---
     // If staff login failed, try to find a client record with this email
     if (!authData?.user && rawEmail.includes('@')) {
