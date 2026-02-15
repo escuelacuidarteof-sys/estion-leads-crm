@@ -16,12 +16,12 @@ export const BUSINESS_CONFIG = {
 
   // --- Branding ---
   branding: {
-    primaryColor: '#667eea',
-    secondaryColor: '#764ba2',
-    accentColor: '#4facfe',
+    primaryColor: '#6BA06B',
+    secondaryColor: '#CDE8CD',
+    accentColor: '#D4AF37',
     logoUrl: '/logo.png',
-    signatureUrl: '/firma.png', // Firma para contratos
-    themeColor: '#667eea',
+    signatureUrl: '/firma.png',
+    themeColor: '#6BA06B',
   },
 
   // --- Tablas de Supabase ---

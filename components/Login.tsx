@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Activity, ArrowRight, Lock, ShieldCheck,
-  User, Smartphone, Users, Sparkles, Loader2
+  Activity, ArrowRight, Lock,
+  User, Smartphone, Loader2
 } from 'lucide-react';
 import InstallationGuide from './InstallationGuide';
 
@@ -18,7 +18,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
   const [error, setError] = useState<string | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
-  // Dynamic UI state
   const isEmail = identifier.includes('@');
 
   useEffect(() => {
@@ -31,46 +30,45 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
     setLoading(true);
 
     try {
-      // Predict role type for the existing handleLogin logic
       const predictedRole = isEmail ? 'staff' : 'client';
       await onLogin(identifier, password, predictedRole);
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      setError(err.message || 'Error al iniciar sesion');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px]"></div>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Subtle background shapes */}
+      <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-brand-mint/30 rounded-full blur-[100px]"></div>
+      <div className="absolute bottom-[-15%] left-[-10%] w-[40%] h-[40%] bg-brand-mint/20 rounded-full blur-[100px]"></div>
 
-      <div className="w-full max-w-md z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="mb-10 text-center">
-          <div className="inline-block p-4 bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 mb-6 shadow-2xl">
+          <div className="inline-block p-4 bg-brand-mint/30 backdrop-blur-sm rounded-[2.5rem] border border-brand-mint mb-6 shadow-lg">
             <img
               src="/logo.png"
               alt="Escuela Cuid-Arte"
-              className="w-20 h-20 rounded-[2rem] object-cover shadow-xl"
+              className="w-20 h-20 rounded-[2rem] object-cover shadow-md"
             />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2">
+          <h1 className="text-4xl font-heading font-black text-brand-dark tracking-tight mb-2">
             Escuela Cuid-Arte
           </h1>
-          <p className="text-slate-400 font-medium">Plataforma Unificada de Gestión</p>
+          <p className="text-brand-green font-medium font-body">Ciencia con calidez</p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 p-8 md:p-10 shadow-2xl">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-brand-mint/50 p-8 md:p-10 shadow-xl">
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-white text-center">Bienvenido de nuevo</h2>
-            <p className="text-slate-400 text-sm text-center mt-1">Ingresa tus datos para acceder a tu panel</p>
+            <h2 className="text-xl font-heading font-bold text-brand-dark text-center">Bienvenida de nuevo</h2>
+            <p className="text-gray-500 text-sm text-center mt-1 font-body">Ingresa tus datos para acceder a tu panel</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-2xl flex items-start gap-3 animate-in zoom-in-95">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl flex items-start gap-3">
               <Activity className="w-5 h-5 shrink-0" />
               <p className="font-medium">{error}</p>
             </div>
@@ -78,41 +76,41 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 font-heading">
                 Identificador de Acceso
               </label>
               <div className="relative group">
                 <input
                   type="text"
                   required
-                  className="w-full bg-white/5 border border-white/10 text-white pl-12 pr-4 py-4 rounded-2xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none font-bold placeholder:text-slate-600"
-                  placeholder="Email o Teléfono"
+                  className="w-full bg-brand-mint-light/50 border border-brand-mint text-brand-dark pl-12 pr-4 py-4 rounded-2xl focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all outline-none font-semibold placeholder:text-gray-400 font-body"
+                  placeholder="Email o Telefono"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                 />
-                <User className="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                <User className="absolute left-4 top-4 w-5 h-5 text-brand-green/50 group-focus-within:text-brand-green transition-colors" />
               </div>
             </div>
 
             {isEmail && (
-              <div className="space-y-2 animate-in slide-in-from-top-2 fade-in duration-300">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Contraseña
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 font-heading">
+                  Contrasena
                 </label>
                 <div className="relative group">
                   <input
                     type="password"
                     required
-                    className="w-full bg-white/5 border border-white/10 text-white pl-12 pr-4 py-4 rounded-2xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none font-bold placeholder:text-slate-600"
-                    placeholder="••••••••"
+                    className="w-full bg-brand-mint-light/50 border border-brand-mint text-brand-dark pl-12 pr-4 py-4 rounded-2xl focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all outline-none font-semibold placeholder:text-gray-400 font-body"
+                    placeholder="........"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  <Lock className="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                  <Lock className="absolute left-4 top-4 w-5 h-5 text-brand-green/50 group-focus-within:text-brand-green transition-colors" />
                 </div>
                 <div className="flex justify-end px-1">
-                  <a href="/#/forgot-password" title="Forgot Password" className="text-xs text-blue-400 hover:text-blue-300 font-bold">
-                    ¿Has olvidado la contraseña?
+                  <a href="/#/forgot-password" className="text-xs text-brand-green hover:text-brand-green-dark font-bold">
+                    Has olvidado la contrasena?
                   </a>
                 </div>
               </div>
@@ -121,7 +119,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-4 shadow-xl shadow-blue-600/20 active:scale-95"
+              className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-heading font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-4 shadow-lg shadow-brand-green/20 active:scale-[0.98]"
             >
               {loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -134,56 +132,29 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick, error: external
             </button>
           </form>
 
-          {/* Footer Actions */}
-          <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
+          {/* Footer */}
+          <div className="mt-8 pt-8 border-t border-brand-mint/50 space-y-4">
             {!isEmail && (
-              <p className="text-xs text-slate-500 text-center italic">
-                * Si eres alumno y usas teléfono, recibirás acceso directo tras la validación.
+              <p className="text-xs text-gray-400 text-center italic font-body">
+                * Si eres alumna y usas telefono, recibiras acceso directo tras la validacion.
               </p>
             )}
 
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="w-full text-blue-400/80 hover:text-blue-400 font-bold transition-all text-xs flex items-center justify-center gap-2 group border border-white/5 py-3 rounded-2xl hover:bg-white/5"
+              className="w-full text-brand-green hover:text-brand-green-dark font-bold transition-all text-xs flex items-center justify-center gap-2 group border border-brand-mint py-3 rounded-2xl hover:bg-brand-mint-light"
             >
               <Smartphone className="w-4 h-4" />
-              Instalar como Aplicación (App)
+              Instalar como Aplicacion (App)
             </button>
-
-            {onRegisterClick && (
-              <button
-                type="button"
-                onClick={onRegisterClick}
-                className="w-full text-slate-400 hover:text-white font-bold transition-all text-xs flex items-center justify-center gap-2 group"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform" />
-                ¿Nuevo Alumno? Empieza aquí
-              </button>
-            )}
           </div>
         </div>
 
         <InstallationGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
-
-        {/* Demo Access Links (Development) */}
-        <div className="mt-8 flex justify-center gap-6 opacity-40 hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => { setIdentifier('admin@demo.com'); setPassword('123456'); }}
-            className="text-[10px] font-black text-slate-500 hover:text-blue-400 flex items-center gap-1.5 uppercase tracking-widest"
-          >
-            <ShieldCheck className="w-3 h-3" /> Admin
-          </button>
-          <button
-            onClick={() => { setIdentifier('coach@demo.com'); setPassword('123'); }}
-            className="text-[10px] font-black text-slate-500 hover:text-indigo-400 flex items-center gap-1.5 uppercase tracking-widest"
-          >
-            <Users className="w-3 h-3" /> Equipo
-          </button>
-        </div>
       </div>
 
-      <p className="mt-12 text-[10px] text-slate-600 font-mono z-10">
+      <p className="mt-12 text-[10px] text-gray-400 font-body z-10">
         v1.0 | Escuela Cuid-Arte
       </p>
     </div>

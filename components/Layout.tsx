@@ -227,8 +227,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
           setMobileMenuOpen(false);
         }}
         className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group ${isActive
-          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30'
+          : 'text-white/60 hover:bg-brand-dark-light hover:text-white'
           }`}
       >
         <Icon className={`w-4.5 h-4.5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
@@ -246,12 +246,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
 
   if (isClient) {
     return (
-      <div className="min-h-screen bg-[#F3F4F6] font-sans">
-        <div className="bg-[#0f172a] text-white px-4 py-4 flex justify-between items-center shadow-md sticky top-0 z-50">
+      <div className="min-h-screen bg-[#f8faf8] font-sans">
+        <div className="bg-brand-dark text-white px-4 py-4 flex justify-between items-center shadow-md sticky top-0 z-50">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
             <div>
               <h1 className="font-bold text-lg leading-none">Cuid-Arte CRM</h1>
               <p className="text-[10px] text-slate-400 font-medium">Portal del Alumno</p>
@@ -269,9 +267,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] flex flex-row font-sans">
+    <div className="min-h-screen bg-[#f8faf8] flex flex-row font-sans">
       {/* Header móvil con hamburguesa */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0f172a] text-white px-4 py-3 flex justify-between items-center shadow-lg">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-brand-dark text-white px-4 py-3 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
           <div>
@@ -296,7 +294,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       )}
 
       {/* Menú lateral móvil */}
-      <aside className={`md:hidden fixed top-14 left-0 bottom-0 w-72 bg-[#0f172a] z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`md:hidden fixed top-14 left-0 bottom-0 w-72 bg-brand-dark z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <nav className="px-4 py-4 space-y-1">
           {isDireccion ? (
             <>
@@ -556,11 +554,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       </aside>
 
       {/* Sidebar desktop (sin cambios) */}
-      <aside className="hidden md:flex print:hidden w-72 bg-[#0f172a] flex-col fixed h-full z-20 shadow-xl border-r border-slate-800/50">
+      <aside className="hidden md:flex print:hidden w-72 bg-brand-dark flex-col fixed h-full z-20 shadow-xl border-r border-brand-dark-light">
         <div onClick={() => onNavigate('dashboard')} className="p-8 pb-4 flex items-center gap-3 cursor-pointer group/logo transition-all hover:opacity-80">
-          <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20 group-hover/logo:scale-110 transition-transform duration-300" />
+          <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-green/20 group-hover/logo:scale-110 transition-transform duration-300" />
           <div>
-            <h1 className="font-bold text-white text-lg tracking-tight leading-none group-hover/logo:text-blue-400 transition-colors">Cuid-Arte CRM v2</h1>
+            <h1 className="font-heading font-bold text-white text-lg tracking-tight leading-none group-hover/logo:text-brand-mint transition-colors">Cuid-Arte CRM</h1>
             <p className="text-xs text-slate-400 font-medium mt-1">Salud y Bienestar</p>
           </div>
         </div>
@@ -824,7 +822,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       </aside>
 
       <main className="flex-1 md:ml-72 print:ml-0 relative min-h-screen">
-        <div className="hidden md:flex sticky top-0 bg-[#F3F4F6]/80 backdrop-blur-md z-[999] px-8 py-4 justify-end items-center gap-4">
+        <div className="hidden md:flex sticky top-0 bg-[#f8faf8]/80 backdrop-blur-md z-[999] px-8 py-4 justify-end items-center gap-4">
           <StaffAnnouncements user={user} onNavigate={onNavigate} />
         </div>
         <div className="relative z-0 p-4 md:p-8 pt-16 md:pt-4">

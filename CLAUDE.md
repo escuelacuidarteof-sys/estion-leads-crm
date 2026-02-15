@@ -183,4 +183,48 @@ supabase.from('clientes_ado_notion')
 
 ---
 
-*Última actualización: 26 de Enero de 2026*
+## Identidad Visual (Brandbook)
+
+### IMPORTANTE: Seguir siempre estas directrices en cualquier cambio de UI.
+
+### Paleta de colores
+| Color | Hex | Uso |
+|-------|-----|-----|
+| Blanco | `#FFFFFF` | Fondos principales, espacio en blanco |
+| Verde vida | `#6BA06B` | Color primario, vitalidad, botones principales |
+| Verde menta | `#CDE8CD` | Fondos suaves, highlights, badges |
+| Dorado | `#D4AF37` | Acentos premium, detalles, iconos destacados |
+| Texto oscuro | `#1a2e1a` | Texto principal sobre fondo claro |
+
+### Tipografias
+- **Montserrat** (titulos): limpio, moderno, profesional
+- **Open Sans** (cuerpo): lectura suave, accesible
+
+### Estilo general
+- Estetica minimalista calida
+- Mucho espacio en blanco
+- Formas curvas suaves (border-radius generosos)
+- Baja saturacion, sensacion de luz natural
+- Iconografia monoline, trazo delgado
+- Equilibrio entre ciencia y humanidad
+- Tono femenino, calido, profesional, tranquilizador
+
+### Colores Tailwind personalizados
+```
+brand: {
+  green: '#6BA06B',
+  mint: '#CDE8CD',
+  gold: '#D4AF37',
+  dark: '#1a2e1a',
+}
+```
+
+### NO usar
+- Fondos oscuros agresivos (navy/slate-900) como color principal
+- Colores saturados brillantes
+- Gradientes llamativos tipo neon
+- El sidebar debe usar verde oscuro natural, no azul/navy
+
+---
+
+*Ultima actualizacion: 15 de Febrero de 2026*
