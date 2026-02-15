@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      outDir: 'build_prod',
+      outDir: 'dist',
       assetsDir: 'assets',
       emptyOutDir: true,
       rollupOptions: {

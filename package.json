@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "clean": "rm -rf dist build_prod node_modules package-lock.json",
+    "clean": "rm -rf dist node_modules package-lock.json",
     "dev": "vite",
-    "build": "vite build --outDir build_prod",
+    "build": "vite build",
     "preview": "vite preview",
-    "start": "npx http-server build_prod -p 80 -a 0.0.0.0 -c-1"
+    "start": "npx serve -s dist -l 80"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.39.0",
