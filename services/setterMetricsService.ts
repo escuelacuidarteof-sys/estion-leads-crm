@@ -138,16 +138,16 @@ export function calculateSetterMonthlyMetrics(
   // Lead metrics
   const assignedLeads = setterLeads.length;
   const contactedLeads = setterLeads.filter(l =>
-    l.status !== 'NEW' || l.setter_contacted_at
+    l.status !== 'new' || (l as any).setter_contacted_at
   ).length;
   const scheduledLeads = setterLeads.filter(l =>
-    l.status === 'SCHEDULED' || l.status === 'WON' || l.status === 'LOST' || l.setter_scheduled_at
+    ['appointment_set', 'show', 'no_show', 'sold', 'lost'].includes(l.status) || (l as any).setter_scheduled_at
   ).length;
   const passedToCloser = setterLeads.filter(l =>
-    l.assigned_to && l.assigned_to !== setterId
+    l.closer_id
   ).length;
-  const convertedLeads = setterLeads.filter(l => l.status === 'WON').length;
-  const noShowLeads = setterLeads.filter(l => l.no_show).length;
+  const convertedLeads = setterLeads.filter(l => l.status === 'sold').length;
+  const noShowLeads = setterLeads.filter(l => l.status === 'no_show').length;
 
   // Rates
   const contactRate = assignedLeads > 0 ? Math.round((contactedLeads / assignedLeads) * 100) : 0;
@@ -179,7 +179,7 @@ export function calculateSetterMonthlyMetrics(
   }
 
   // Revenue from converted leads for commissions (calculated on NET after platform fees)
-  const wonLeads = setterLeads.filter(l => l.status === 'WON');
+  const wonLeads = setterLeads.filter(l => l.status === 'sold');
   const commissionEarnings = wonLeads.reduce((sum, l) => {
     const grossPrice = l.sale_price || 0;
     const netPrice = calculateNetAmount(grossPrice, l.payment_method_id, paymentMethods);
@@ -305,14 +305,14 @@ export function getSetterDayAgenda(
   // Leads assigned to setter that haven't been contacted
   const leadsToContact = leads.filter(l =>
     (l.setter_id === setterId || l.assigned_to === setterId) &&
-    l.status === 'NEW' &&
+    l.status === 'new' &&
     !l.setter_contacted_at
   );
 
   // Leads that need follow-up (contacted but not scheduled, with follow-up date today or past)
   const followUps = leads.filter(l => {
     if (l.setter_id !== setterId && l.assigned_to !== setterId) return false;
-    if (l.status !== 'CONTACTED') return false;
+    if (l.status !== 'contacted') return false;
     if (!l.next_followup_date) return false;
     const followupDate = new Date(l.next_followup_date);
     return followupDate <= tomorrow;
@@ -411,8 +411,8 @@ export async function markLeadContacted(
       .update({
         setter_id: setterId,
         setter_contacted_at: new Date().toISOString(),
-        status: 'CONTACTED',
-        last_contact_date: new Date().toISOString()
+        status: 'contacted',
+        last_contacted_at: new Date().toISOString()
       })
       .eq('id', leadId);
 
@@ -442,7 +442,7 @@ export async function scheduleLeadCall(
         setter_scheduled_at: new Date().toISOString(),
         scheduled_call_date: callDate,
         assigned_to: closerId,
-        status: 'SCHEDULED',
+        status: 'appointment_set',
         project: project
       })
       .eq('id', leadId);
@@ -466,7 +466,7 @@ export async function markLeadNoShow(
       .from('leads')
       .update({
         no_show: true,
-        status: 'CONTACTED' // Back to contacted for re-scheduling
+        status: 'no_show'
       })
       .eq('id', leadId);
 

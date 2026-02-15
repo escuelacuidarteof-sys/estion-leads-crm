@@ -452,43 +452,52 @@ export interface AuditLog {
 
 // --- MODULE: LEADS (PRE-VENTA) ---
 
-export type LeadStatus = 'NEW' | 'CONTACTED' | 'SCHEDULED' | 'WON' | 'LOST' | 'NO_SHOW' | 'CANCELLED' | 'RE-SCHEDULED' | 'NO_ENTRY';
+export type LeadStatus = 'new' | 'contacted' | 'appointment_set' | 'show' | 'no_show' | 'sold' | 'lost' | 'unqualified';
 
 export interface Lead {
   id: string;
-  firstName: string;
-  surname: string;
   name: string;
   email?: string;
   phone?: string;
-  instagram_user?: string;
   status: LeadStatus;
-  source: string;
   notes?: string;
-  assigned_to?: string;
   closer_id?: string;
-  last_contact_date?: string;
-  next_followup_date?: string;
   created_at: string;
   updated_at?: string;
 
-  in_out?: 'Inbound' | 'Outbound';
-  procedencia_detalle?: string;
-  qualification_level?: number;
-  attended?: boolean;
-  objections?: string;
-  recording_url?: string;
-  sale_price?: number;
-  commission_amount?: number;
-  meeting_link?: string;
-  closer_notes?: string;
+  // Datos del formulario
+  age?: string;
+  sex?: string;
+  situation?: string;
+  interest?: string;
+  consent?: boolean;
+  country?: string;
 
-  meeting_date?: string;
-  call_date?: string;
-  meeting_time?: string;
-  procedencia?: 'Instagram' | 'Formulario' | 'WhatsApp' | 'YouTube' | 'TikTok' | 'Otro';
+  // Datos medicos/contexto
+  situacion?: string;
+  tipo_cancer?: string;
+  estadio?: string;
+  perdida_peso?: string;
+  actividad_fisica?: string;
+  nivel_compromiso?: number;
+  disponibilidad?: string;
+  preocupacion_principal?: string;
 
-  assigned_to_name?: string;
+  // Origen y tracking
+  origen?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  downloaded_kit?: boolean;
+
+  // Scoring
+  score?: number;
+
+  // Closer / ventas
+  appointment_at?: string;
+  last_contacted_at?: string;
+  call_outcome?: string;
+  sale_amount?: number;
 }
 
 // --- MODULE: CHAT ---

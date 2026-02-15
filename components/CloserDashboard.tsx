@@ -361,7 +361,7 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
             toast.success('Cambio guardado');
 
             // Si se marca como WON desde la tabla, notificar
-            if (updates.status === 'WON') {
+            if (updates.status === 'sold') {
                 toast.info('Lead ganado! Recuerda registrar la venta formalmente.');
             }
         } catch (error) {
@@ -400,7 +400,7 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
             toast.success('Resultado de llamada actualizado');
 
             // Si la venta es exitosa, podrías abrir el formulario de nueva venta
-            if (editingLeadOutcome.status === 'WON') {
+            if (editingLeadOutcome.status === 'sold') {
                 toast.info('Lead ganado! Recuerda registrar la venta en "Nueva Venta"');
             }
         } catch (error) {
@@ -455,7 +455,7 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
         const matchesMonth = monthFilter === 'all' || (d.getMonth() + 1).toString() === monthFilter;
         const matchesYear = yearFilter === 'all' || d.getFullYear().toString() === yearFilter;
         const matchesProject = projectFilter === 'all' || l.project === projectFilter;
-        return l.status === 'WON' && matchesMonth && matchesYear && matchesProject;
+        return l.status === 'sold' && matchesMonth && matchesYear && matchesProject;
     });
 
     const leadsLost = leads.filter(l => {
@@ -463,13 +463,13 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
         const matchesMonth = monthFilter === 'all' || (d.getMonth() + 1).toString() === monthFilter;
         const matchesYear = yearFilter === 'all' || d.getFullYear().toString() === yearFilter;
         const matchesProject = projectFilter === 'all' || l.project === projectFilter;
-        return l.status === 'LOST' && matchesMonth && matchesYear && matchesProject;
+        return l.status === 'lost' && matchesMonth && matchesYear && matchesProject;
     });
 
     // Agenda de Hoy (SCHEDULED)
     const todayStr = new Date().toISOString().split('T')[0];
     const scheduledToday = leads.filter(l =>
-        l.status === 'SCHEDULED' &&
+        l.status === 'appointment_set' &&
         l.next_followup_date &&
         l.next_followup_date.startsWith(todayStr)
     );
@@ -982,9 +982,9 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                                 <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Estado Post-Llamada</label>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { id: 'WON', label: 'Vendido', color: 'emerald' },
-                                        { id: 'SCHEDULED', label: 'Seguimiento', color: 'blue' },
-                                        { id: 'LOST', label: 'No Interesado', color: 'rose' }
+                                        { id: 'sold', label: 'Vendido', color: 'emerald' },
+                                        { id: 'appointment_set', label: 'Seguimiento', color: 'blue' },
+                                        { id: 'lost', label: 'No Interesado', color: 'rose' }
                                     ].map(opt => (
                                         <button
                                             key={opt.id}
@@ -999,7 +999,7 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                             </div>
 
                             {/* Objections (only if not WON) */}
-                            {editingLeadOutcome.status !== 'WON' && (
+                            {editingLeadOutcome.status !== 'sold' && (
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Motivos de no cierre (Objeciones)</label>
                                     <textarea
@@ -1013,7 +1013,7 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                             )}
 
                             {/* Sale details (only if WON) */}
-                            {editingLeadOutcome.status === 'WON' && (
+                            {editingLeadOutcome.status === 'sold' && (
                                 <div className="grid grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
                                     <div>
                                         <label className="text-[10px] font-bold text-emerald-600 uppercase block mb-1">Precio de Venta (€)</label>
@@ -1360,9 +1360,9 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                                             <td className="p-3 font-bold text-slate-900">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">
-                                                        {lead.firstName.substring(0, 1)}{lead.surname.substring(0, 1)}
+                                                        {(lead.name || '').substring(0, 2).toUpperCase()}
                                                     </div>
-                                                    <span className="truncate max-w-[150px]">{lead.firstName} {lead.surname}</span>
+                                                    <span className="truncate max-w-[150px]">{lead.name}</span>
                                                     {lead.phone && (
                                                         <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <Smartphone className="w-3.5 h-3.5" />
@@ -1383,8 +1383,8 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                                                 <select
                                                     value={lead.status}
                                                     onChange={(e) => handleAutoUpdateLead(lead.id, { status: e.target.value })}
-                                                    className={`text-[10px] font-black border-none bg-transparent outline-none cursor-pointer uppercase py-1 px-2 rounded-lg ${lead.status === 'WON' ? 'text-emerald-600 bg-emerald-50' :
-                                                        lead.status === 'LOST' ? 'text-red-500 bg-red-50' :
+                                                    className={`text-[10px] font-black border-none bg-transparent outline-none cursor-pointer uppercase py-1 px-2 rounded-lg ${lead.status === 'sold' ? 'text-emerald-600 bg-emerald-50' :
+                                                        lead.status === 'lost' ? 'text-red-500 bg-red-50' :
                                                             'text-amber-600 bg-amber-50'
                                                         }`}
                                                 >
@@ -1409,8 +1409,8 @@ export function CloserDashboard({ userId, userName, onNavigateToView }: CloserDa
                                             <td className="p-3 text-center">
                                                 <input
                                                     type="checkbox"
-                                                    checked={lead.status === 'WON'}
-                                                    onChange={(e) => handleAutoUpdateLead(lead.id, { status: e.target.checked ? 'WON' : 'SCHEDULED' })}
+                                                    checked={lead.status === 'sold'}
+                                                    onChange={(e) => handleAutoUpdateLead(lead.id, { status: e.target.checked ? 'sold' : 'appointment_set' })}
                                                     className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                                 />
                                             </td>

@@ -1,75 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Lead, LeadStatus, User as UserType, UserRole } from '../../types';
+import { Lead, LeadStatus, User as UserType } from '../../types';
 import { leadsService } from '../../services/leadsService';
 import { useToast } from '../ToastProvider';
-import { X, Save, User, Smartphone, Mail, Calendar, Trash2, ArrowRightCircle, Clock, Info, PhoneCall, Target } from 'lucide-react';
+import { X, Save, User, Smartphone, Mail, Calendar, Trash2, Clock, Info, Target, Star, Heart, Euro } from 'lucide-react';
 
 interface LeadDetailModalProps {
     lead: Partial<Lead> | null;
     currentUser: UserType;
     isOpen: boolean;
     onClose: () => void;
-    onSave: () => void; // Trigger refresh parent
+    onSave: () => void;
 }
 
-const DEFAULT_SETTERS = ['Thais', 'Diana', 'Elena'];
-const DEFAULT_CLOSERS = ['Sergi', 'Yassine', 'Elena', 'Raquel'];
+const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
+    { value: 'new', label: 'Nuevo', color: 'bg-blue-500' },
+    { value: 'contacted', label: 'Contactado', color: 'bg-amber-500' },
+    { value: 'appointment_set', label: 'Agendado', color: 'bg-purple-500' },
+    { value: 'show', label: 'Show', color: 'bg-emerald-500' },
+    { value: 'no_show', label: 'No Show', color: 'bg-orange-500' },
+    { value: 'sold', label: 'Vendido', color: 'bg-green-500' },
+    { value: 'lost', label: 'Perdido', color: 'bg-slate-500' },
+    { value: 'unqualified', label: 'No Cualificado', color: 'bg-gray-500' },
+];
+
+const CALL_OUTCOME_OPTIONS = [
+    { value: '', label: 'Sin resultado' },
+    { value: 'interested', label: 'Interesado' },
+    { value: 'needs_followup', label: 'Necesita seguimiento' },
+    { value: 'not_interested', label: 'No interesado' },
+    { value: 'no_answer', label: 'No contesta' },
+    { value: 'wrong_number', label: 'Numero incorrecto' },
+    { value: 'sold', label: 'Venta cerrada' },
+];
 
 const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, isOpen, onClose, onSave }) => {
     const { toast } = useToast();
-    const [formData, setFormData] = useState<Partial<Lead>>({
-        firstName: '',
-        surname: '',
-        email: '',
-        phone: '',
-        instagram_user: '',
-        source: 'Manual',
-        status: 'NEW',
-        notes: '',
-        assigned_to_name: '',
-        closer_id: '',
-        in_out: 'Inbound',
-        procedencia: 'Instagram',
-        meeting_date: '',
-        call_date: '',
-        meeting_time: ''
-    });
+    const [formData, setFormData] = useState<Partial<Lead>>({});
     const [isSaving, setIsSaving] = useState(false);
-    const [isConverting, setIsConverting] = useState(false);
 
     useEffect(() => {
         if (lead && lead.id) {
             setFormData(lead);
         } else {
-            // Reset for new lead with AUTO-ASSIGNMENT logic
-            let initialSetter = '';
-
-            // Si el usuario actual es un SETTER, lo pre-asignamos por defecto
-            if (currentUser.role === UserRole.SETTER) {
-                // Buscamos si su nombre coincide con alguno de los setters conocidos o usamos su nombre real
-                const name = currentUser.name.split(' ')[0]; // Tomamos el primer nombre
-                initialSetter = DEFAULT_SETTERS.find(s => s.toLowerCase() === name.toLowerCase()) || currentUser.name;
-            }
-
             setFormData({
-                firstName: '',
-                surname: '',
+                name: '',
                 email: '',
                 phone: '',
-                instagram_user: '',
-                source: 'Manual',
-                status: 'NEW',
+                status: 'new',
+                origen: 'Instagram',
                 notes: '',
-                assigned_to_name: initialSetter,
-                closer_id: '',
-                in_out: 'Inbound',
-                procedencia: 'Instagram',
-                meeting_date: new Date().toISOString().split('T')[0],
-                call_date: '',
-                meeting_time: ''
+                appointment_at: '',
+                call_outcome: '',
+                sale_amount: undefined,
             });
         }
-    }, [lead, isOpen, currentUser]);
+    }, [lead, isOpen]);
 
     if (!isOpen) return null;
 
@@ -77,12 +62,26 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
         e.preventDefault();
         setIsSaving(true);
         try {
+            // Only send editable fields to avoid overwriting read-only data
+            const editableFields: Partial<Lead> = {
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                status: formData.status,
+                origen: formData.origen,
+                notes: formData.notes,
+                appointment_at: formData.appointment_at || null as any,
+                call_outcome: formData.call_outcome || null as any,
+                sale_amount: formData.sale_amount || null as any,
+                last_contacted_at: formData.last_contacted_at || null as any,
+            };
+
             if (formData.id) {
-                await leadsService.updateLead(formData.id, formData);
-                toast.success('Lead actualizado correctamente');
+                await leadsService.updateLead(formData.id, editableFields);
+                toast.success('Lead actualizado');
             } else {
-                await leadsService.createLead(formData);
-                toast.success('Lead creado correctamente');
+                await leadsService.createLead(editableFields);
+                toast.success('Lead creado');
             }
             onSave();
             onClose();
@@ -95,46 +94,18 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
     };
 
     const handleDelete = async () => {
-        if (!formData.id || !window.confirm('¿Seguro que quieres eliminar este lead?')) return;
+        if (!formData.id || !window.confirm('Seguro que quieres eliminar este lead?')) return;
         try {
             await leadsService.deleteLead(formData.id);
             toast.success('Lead eliminado');
             onSave();
             onClose();
-        } catch (error) {
+        } catch {
             toast.error('Error al eliminar');
         }
     };
 
-    const handleConvertToClient = async () => {
-        if (!formData.id) return;
-        if (!window.confirm('¿Convertir este Lead en CLIENTE? Se creará una ficha de cliente vacía con estos datos.')) return;
-
-        setIsConverting(true);
-        try {
-            const newClientId = await leadsService.convertLeadToClient(formData as Lead, '');
-            toast.success('¡Cliente Creado! Lead marcado como WON.');
-            onSave();
-            onClose();
-        } catch (error: any) {
-            console.error(error);
-            toast.error('Error al convertir: ' + error.message);
-        } finally {
-            setIsConverting(false);
-        }
-    };
-
-    const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
-        { value: 'NEW', label: 'Nuevo', color: 'bg-blue-500' },
-        { value: 'CONTACTED', label: 'Contactado', color: 'bg-amber-500' },
-        { value: 'SCHEDULED', label: 'Agendado', color: 'bg-purple-500' },
-        { value: 'RE-SCHEDULED', label: 'Reagenda', color: 'bg-yellow-500' },
-        { value: 'NO_SHOW', label: 'No Show', color: 'bg-orange-500' },
-        { value: 'CANCELLED', label: 'Cancela', color: 'bg-red-500' },
-        { value: 'NO_ENTRY', label: 'No Entra', color: 'bg-gray-500' },
-        { value: 'WON', label: 'Cerrado', color: 'bg-green-500' },
-        { value: 'LOST', label: 'Perdido', color: 'bg-slate-500' },
-    ];
+    const isEditing = !!formData.id;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -148,10 +119,10 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-slate-800">
-                                {formData.id ? 'Editar Lead' : 'Nuevo Lead'}
+                                {isEditing ? 'Detalle del Lead' : 'Nuevo Lead'}
                             </h2>
                             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                                {formData.id ? `ID: ${formData.id.substring(0, 8)}` : 'Información de prospecto'}
+                                {isEditing ? `ID: ${formData.id!.substring(0, 8)}` : 'Crear nuevo prospecto'}
                             </p>
                         </div>
                     </div>
@@ -162,7 +133,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
 
                 {/* BODY */}
                 <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <form id="lead-form" onSubmit={handleSubmit} className="space-y-6">
+                    <form id="lead-form" onSubmit={handleSubmit} className="space-y-5">
 
                         {/* Status Bar */}
                         <div className="space-y-2">
@@ -186,37 +157,25 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                             </div>
                         </div>
 
-                        {/* Basic Info Group */}
+                        {/* Basic Info */}
                         <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
-                                    <div className="relative">
-                                        <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                                        <input
-                                            required
-                                            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                                            placeholder="Ej. Juan"
-                                            value={formData.firstName || ''}
-                                            onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Apellidos</label>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo</label>
+                                <div className="relative">
+                                    <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                                     <input
                                         required
-                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                                        placeholder="Ej. Pérez"
-                                        value={formData.surname || ''}
-                                        onChange={e => setFormData(prev => ({ ...prev, surname: e.target.value }))}
+                                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="Ej. Ana Garcia Lopez"
+                                        value={formData.name || ''}
+                                        onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Teléfono (WhatsApp)</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Telefono (WhatsApp)</label>
                                     <div className="relative">
                                         <Smartphone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                                         <input
@@ -228,140 +187,175 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instagram User</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email</label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-2.5 text-slate-400 font-bold">@</span>
+                                        <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                                         <input
-                                            className="w-full pl-8 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                                            placeholder="usuario_ig"
-                                            value={formData.instagram_user || ''}
-                                            onChange={e => setFormData(prev => ({ ...prev, instagram_user: e.target.value }))}
+                                            type="email"
+                                            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                                            placeholder="correo@ejemplo.com"
+                                            value={formData.email || ''}
+                                            onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Roles Group (Setter / Closer) */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Setter (Prospección)</label>
-                                <div className="relative">
-                                    <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                                    <select
-                                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none"
-                                        value={formData.assigned_to_name || ''}
-                                        onChange={e => setFormData(prev => ({ ...prev, assigned_to_name: e.target.value }))}
-                                    >
-                                        <option value="">Sin asignar</option>
-                                        {DEFAULT_SETTERS.map(s => <option key={s} value={s}>{s}</option>)}
-                                        {formData.assigned_to_name && !DEFAULT_SETTERS.includes(formData.assigned_to_name) && (
-                                            <option value={formData.assigned_to_name}>{formData.assigned_to_name}</option>
-                                        )}
-                                    </select>
+                        {/* Contexto del lead (read-only si existe) */}
+                        {isEditing && (formData.situation || formData.interest || formData.preocupacion_principal || formData.nivel_compromiso) && (
+                            <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 space-y-3">
+                                <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                    <Heart className="w-3 h-3" /> Contexto del prospecto (formulario)
+                                </label>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    {formData.situation && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Situacion:</span>
+                                            <p className="text-slate-700">{formData.situation}</p>
+                                        </div>
+                                    )}
+                                    {formData.interest && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Interes:</span>
+                                            <p className="text-slate-700">{formData.interest}</p>
+                                        </div>
+                                    )}
+                                    {formData.situacion && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Situacion medica:</span>
+                                            <p className="text-slate-700">{formData.situacion}</p>
+                                        </div>
+                                    )}
+                                    {formData.tipo_cancer && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Tipo:</span>
+                                            <p className="text-slate-700">{formData.tipo_cancer} {formData.estadio ? `(estadio ${formData.estadio})` : ''}</p>
+                                        </div>
+                                    )}
+                                    {formData.disponibilidad && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Disponibilidad:</span>
+                                            <p className="text-slate-700">{formData.disponibilidad}</p>
+                                        </div>
+                                    )}
+                                    {formData.nivel_compromiso != null && formData.nivel_compromiso > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <Star className="w-3.5 h-3.5 text-amber-500" />
+                                            <span className="text-slate-400 font-bold">Compromiso:</span>
+                                            <span className="text-amber-700 font-bold">{formData.nivel_compromiso}/10</span>
+                                        </div>
+                                    )}
+                                    {formData.age && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Edad:</span>
+                                            <p className="text-slate-700">{formData.age} ({formData.sex || '-'})</p>
+                                        </div>
+                                    )}
+                                    {formData.actividad_fisica && (
+                                        <div>
+                                            <span className="text-slate-400 font-bold">Act. fisica:</span>
+                                            <p className="text-slate-700">{formData.actividad_fisica}</p>
+                                        </div>
+                                    )}
                                 </div>
+                                {formData.preocupacion_principal && (
+                                    <div className="mt-2 p-2 bg-white rounded-lg border border-amber-100">
+                                        <span className="text-[10px] text-amber-600 font-bold uppercase">Preocupacion principal:</span>
+                                        <p className="text-sm text-slate-700 italic">"{formData.preocupacion_principal}"</p>
+                                    </div>
+                                )}
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Closer (Venta)</label>
-                                <div className="relative">
-                                    <Target className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                                    <select
-                                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none"
-                                        value={formData.closer_id || ''}
-                                        onChange={e => setFormData(prev => ({ ...prev, closer_id: e.target.value }))}
-                                    >
-                                        <option value="">Seleccionar Closer...</option>
-                                        {DEFAULT_CLOSERS.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                        )}
 
-                        {/* Dates Group */}
+                        {/* Closer / Cita / Venta */}
                         <div className="bg-blue-50/30 p-4 rounded-2xl border border-blue-100/50 space-y-4">
-                            <div className="grid grid-cols-3 gap-4">
+                            <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                <Calendar className="w-3 h-3" /> Gestion de venta
+                            </label>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Día Agenda</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cita</label>
                                     <div className="relative">
                                         <Calendar className="w-4 h-4 absolute left-3 top-3 text-blue-400" />
                                         <input
-                                            type="date"
+                                            type="datetime-local"
                                             className="w-full pl-9 pr-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                                            value={formData.meeting_date || ''}
-                                            onChange={e => setFormData(prev => ({ ...prev, meeting_date: e.target.value }))}
+                                            value={formData.appointment_at ? formData.appointment_at.slice(0, 16) : ''}
+                                            onChange={e => setFormData(prev => ({ ...prev, appointment_at: e.target.value }))}
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Día Llamada</label>
-                                    <div className="relative">
-                                        <PhoneCall className="w-4 h-4 absolute left-3 top-3 text-blue-400" />
-                                        <input
-                                            type="date"
-                                            className="w-full pl-9 pr-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                                            value={formData.call_date || ''}
-                                            onChange={e => setFormData(prev => ({ ...prev, call_date: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Hora Cita</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ultimo contacto</label>
                                     <div className="relative">
                                         <Clock className="w-4 h-4 absolute left-3 top-3 text-blue-400" />
                                         <input
-                                            type="time"
+                                            type="datetime-local"
                                             className="w-full pl-9 pr-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                                            value={formData.meeting_time || ''}
-                                            onChange={e => setFormData(prev => ({ ...prev, meeting_time: e.target.value }))}
+                                            value={formData.last_contacted_at ? formData.last_contacted_at.slice(0, 16) : ''}
+                                            onChange={e => setFormData(prev => ({ ...prev, last_contacted_at: e.target.value }))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Resultado llamada</label>
+                                    <select
+                                        className="w-full px-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                        value={formData.call_outcome || ''}
+                                        onChange={e => setFormData(prev => ({ ...prev, call_outcome: e.target.value }))}
+                                    >
+                                        {CALL_OUTCOME_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Importe venta</label>
+                                    <div className="relative">
+                                        <Euro className="w-4 h-4 absolute left-3 top-3 text-green-500" />
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            className="w-full pl-9 pr-3 py-2.5 bg-white border border-blue-100 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                            placeholder="0.00"
+                                            value={formData.sale_amount || ''}
+                                            onChange={e => setFormData(prev => ({ ...prev, sale_amount: parseFloat(e.target.value) || undefined }))}
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Origin Group */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">INB / OUT</label>
-                                <div className="flex bg-slate-100 p-1 rounded-xl">
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, in_out: 'Inbound' }))}
-                                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${formData.in_out === 'Inbound' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        Inbound
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, in_out: 'Outbound' }))}
-                                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${formData.in_out === 'Outbound' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        Outbound
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Procedencia</label>
-                                <select
-                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                                    value={formData.procedencia || 'Instagram'}
-                                    onChange={e => setFormData(prev => ({ ...prev, procedencia: e.target.value as any }))}
-                                >
-                                    <option value="Instagram">Instagram</option>
-                                    <option value="Formulario">Formulario</option>
-                                    <option value="WhatsApp">WhatsApp</option>
-                                    <option value="YouTube">YouTube</option>
-                                    <option value="TikTok">TikTok</option>
-                                    <option value="Otro">Otro</option>
-                                </select>
-                            </div>
+                        {/* Origen */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Origen</label>
+                            <select
+                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                value={formData.origen || ''}
+                                onChange={e => setFormData(prev => ({ ...prev, origen: e.target.value }))}
+                            >
+                                <option value="">Sin especificar</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="Formulario">Formulario</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="YouTube">YouTube</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Libros Odile">Libros Odile</option>
+                                <option value="Recomendacion">Recomendacion</option>
+                                <option value="Otros">Otros</option>
+                            </select>
                         </div>
 
+                        {/* Notes */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notas / Historial</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notas</label>
                             <textarea
-                                className="w-full px-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all min-h-[120px] resize-none"
-                                placeholder="Escribe aquí notas sobre la conversación, dolores, objetivos..."
+                                className="w-full px-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 outline-none transition-all min-h-[100px] resize-none"
+                                placeholder="Notas sobre la conversacion, objetivos, objeciones..."
                                 value={formData.notes || ''}
                                 onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                             />
@@ -373,7 +367,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                 {/* FOOTER */}
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
                     <div>
-                        {formData.id && (
+                        {isEditing && (
                             <button
                                 type="button"
                                 onClick={handleDelete}
@@ -385,18 +379,6 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                         )}
                     </div>
                     <div className="flex gap-3">
-                        {formData.id && formData.status === 'WON' && (
-                            <button
-                                type="button"
-                                onClick={handleConvertToClient}
-                                disabled={isConverting}
-                                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-70"
-                            >
-                                <ArrowRightCircle className="w-4 h-4" />
-                                {isConverting ? 'Convirtiendo...' : 'Convertir a Cliente'}
-                            </button>
-                        )}
-
                         <button
                             type="button"
                             onClick={onClose}
@@ -411,7 +393,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                             className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-70 flex items-center gap-2"
                         >
                             <Save className="w-4 h-4" />
-                            {isSaving ? 'Guardando...' : 'Guardar Lead'}
+                            {isSaving ? 'Guardando...' : 'Guardar'}
                         </button>
                     </div>
                 </div>

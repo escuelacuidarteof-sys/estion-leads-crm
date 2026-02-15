@@ -286,10 +286,10 @@ export function calculateCloserMonthlyMetrics(
 
   // Lead metrics
   const assignedLeads = closerLeads.length;
-  const contactedLeads = closerLeads.filter(l => l.status !== 'NEW').length;
-  const scheduledLeads = closerLeads.filter(l => l.status === 'SCHEDULED' || l.status === 'WON' || l.status === 'LOST').length;
-  const wonLeads = closerLeads.filter(l => l.status === 'WON').length;
-  const lostLeads = closerLeads.filter(l => l.status === 'LOST').length;
+  const contactedLeads = closerLeads.filter(l => l.status !== 'new').length;
+  const scheduledLeads = closerLeads.filter(l => ['appointment_set', 'show', 'no_show', 'sold', 'lost'].includes(l.status)).length;
+  const wonLeads = closerLeads.filter(l => l.status === 'sold').length;
+  const lostLeads = closerLeads.filter(l => l.status === 'lost').length;
 
   // Rates
   const closeRate = scheduledLeads > 0 ? Math.round((wonLeads / scheduledLeads) * 100) : 0;

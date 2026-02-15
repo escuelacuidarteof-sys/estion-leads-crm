@@ -162,7 +162,7 @@ export default function SetterDashboard({ currentUser }: SetterDashboardProps) {
         toContact: agenda?.leadsToContact.length || 0,
         followUps: agenda?.followUps.length || 0,
         scheduled: agenda?.scheduledToday.length || 0,
-        totalNew: leads.filter(l => l.status === 'NEW').length
+        totalNew: leads.filter(l => l.status === 'new').length
     };
 
     if (loading) {
@@ -431,7 +431,7 @@ export default function SetterDashboard({ currentUser }: SetterDashboardProps) {
                                                 {lead.in_out || 'Inbound'}
                                             </span>
                                             <span className="text-xs text-slate-500 font-medium">
-                                                {lead.procedencia_detalle || lead.source}
+                                                {(lead as any).procedencia_detalle || (lead as any).origen || ''}
                                             </span>
                                         </div>
                                     </td>
@@ -445,7 +445,7 @@ export default function SetterDashboard({ currentUser }: SetterDashboardProps) {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-center gap-2">
-                                            {lead.status === 'NEW' && (
+                                            {lead.status === 'new' && (
                                                 <button
                                                     onClick={() => handleMarkContacted(lead)}
                                                     disabled={actionLoading}
@@ -455,7 +455,7 @@ export default function SetterDashboard({ currentUser }: SetterDashboardProps) {
                                                     <PhoneCall className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            {lead.status === 'CONTACTED' && (
+                                            {lead.status === 'contacted' && (
                                                 <button
                                                     onClick={() => {
                                                         setSelectedLead(lead);
@@ -467,7 +467,7 @@ export default function SetterDashboard({ currentUser }: SetterDashboardProps) {
                                                     <Calendar className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            {lead.status === 'SCHEDULED' && (
+                                            {lead.status === 'appointment_set' && (
                                                 <button
                                                     onClick={() => handleMarkNoShow(lead)}
                                                     disabled={actionLoading}
