@@ -141,7 +141,7 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
         const { data } = await supabase
             .from('users')
             .select('id, name')
-            .in('role', ['closer', 'admin', 'head_coach'])
+            .in('role', ['closer', 'admin', 'head_coach', 'coach'])
             .order('name');
         if (data) setClosers(data);
     };
