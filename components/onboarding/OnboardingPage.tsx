@@ -118,6 +118,14 @@ export interface OnboardingData {
     healthConsent: boolean;
     signatureImage: string;
     labResultsFile: string;
+    tumorType: string;
+    peripheralNeuropathy: string;
+    lymphedema: string;
+    venousAccess: string;
+    boneRisk: string;
+    symptom_chemo_brain: number;
+    symptom_dyspnea: number;
+    significantWeightLoss: boolean;
 }
 
 export function OnboardingPage() {
@@ -212,7 +220,15 @@ export function OnboardingPage() {
         contractAccepted: false,
         healthConsent: false,
         signatureImage: '',
-        labResultsFile: ''
+        labResultsFile: '',
+        tumorType: '',
+        peripheralNeuropathy: 'ninguna',
+        lymphedema: 'ninguno',
+        venousAccess: 'ninguno',
+        boneRisk: 'ninguno',
+        symptom_chemo_brain: 0,
+        symptom_dyspnea: 0,
+        significantWeightLoss: false
     });
 
     useEffect(() => {
@@ -451,6 +467,14 @@ export function OnboardingPage() {
                 why_trust_us: formData.whyTrustUs,
                 concerns_fears_notes: formData.additionalConcerns,
                 lab_results_url: formData.labResultsFile,
+                tumor_type: formData.tumorType,
+                peripheral_neuropathy: formData.peripheralNeuropathy,
+                lymphedema: formData.lymphedema,
+                venous_access: formData.venousAccess,
+                bone_risk: formData.boneRisk,
+                symptom_chemo_brain: formData.symptom_chemo_brain,
+                symptom_dyspnea: formData.symptom_dyspnea,
+                significant_weight_loss: formData.significantWeightLoss,
 
                 // Datos del Contrato y Firma
                 contract_signed: formData.contractAccepted,

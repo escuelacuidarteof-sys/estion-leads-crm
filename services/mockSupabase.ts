@@ -959,10 +959,13 @@ export const mockDb = {
       let query = supabase.from(TABLE_NAME).select('*');
 
       const userId = currentUser.id;
+      const userEmail = currentUser.email;
+
       if (isUUID(userId)) {
-        query = query.or(`id.eq.${userId},user_id.eq.${userId}`);
+        // Search by UUID (id or user_id) OR by email as fallback
+        query = query.or(`id.eq.${userId},user_id.eq.${userId},email.eq.${userEmail}`);
       } else {
-        query = query.eq('email', currentUser.email);
+        query = query.eq('email', userEmail);
       }
 
       const { data, error } = await query;
