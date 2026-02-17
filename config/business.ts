@@ -101,9 +101,9 @@ export const BUSINESS_CONFIG = {
     companyName: 'Escuela Cuid-Arte',
     companyLegalName: '', // Razón social completa
     responsibleName: 'Dra. Odiel Fernández',
-    responsibleId: '', // NIF/DNI
-    companyAddress: '', // Dirección fiscal
-    collegiateNumber: '', // Número de colegiado
+    responsibleId: '45345678W', // TODO: Validar NIF oficial
+    companyAddress: 'Granada, España', // TODO: Dirección fiscal oficial
+    collegiateNumber: '181808453', // TODO: Nº Colegiado oficial
     serviceDescription: 'Servicio de coaching y acompañamiento personalizado en salud y bienestar',
   },
 
