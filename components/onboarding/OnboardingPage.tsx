@@ -497,28 +497,41 @@ export function OnboardingPage() {
                 }
             });
 
+            let retryLogin: any = null;
+            let loginData: any = null;
+
             if (authError) {
                 // Si el error es por límite de tasa (demasiados intentos), intentamos login directo
                 // por si el usuario ya se creó en un intento previo pero falló el envío del email
                 if (authError.message.includes('rate limit')) {
-                    const { data: retryLogin, error: retryError } = await supabase.auth.signInWithPassword({
+                    const { data, error: retryError } = await supabase.auth.signInWithPassword({
                         email: formData.email,
                         password: formData.password
                     });
+                    retryLogin = data;
 
                     if (retryError) {
                         throw new Error('Límite de envíos de email de Supabase alcanzado. Por favor, ve a tu panel de Supabase -> Auth -> Providers -> Email y DESACTIVA "Confirm email" para continuar testeando libremente.');
                     }
                     // Si el login funcionó, continuamos el flujo normalmente
                 } else if (authError.message.includes('already registered')) {
-                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                    const { data, error: signInError } = await supabase.auth.signInWithPassword({
                         email: formData.email,
                         password: formData.password
                     });
+                    loginData = data;
                     if (signInError) throw new Error('Este email ya está registrado. Si olvidaste tu contraseña, recupérala en la pantalla de inicio.');
                 } else {
                     throw authError;
                 }
+            }
+
+            const effectiveUser = authData?.user || (retryLogin?.user) || (loginData?.user);
+            const authUserId = effectiveUser?.id;
+
+            if (authUserId) {
+                // Sincronizar user_id en la tabla de clientes
+                await supabase.from('clientes').update({ user_id: authUserId }).eq('id', targetId);
             }
 
             // 3. Update Sale
@@ -529,26 +542,18 @@ export function OnboardingPage() {
             }).eq('id', saleData.id);
             if (saleUpdateError) throw saleUpdateError;
 
-            // 4. Auto-login to establish session
-            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            // 4. Final log of the session to ensure persistence
+            const clientSession = {
+                id: authUserId || targetId,
                 email: formData.email,
-                password: formData.password
-            });
-
-            if (!loginError && loginData.user) {
-                // Save session for the client to persist through page reload
-                const clientSession = {
-                    id: loginData.user.id,
-                    email: formData.email,
-                    name: `${formData.firstName} ${formData.surname}`.trim(),
-                    role: 'client',
-                    clientId: targetId
-                };
-                localStorage.setItem(storageKey('session'), JSON.stringify({
-                    user: clientSession,
-                    timestamp: Date.now()
-                }));
-            }
+                name: `${formData.firstName} ${formData.surname}`.trim(),
+                role: 'client',
+                clientId: targetId
+            };
+            localStorage.setItem(storageKey('session'), JSON.stringify({
+                user: clientSession,
+                timestamp: Date.now()
+            }));
 
             alert('¡Registro completado! Bienvenido/a.');
             window.location.href = '/'; // Full reload to pick up new session
