@@ -498,8 +498,19 @@ export function OnboardingPage() {
             });
 
             if (authError) {
-                // If user already exists, try to sign in to verify password and refresh session
-                if (authError.message.includes('already registered')) {
+                // Si el error es por límite de tasa (demasiados intentos), intentamos login directo
+                // por si el usuario ya se creó en un intento previo pero falló el envío del email
+                if (authError.message.includes('rate limit')) {
+                    const { data: retryLogin, error: retryError } = await supabase.auth.signInWithPassword({
+                        email: formData.email,
+                        password: formData.password
+                    });
+
+                    if (retryError) {
+                        throw new Error('Límite de envíos de email de Supabase alcanzado. Por favor, ve a tu panel de Supabase -> Auth -> Providers -> Email y DESACTIVA "Confirm email" para continuar testeando libremente.');
+                    }
+                    // Si el login funcionó, continuamos el flujo normalmente
+                } else if (authError.message.includes('already registered')) {
                     const { error: signInError } = await supabase.auth.signInWithPassword({
                         email: formData.email,
                         password: formData.password
