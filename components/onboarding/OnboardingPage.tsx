@@ -6,6 +6,7 @@ import {
     Loader2, AlertCircle, ArrowLeft, ArrowRight, Mail
 } from 'lucide-react';
 import InstallationGuide from '../InstallationGuide';
+import { storageKey } from '../../config/business';
 
 // Import all step components
 import { WelcomeStep } from './steps/WelcomeStep';
@@ -368,16 +369,16 @@ export function OnboardingPage() {
         try {
             // Mapping fields to Supabase column names
             const clientData = {
-                property_nombre: formData.firstName,
-                property_apellidos: formData.surname,
-                property_correo_electr_nico: formData.email,
-                property_tel_fono: formData.phone,
-                property_fecha_de_nacimiento: formData.birthDate,
-                property_edad: formData.age,
-                property_sexo: formData.gender,
-                property_direccion: formData.address,
-                property_poblaci_n: formData.city,
-                property_provincia: formData.province,
+                first_name: formData.firstName,
+                surname: formData.surname,
+                email: formData.email,
+                phone: formData.phone,
+                birth_date: formData.birthDate,
+                age: formData.age,
+                gender: formData.gender,
+                address: formData.address,
+                city: formData.city,
+                province: formData.province,
                 id_number: formData.idNumber,
 
                 oncology_status: formData.oncologyStatus,
@@ -385,8 +386,8 @@ export function OnboardingPage() {
                 oncology_diagnosis_date: formData.diagnosisDate ? `${formData.diagnosisDate}-01` : null,
                 treatment_start_date: formData.treatmentStartDate ? `${formData.treatmentStartDate}-01` : null,
                 health_conditions_prev: formData.healthConditions,
-                property_otras_enfermedades_o_condicionantes: formData.otherHealthConditions,
-                property_medicaci_n: formData.dailyMedication,
+                pathologies: formData.otherHealthConditions,
+                medication: formData.dailyMedication,
                 drug_allergies: formData.drugAllergies,
                 exercise_medical_limitations_details: formData.exerciseLimitations,
                 menopause_status: formData.hormonalStatus,
@@ -408,21 +409,21 @@ export function OnboardingPage() {
                 stress_level: formData.stress_level,
                 recovery_capacity: formData.recovery_capacity,
 
-                property_peso_actual: formData.currentWeight,
-                property_peso_inicial: formData.currentWeight,
-                property_altura: formData.height,
+                current_weight: formData.currentWeight,
+                initial_weight: formData.currentWeight,
+                height: formData.height,
                 habitual_weight_6_months: formData.habitualWeight6Months,
                 weight_evolution_status: formData.weightEvolutionStatus,
                 body_evolution_goal_notes: formData.bodyEvolutionGoal,
-                property_per_metro_brazo: formData.armCircumference,
-                property_per_metro_abdomen: formData.waistCircumference,
-                property_per_metro_muslo: formData.thighCircumference,
+                arm_perimeter: formData.armCircumference,
+                abdominal_perimeter: formData.waistCircumference,
+                thigh_perimeter: formData.thighCircumference,
 
                 assigned_nutrition_type: formData.dietType,
-                property_alergias_e_intolerancias: formData.foodAllergies,
+                allergies: formData.foodAllergies,
                 regular_foods: formData.regularFoods,
                 unwanted_foods: formData.unwantedFoods,
-                cooks_self: formData.cooksSelf,
+                cooks_for_self: formData.cooksSelf === 'Sí',
                 meals_per_day: formData.mealsPerDay,
                 meal_schedules: formData.mealSchedules,
                 weigh_food_preference: formData.weighFoodPreference,
@@ -433,11 +434,11 @@ export function OnboardingPage() {
                 ed_binge_eating: formData.psychologySituations.some(s => s.includes('atracón')),
                 ed_emotional_eating: formData.psychologySituations.some(s => s.includes('estresado')),
 
-                property_pasos_diarios_promedio: formData.dailySteps,
+                activity_level: formData.dailySteps,
                 daily_routine_description: formData.dailyRoutineDescription,
                 exercise_availability_slots: formData.exerciseAvailability,
-                property_ejercicio_fuerza: formData.hasStrengthTraining,
-                property_lugar_entreno: formData.exerciseLocation,
+                strength_training: formData.hasStrengthTraining === 'Sí',
+                training_location: formData.exerciseLocation,
                 current_strength_score: formData.currentStrengthScale,
                 func_test_lift_bags: formData.functionalTests.some(s => s.includes('levantar')),
                 func_test_get_up_chair: formData.functionalTests.some(s => s.includes('silla')),
@@ -451,29 +452,40 @@ export function OnboardingPage() {
                 concerns_fears_notes: formData.additionalConcerns,
                 lab_results_url: formData.labResultsFile,
 
+                // Datos del Contrato y Firma
+                contract_signed: formData.contractAccepted,
+                contract_signed_at: new Date().toISOString(),
+                contract_signature_image: formData.signatureImage,
+                assigned_contract_template_id: saleData?.contract_template_id,
+
                 coach_id: saleData?.assigned_coach_id,
                 status: 'active',
+                onboarding_completed: true,
+                onboarding_completed_at: new Date().toISOString(),
                 onboarding_phase2_completed: true,
-                start_date: new Date().toISOString().split('T')[0]
+                onboarding_phase2_completed_at: new Date().toISOString(),
+                subscription_start: new Date().toISOString().split('T')[0]
             };
 
             // 1. Check if client exists
             const { data: existingClient } = await supabase
                 .from('clientes')
                 .select('id')
-                .eq('property_correo_electr_nico', formData.email)
+                .eq('email', formData.email)
                 .maybeSingle();
 
             let targetId = existingClient?.id;
             if (targetId) {
-                await supabase.from('clientes').update(clientData).eq('id', targetId);
+                const { error: updateError } = await supabase.from('clientes').update(clientData).eq('id', targetId);
+                if (updateError) throw updateError;
             } else {
-                const { data: newC } = await supabase.from('clientes').insert([clientData]).select('id').single();
+                const { data: newC, error: insertError } = await supabase.from('clientes').insert([clientData]).select('id').single();
+                if (insertError) throw insertError;
                 targetId = newC?.id;
             }
 
             // 2. Auth Sign Up
-            await supabase.auth.signUp({
+            const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
@@ -485,16 +497,52 @@ export function OnboardingPage() {
                 }
             });
 
+            if (authError) {
+                // If user already exists, try to sign in to verify password and refresh session
+                if (authError.message.includes('already registered')) {
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                        email: formData.email,
+                        password: formData.password
+                    });
+                    if (signInError) throw new Error('Este email ya está registrado. Si olvidaste tu contraseña, recupérala en la pantalla de inicio.');
+                } else {
+                    throw authError;
+                }
+            }
+
             // 3. Update Sale
-            await supabase.from('sales').update({
+            const { error: saleUpdateError } = await supabase.from('sales').update({
                 status: 'onboarding_completed',
                 client_id: targetId,
                 onboarding_completed_at: new Date().toISOString()
             }).eq('id', saleData.id);
+            if (saleUpdateError) throw saleUpdateError;
+
+            // 4. Auto-login to establish session
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password
+            });
+
+            if (!loginError && loginData.user) {
+                // Save session for the client to persist through page reload
+                const clientSession = {
+                    id: loginData.user.id,
+                    email: formData.email,
+                    name: `${formData.firstName} ${formData.surname}`.trim(),
+                    role: 'client',
+                    clientId: targetId
+                };
+                localStorage.setItem(storageKey('session'), JSON.stringify({
+                    user: clientSession,
+                    timestamp: Date.now()
+                }));
+            }
 
             alert('¡Registro completado! Bienvenido/a.');
-            navigate('/');
+            window.location.href = '/'; // Full reload to pick up new session
         } catch (err: any) {
+            console.error('Submit error:', err);
             alert('Error al guardar: ' + err.message);
         } finally {
             setSubmitting(false);

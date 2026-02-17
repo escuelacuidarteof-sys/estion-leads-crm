@@ -387,6 +387,8 @@ export interface Client {
   onboarding_token?: string;
   onboarding_completed?: boolean;
   onboarding_completed_at?: string;
+  onboarding_phase2_completed?: boolean;
+  onboarding_phase2_completed_at?: string;
 
   // Account Activation
   user_id?: string;

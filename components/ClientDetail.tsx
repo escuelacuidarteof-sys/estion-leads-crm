@@ -14,7 +14,7 @@ import {
    Quote, Zap, Award, Flame, ChevronRight, Droplets, Droplet, Moon, Video, PlayCircle, Lock,
    FileText, ExternalLink, Trophy, Stethoscope, CreditCard, Image as ImageIcon,
    Loader2, Upload, History, Play, UserPlus, FileCheck, FileX, Rocket, MessageSquare,
-   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote
+   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2
 } from 'lucide-react';
 import { pauseService } from '../services/pauseService';
 import { normalizePhone, isValidPhone, PHONE_HELP_TEXT, PHONE_PLACEHOLDER } from '../utils/phoneUtils';
@@ -46,6 +46,7 @@ interface ClientDetailProps {
    currentUser?: CRMUser;
    coaches: CRMUser[];
    initialTab?: 'overview' | 'checkins' | 'health' | 'program' | 'contract' | 'materials';
+   onDeleteClient?: (clientId: string, userId?: string) => void;
 }
 
 // --- HELPER FUNCTIONS ---
@@ -690,7 +691,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    onViewAsClient,
    currentUser,
    coaches = [],
-   initialTab
+   initialTab,
+   onDeleteClient
 }) => {
    const [activeTab, setActiveTab] = useState<'overview' | 'checkins' | 'health' | 'program' | 'contract' | 'materials'>(initialTab || 'overview');
    const [isEditing, setIsEditing] = useState(false);
@@ -2291,6 +2293,26 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            </button>
                         )}
                      </div>
+
+                     {/* Dangerous Actions */}
+                     {(currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.DIRECCION) && (
+                        <>
+                           <div className="border-t border-slate-100 !my-3" />
+                           <div className="px-4 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Zona de Peligro</div>
+                           <div className="px-2">
+                              <button
+                                 onClick={() => {
+                                    if (onDeleteClient) onDeleteClient(client.id, formData.user_id);
+                                    setShowActionsModal(false);
+                                 }}
+                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                              >
+                                 <div className="p-2 rounded-lg bg-red-100"><Trash2 className="w-4 h-4 text-red-600" /></div>
+                                 <div className="text-left"><div className="font-medium">Eliminar Cliente</div><div className="text-xs text-red-400">Borrado permanente</div></div>
+                              </button>
+                           </div>
+                        </>
+                     )}
                   </div>
 
                   {/* Footer */}
@@ -4060,11 +4082,10 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                                    updateField('hormonal_status', opt.value);
                                                    handleQuickSave('hormonal_status', opt.value);
                                                 }}
-                                                className={`px-4 py-3 rounded-2xl border-2 text-left transition-all ${
-                                                   formData.hormonal_status === opt.value
-                                                      ? `border-${opt.color}-400 bg-${opt.color}-50 shadow-md`
-                                                      : 'border-slate-200 bg-white hover:border-slate-300'
-                                                }`}
+                                                className={`px-4 py-3 rounded-2xl border-2 text-left transition-all ${formData.hormonal_status === opt.value
+                                                   ? `border-${opt.color}-400 bg-${opt.color}-50 shadow-md`
+                                                   : 'border-slate-200 bg-white hover:border-slate-300'
+                                                   }`}
                                              >
                                                 <p className={`text-sm font-bold ${formData.hormonal_status === opt.value ? `text-${opt.color}-700` : 'text-slate-700'}`}>{opt.label}</p>
                                                 <p className="text-xs text-slate-500">{opt.desc}</p>
@@ -4294,9 +4315,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                                          <td className="py-2 px-3 text-slate-600">{c.period_end_date ? new Date(c.period_end_date).toLocaleDateString('es-ES') : '-'}</td>
                                                          <td className="py-2 px-3">
                                                             {c.cycle_length ? (
-                                                               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                                                                  Math.abs(c.cycle_length - 28) <= 3 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                                                               }`}>{c.cycle_length} días</span>
+                                                               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${Math.abs(c.cycle_length - 28) <= 3 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                                                  }`}>{c.cycle_length} días</span>
                                                             ) : '-'}
                                                          </td>
                                                          <td className="py-2 px-3 text-xs text-slate-500">{c.notes || '-'}</td>

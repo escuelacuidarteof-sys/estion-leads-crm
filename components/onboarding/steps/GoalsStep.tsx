@@ -102,93 +102,29 @@ export function GoalsStep({ formData, updateField, contractTemplate }: Props) {
                         <FileText className="w-4 h-4" />
                         1. Contrato de Prestación de Servicios
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 h-48 overflow-y-auto text-[11px] text-slate-600 leading-relaxed shadow-inner">
-                        <h5 className="font-bold text-xs text-slate-900 uppercase mb-4 text-center border-b pb-2">DOCUMENTO DE ADHESIÓN AL PROGRAMA · ESCUELA CUIDARTE</h5>
-
-                        <div className="space-y-4 text-justify">
-                            <p className="font-bold">Servicio prestado y facturado por NEIKO HEALTH, S.L.</p>
-
-                            <div className="bg-white p-3 border rounded-lg mb-4">
-                                <p className="font-bold underline mb-2">REUNIDOS</p>
-                                <p><strong>De una parte:</strong> NEIKO HEALTH, S.L., NIF: B22928311, Domicilio social: C/ Princesa 31, 2º puerta 2, 28008 Madrid. Entidad mercantil que presta, gestiona y factura los servicios del programa Escuela CUIDARTE (en adelante, LA EMPRESA).</p>
-                                <p className="mt-2"><strong>Y de otra parte:</strong> El/la participante, cuyos datos constan en el presente formulario de inscripción (en adelante, EL/LA PARTICIPANTE).</p>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 h-64 overflow-y-auto text-[11px] text-slate-600 leading-relaxed shadow-inner">
+                        {contractTemplate ? (
+                            <div className="whitespace-pre-wrap text-justify">
+                                {contractTemplate.content
+                                    .replace(/\[NOMBRE_CLIENTE\]/g, `${formData.firstName} ${formData.surname}`)
+                                    .replace(/\[DNI_CLIENTE\]/g, formData.idNumber || '---')
+                                    .replace(/\[DOMICILIO_CLIENTE\]/g, formData.address || '---')
+                                    .replace(/\[DIA\]/g, new Date().getDate().toString())
+                                    .replace(/\[MES\]/g, (new Date().getMonth() + 1).toString())
+                                    .replace(/\[AÑO\]/g, new Date().getFullYear().toString())
+                                }
+                                <div className="pt-4 border-t border-slate-200 mt-6 font-bold text-slate-800">
+                                    <p>Firmado digitalmente por: {formData.firstName} {formData.surname}</p>
+                                    <p>DNI/NIE: {formData.idNumber || '---'}</p>
+                                    <p>Fecha de aceptación: {new Date().toLocaleDateString('es-ES')}</p>
+                                </div>
                             </div>
-
-                            <p>Ambas partes, reconociéndose capacidad legal suficiente para contratar, acuerdan suscribir el presente Contrato de Prestación de Servicios, que se regirá por las siguientes:</p>
-
-                            <p className="font-bold text-slate-900">CLÁUSULAS</p>
-
-                            <div>
-                                <p className="font-bold">1. OBJETO DEL CONTRATO</p>
-                                <p>El presente contrato tiene por objeto regular la participación voluntaria del/la participante en el programa Escuela CUIDARTE, consistente en un servicio integral de acompañamiento personalizado en nutrición, ejercicio físico y bienestar, desarrollado en modalidad online, y prestado y facturado por LA EMPRESA.</p>
+                        ) : (
+                            <div className="space-y-4 text-justify">
+                                <h5 className="font-bold text-xs text-slate-900 uppercase mb-4 text-center border-b pb-2">DOCUMENTO DE ADHESIÓN AL PROGRAMA · ESCUELA CUIDARTE</h5>
+                                <p>Cargando términos del contrato...</p>
                             </div>
-
-                            <div>
-                                <p className="font-bold">2. NATURALEZA DEL SERVICIO</p>
-                                <p>El/la participante ha sido informado, reconoce y acepta que: La Escuela CUIDARTE es un programa de educación, formación, acompañamiento y apoyo en hábitos de vida saludable. NO constituye un acto médico, psicológico ni terapéutico. NO realiza ni sustituye diagnósticos, tratamientos médicos, quirúrgicos o farmacológicos prescritos por profesionales sanitarios.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">3. NO SUSTITUCIÓN DEL TRATAMIENTO MÉDICO</p>
-                                <p>El programa NO sustituye en ningún caso a la atención médica, quirúrgica, farmacológica u oncológica indicada por su equipo sanitario. Debe mantener sus controles médicos habituales durante toda su participación en el programa.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">4. AUSENCIA DE SERVICIO DE URGENCIAS</p>
-                                <p>La Escuela CUIDARTE NO es un servicio de urgencias. Ante cualquier empeoramiento clínico, síntoma grave o urgencia, deberá acudir a los servicios sanitarios correspondientes.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">5. NO GARANTÍA DE RESULTADOS NI CURACIÓN</p>
-                                <p>El programa no garantiza resultados médicos, clínicos ni terapéuticos. Los posibles beneficios que se obtengan dependen de múltiples factores individuales ajenos al control del programa.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">6. PARTICIPACIÓN VOLUNTARIA Y AUTORRESPONSABILIDAD</p>
-                                <p>El/la participante acepta que su participación es voluntaria y bajo su propia responsabilidad. La aplicación de las recomendaciones recibidas es una decisión personal.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">7. DESCRIPCIÓN DEL PROGRAMA Y CONTENIDOS</p>
-                                <ul className="list-disc ml-5 space-y-1">
-                                    <li><strong>Acompañamiento nutricional personalizado:</strong> Plan individualizado y seguimiento diario vía plataforma.</li>
-                                    <li><strong>Entrenamientos personalizados:</strong> Envío semanal adaptado a sus capacidades.</li>
-                                    <li><strong>Formación en autocuidado:</strong> Acceso a clases formativas semanales online.</li>
-                                    <li><strong>Resolución de dudas:</strong> Espacio de contacto vía email para consultas del programa.</li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">8. ACCESO AL PROGRAMA</p>
-                                <p>Se realiza a través de plataforma privada. LA EMPRESA facilitará las credenciales (usuario y contraseña) tras la aceptación de este contrato.</p>
-                            </div>
-
-                            <div className="bg-emerald-50 p-3 border border-emerald-100 rounded-lg">
-                                <p className="font-bold text-emerald-900">10. PRECIO DEL PROGRAMA</p>
-                                <p className="text-emerald-800 font-medium">El precio del programa es de QUINIENTOS EUROS (500,00 €) trimestrales, más el IVA correspondiente (21%). El pago del primer trimestre deberá realizarse en el plazo máximo de dos días naturales desde la aceptación.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">11. DURACIÓN Y BAJA</p>
-                                <p>Duración mínima de tres meses. Renovable automáticamente por períodos iguales. El/la participante podrá abandonar el programa en cualquier momento, pero no tendrá derecho a devolución proporcional si lo hace antes de finalizar el trimestre en curso.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">13. CONFIDENCIALIDAD Y PROTECCIÓN DE DATOS</p>
-                                <p>Sus datos se tratarán conforme al RGPD (UE) 2016/679. Se utilizarán exclusivamente para la gestión y seguimiento del programa.</p>
-                            </div>
-
-                            <div>
-                                <p className="font-bold">14. LEGISLACIÓN Y JURISDICCIÓN</p>
-                                <p>El contrato se rige por la legislación española. Ambas partes se someten a los Tribunales de Madrid.</p>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-200 mt-6 font-bold text-slate-800">
-                                <p>Firmado por EL/LA PARTICIPANTE: {formData.firstName} {formData.surname}</p>
-                                <p>DNI: {formData.idNumber || '---'}</p>
-                                <p>Fecha: {new Date().toLocaleDateString('es-ES')}</p>
-                            </div>
-                        </div>
+                        )}
                     </div>
                     <label className="flex items-center gap-3 cursor-pointer p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl hover:bg-emerald-50 transition-all">
                         <input

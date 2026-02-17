@@ -84,7 +84,7 @@ const AppContent: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<User[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<{ id: string; name: string; platform_fee_percentage: number }[]>([]);
-  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'nutrition-management' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'nutrition-management' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard' | 'doctor-dashboard' | 'doctor-initial-reports' | 'create-medical-report' | 'doctor-medical-reports' | 'doctor-invoices' | 'mass-communication' | 'analytics-ado' | 'analytics-me' | 'coach-agenda' | 'me-dashboard' | 'me-clients' | 'me-closer-performance' | 'me-setter-performance'>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [previousView, setPreviousView] = useState<string | null>(null);
   const [clientsFilter, setClientsFilter] = useState<string | null>(null);
@@ -369,6 +369,21 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleClientDelete = async (clientId: string, userId?: string) => {
+    try {
+      if (!window.confirm("¿ESTÁS SEGURO? Esta acción es IRREVERSIBLE y eliminará todos los datos del cliente, sus revisiones, planes y acceso al portal.")) {
+        return;
+      }
+
+      await mockDb.deleteClient(clientId, userId);
+      toast.success("Cliente eliminado permanentemente");
+      setSelectedClient(null);
+      if (user) fetchClients(user);
+    } catch (error: any) {
+      toast.error(`Error al eliminar cliente: ${getErrorMessage(error)}`);
+    }
+  };
+
   const handleClientUpdate = async (updatedClient: Client) => {
     try {
       setSelectedClient(updatedClient);
@@ -404,6 +419,15 @@ const AppContent: React.FC = () => {
   const handleViewClient = (client: Client) => {
     setPreviousView(activeView);
     setSelectedClient(client);
+  };
+
+  const handleViewClientById = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      handleViewClient(client);
+    } else {
+      toast.error("No se encontró la información del cliente");
+    }
   };
 
   const handleViewAsClient = () => {
@@ -561,6 +585,7 @@ const AppContent: React.FC = () => {
             onBack={handleBackToListView}
             onUpdateStatus={handleStatusChange}
             onSave={handleClientUpdate}
+            onDeleteClient={handleClientDelete}
             onViewAsClient={handleViewAsClient}
             currentUser={user}
             coaches={coaches}
@@ -571,9 +596,6 @@ const AppContent: React.FC = () => {
         ) : activeView === 'settings' ? (
           <AdminSettings
             currentUser={user}
-            onFetchUsers={mockAdmin.getUsers}
-            onUpdateUser={handleAdminUpdateUser}
-            onDeleteUser={mockAdmin.deleteUser}
           />
         ) : activeView === 'renewals' ? (
           <RenewalsView clients={filteredClients} user={user} onNavigateToClient={handleViewClient} coaches={coaches} paymentMethods={paymentMethods} />
@@ -602,9 +624,9 @@ const AppContent: React.FC = () => {
             onDeleteUser={mockAdmin.deleteUser}
           />
         ) : activeView === 'medical-reviews' ? (
-          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClient} mode="reviews" />
+          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="reviews" />
         ) : activeView === 'doctor-initial-reports' ? (
-          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClient} mode="initial-reports" />
+          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="initial-reports" />
         ) : activeView === 'create-medical-report' ? (
           <CreateMedicalReport currentUser={user} />
         ) : activeView === 'doctor-medical-reports' ? (
@@ -740,6 +762,7 @@ const AppContent: React.FC = () => {
             initialFilter={clientsFilter}
             onFilterChange={() => setClientsFilter(null)}
             coaches={coaches}
+            onNavigate={handleNavigate}
           />
         )}
       </Suspense>

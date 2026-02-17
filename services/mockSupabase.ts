@@ -1421,6 +1421,44 @@ export const mockDb = {
     if (error) throw error;
   },
 
+  deleteClient: async (clientId: string, userId?: string) => {
+    // 1. Delete from auth if user_id exists
+    if (userId) {
+      try {
+        await supabase.functions.invoke('delete-user', {
+          body: { userId }
+        });
+      } catch (err) {
+        console.warn('Could not delete auth user:', err);
+      }
+    }
+
+    // 2. Delete from clientes table
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('id', clientId);
+
+    if (error) throw error;
+
+    // 3. Reset associated sales to 'pending'
+    try {
+      await supabase
+        .from('sales')
+        .update({
+          status: 'pending',
+          client_id: null,
+          onboarding_completed_at: null
+        })
+        .eq('client_id', clientId);
+    } catch (err) {
+      console.warn('Could not reset associated sales:', err);
+    }
+
+    // 4. Clear local cache if any
+    clients = clients.filter(c => c.id !== clientId);
+  },
+
   // --- CLIENT CREATION (ONBOARDING) ---
   createClient: async (newClient: Partial<Client> & { password?: string }) => {
     try {

@@ -294,7 +294,7 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
                 await supabase.from('clientes').insert([commonClientData]);
             }
 
-            const link = `${window.location.origin}/#/activar-cuenta/${activationToken}`;
+            const link = `${window.location.origin}/#/bienvenida/${activationToken}`;
             setCreatedOnboardingLink(link);
 
             // 5. Update lead status if this was a conversion

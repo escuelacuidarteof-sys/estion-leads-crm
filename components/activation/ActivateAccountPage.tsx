@@ -131,8 +131,7 @@ export function ActivateAccountPage() {
                             .update({
                                 user_id: signInData.user.id,
                                 activation_token: null,
-                                activation_token_created_at: null,
-                                onboarding_phase2_completed: true
+                                activation_token_created_at: null
                             })
                             .eq('id', clientData.id);
 
@@ -201,8 +200,7 @@ export function ActivateAccountPage() {
                 .update({
                     user_id: authData.user.id,
                     activation_token: null,
-                    activation_token_created_at: null,
-                    onboarding_phase2_completed: true
+                    activation_token_created_at: null
                 })
                 .eq('id', clientData.id);
 

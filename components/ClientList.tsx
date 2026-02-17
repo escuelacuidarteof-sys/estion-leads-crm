@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Client, ClientStatus, UserRole, User } from '../types';
 import {
   Search, Filter, PlayCircle, PauseCircle, XCircle, ChevronRight,
-  Users, UserCheck, UserMinus, Clock, AlertOctagon, TrendingUp,
+  Users, UserCheck, UserMinus, UserPlus, Clock, AlertOctagon, TrendingUp,
   Activity, Briefcase, Calendar, Heart, LayoutGrid, List,
   Droplets, Scale, ClipboardCheck, AlertCircle
 } from 'lucide-react';
@@ -18,9 +18,10 @@ interface ClientListProps {
   initialFilter?: string | null;
   onFilterChange?: () => void;
   coaches?: User[];
+  onNavigate: (view: any) => void;
 }
 
-const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateStatus, onSelectClient, isLoading, initialFilter, onFilterChange, coaches = [] }) => {
+const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateStatus, onSelectClient, isLoading, initialFilter, onFilterChange, coaches = [], onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStatus | 'all'>('all');
   const [coachFilter, setCoachFilter] = useState<string>('all');
@@ -217,7 +218,15 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                 Gestiona y visualiza todos tus clientes en un solo lugar
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {(currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HEAD_COACH || currentUser.role === UserRole.DIRECCION || currentUser.role === UserRole.CLOSER) && (
+                <button
+                  onClick={() => onNavigate('new-sale')}
+                  className="bg-brand-green hover:bg-brand-green-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-brand-green/20 transition-all hover:scale-105"
+                >
+                  <UserPlus className="w-5 h-5" /> Nueva Alta
+                </button>
+              )}
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 border border-white/10">
                 <p className="text-xs text-slate-400 font-medium">Total Cartera</p>
                 <p className="text-2xl font-black text-white">{stats.total}</p>
@@ -421,7 +430,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold">
                             <Briefcase className="w-3 h-3" />
-                            {getCoachName(client.coach_id) || client.property_coach || 'Sin Asignar'}
+                            {getCoachName(client.coach_id) || 'Sin Asignar'}
                           </span>
                         </td>
                       )}
@@ -453,18 +462,9 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                           <div className="flex items-center gap-1.5">
                             <Heart className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                             <span className="text-xs text-slate-600 font-medium">
-                              {client.medical.diabetesType === 'N/A' ? 'No Diabético' : client.medical.diabetesType}
+                              {client.medical.diagnosis || 'Chequeo inicial'}
                             </span>
                           </div>
-                          {client.medical.lastHba1c && (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              parseFloat(client.medical.lastHba1c) <= 7 ? 'bg-green-100 text-green-700' :
-                              parseFloat(client.medical.lastHba1c) <= 8 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              HbA1c: {client.medical.lastHba1c}%
-                            </span>
-                          )}
                           {(() => {
                             const phase = getCyclePhase(client);
                             if (!phase) {
@@ -587,7 +587,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                     onUpdateStatus={onUpdateStatus}
                     getStatusColor={getStatusColor}
                     getStatusLabel={getStatusLabel}
-                    coachName={getCoachName(client.coach_id) || client.property_coach || 'Sin Asignar'}
+                    coachName={getCoachName(client.coach_id) || 'Sin Asignar'}
                   />
                 ))}
               </div>

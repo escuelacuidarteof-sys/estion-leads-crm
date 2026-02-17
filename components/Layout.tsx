@@ -312,6 +312,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                 <NavItem view="staff-metrics" icon={BarChart2} label="Dashboard Operativo" />
                 <NavItem view="clients" icon={Users} label="Cartera de Clientes" />
                 <NavItem view="renewals" icon={CalendarRange} label="Renovaciones" />
+                <NavItem view="leads" icon={Briefcase} label="Leads / Pre-Venta" />
+                <NavItem view="new-sale" icon={UserPlus} label="Nueva Alta" />
                 <NavItem view="closer-performance" icon={Target} label="Rendimiento Closers" />
                 <NavItem view="coach-performance" icon={Award} label="Rendimiento Coaches" />
                 <NavItem view="setter-performance" icon={Search} label="Rendimiento Setters" />
@@ -580,6 +582,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                 <NavItem view="staff-metrics" icon={BarChart2} label="Dashboard Operativo" />
                 <NavItem view="clients" icon={Users} label="Cartera de Clientes" />
                 <NavItem view="renewals" icon={CalendarRange} label="Renovaciones" />
+                <NavItem view="leads" icon={Briefcase} label="Leads / Pre-Venta" />
+                <NavItem view="new-sale" icon={UserPlus} label="Nueva Alta" />
                 <NavItem view="closer-performance" icon={Target} label="Rendimiento Closers" />
                 <NavItem view="coach-performance" icon={Award} label="Rendimiento Coaches" />
                 <NavItem view="setter-performance" icon={Search} label="Rendimiento Setters" />
