@@ -1,0 +1,108 @@
+-- =====================================================
+-- 🏥 SCHEMA DEFINITIVO TABLA 'CLIENTES'
+-- =====================================================
+-- Este script asegura que la tabla 'clientes' (la usada en el CRM)
+-- tenga todas las columnas necesarias para el nuevo formulario de oncología/salud.
+
+-- 1. DATOS PERSONALES Y GEOGRÁFICOS
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS postal_address TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS population TEXT; -- Se mapea a formData.city
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS city TEXT;       -- Añadido para consistencia con frontend
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS province TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS id_number TEXT;  -- DNI / NIE
+
+-- 2. CONTEXTO ONCOLÓGICO Y CLÍNICO
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS oncology_status TEXT; -- activo, finalizado, seguimiento
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS current_treatments TEXT[]; -- ['quimio', 'radio', etc]
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS oncology_diagnosis_date DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS treatment_start_date DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS health_conditions_prev TEXT[]; 
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS pathologies TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS medication TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS drug_allergies TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS exercise_medical_limitations_details TEXT;
+
+-- 3. SALUD HORMONAL Y ANALÍTICAS
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS menopause_status TEXT; -- natural, inducida, regular, etc
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS menopause_symptoms TEXT[]; -- ['sofocos', 'insomnio', etc]
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS lab_otros_notes TEXT; -- Analíticas recientes
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS lab_results_url TEXT; 
+
+-- 4. SÍNTOMAS Y DESCANSO (ESCALA 0-10)
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_fatigue INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS fatigue_interference INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_pain INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_nausea INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_vomiting INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_diarrhea INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_constipation INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_appetite_loss INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_taste_alteration INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_bloating INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS symptom_sleep_quality INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS sleep_hours NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS stress_level INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS recovery_capacity INTEGER;
+
+-- 5. ANTROPOMETRÍA
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS current_weight NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS initial_weight NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS height NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS habitual_weight_6_months NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS weight_evolution_status TEXT; -- perdido, mantenido, ganado...
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS body_evolution_goal_notes TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS arm_perimeter NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS abdominal_perimeter NUMERIC;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS thigh_perimeter NUMERIC;
+
+-- 6 & 7. NUTRICIÓN Y PSICOLOGÍA
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS assigned_nutrition_type TEXT; -- ⚠️ COLUMNA FALTANTE ANTERIORMENTE
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS allergies TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS regular_foods TEXT[];
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS unwanted_foods TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cooks_for_self BOOLEAN DEFAULT true;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS meals_per_day INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS meal_schedules JSONB; -- {breakfast: '08:00', ...}
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS weigh_food_preference TEXT; -- exacto vs visual
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS alcohol_weekly TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS smoking_status TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS last_recall_meal TEXT; -- Recordatorio 24h
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS food_fear_tumor BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS ed_binge_eating BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS ed_emotional_eating BOOLEAN DEFAULT false;
+
+-- 8. ACTIVIDAD FÍSICA
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS activity_level TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS daily_routine_description TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS exercise_availability_slots TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS strength_training BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS training_location TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS current_strength_score INTEGER;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS func_test_lift_bags BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS func_test_get_up_chair BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS func_test_stairs BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS func_test_falls BOOLEAN DEFAULT false;
+
+-- 9. OBJETIVOS
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS main_priority_notes TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS desired_feeling_notes TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS short_term_milestone_notes TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS why_trust_us TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS concerns_fears_notes TEXT;
+
+-- 10. CONTRATO Y ONBOARDING
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS contract_signed BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS contract_signed_at TIMESTAMPTZ;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS contract_signature_image TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS assigned_contract_template_id UUID;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_phase2_completed BOOLEAN DEFAULT false;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_phase2_completed_at TIMESTAMPTZ;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS subscription_start DATE;
+
+-- =====================================================
+-- ✅ LISTO - RECUERDA EJECUTAR EN SUPABASE SQL EDITOR
+-- =====================================================
