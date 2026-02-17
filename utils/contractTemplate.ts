@@ -83,9 +83,9 @@ export function generateContractHTML(data: ContractData): string {
 <div style="${bodyText} margin-bottom: 32px;">
   <p style="margin-bottom: 20px;">En <strong>Espa\u00f1a</strong>, a <strong>${fechaDia}</strong> de <strong>${fechaMes}</strong> de <strong>${fechaAno}</strong></p>
 
-  <p style="margin-bottom: 16px;">De una parte: <strong>${professional}</strong>${collegiateNum}, con DNI: ${legalId} y domicilio social en ${address}.</p>
+  <p style="margin-bottom: 16px;">De una parte: <strong>NEIKO HEALTH, S.L.</strong>, con NIF: <strong>B22928311</strong> y domicilio social en <strong>C/ Princesa 31, 2\u00ba puerta 2, 28008 Madrid</strong>. Entidad mercantil que presta, gestiona y factura los servicios del programa Escuela CUIDARTE (en adelante, <strong>LA EMPRESA</strong>).</p>
 
-  <p style="margin-bottom: 16px;">Y de otra: <strong>${nombreCliente || '________________________'}</strong> con DNI <strong>${dniCliente || '____________'}</strong> y domicilio en <strong>${domicilioCliente || '__________________________________________'}</strong> (en adelante \u201cel cliente\u201d).</p>
+  <p style="margin-bottom: 16px;">Y de otra: <strong>${nombreCliente || '________________________'}</strong> con DNI <strong>${dniCliente || '____________'}</strong> y domicilio en <strong>${domicilioCliente || '__________________________________________'}</strong> (en adelante <strong>\u201cel cliente\u201d</strong>).</p>
 
   <p>INTERVIENEN, ambas partes, en su propio nombre y derecho, aseguran tener y se reconocen mutuamente plena capacidad legal para contratar y obligarse, en especial para este acto y de com\u00fan acuerdo,</p>
 </div>

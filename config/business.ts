@@ -103,7 +103,7 @@ export const BUSINESS_CONFIG = {
     responsibleName: 'NEIKO HEALTH, S.L.',
     responsibleId: 'B22928311', // NIF/DNI
     companyAddress: 'C/ Princesa 31, 2º puerta 2, 28008 Madrid', // Dirección fiscal
-    collegiateNumber: '', // No aplica si es empresa
+    collegiateNumber: '', // No aplica
     serviceDescription: 'Servicio de coaching y acompañamiento personalizado en salud y bienestar',
   },
 

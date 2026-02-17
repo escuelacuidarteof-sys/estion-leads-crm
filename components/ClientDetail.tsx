@@ -4720,8 +4720,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      const meses = getMesesList();
 
                      // Contract field values with defaults
-                     const contractDate = program.contract_date || '';
-                     const parsedDate = contractDate ? new Date(contractDate + 'T00:00:00') : null;
+                     const contractDate = program.contract_date || (program.contract_signed_at ? program.contract_signed_at.split('T')[0] : '');
+                     const parsedDate = contractDate ? new Date(contractDate.includes('T') ? contractDate : contractDate + 'T12:00:00') : null;
                      const cDia = parsedDate ? parsedDate.getDate().toString() : '';
                      const cMes = parsedDate ? meses[parsedDate.getMonth()] : '';
                      const cAno = parsedDate ? parsedDate.getFullYear().toString() : '';
