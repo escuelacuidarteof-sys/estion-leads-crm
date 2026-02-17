@@ -21,6 +21,7 @@ interface PaymentMethod {
 interface LeadConversionData {
     lead_id?: string;
     nombre_lead?: string;
+    email?: string;
     telefono?: string;
     pago?: string;
     closer?: string;
@@ -62,7 +63,7 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
     const [formData, setFormData] = useState({
         client_first_name: parsedName.first,
         client_last_name: parsedName.last,
-        client_email: '',
+        client_email: initialLeadData?.email || '',
         client_phone: initialLeadData?.telefono || '',
         client_dni: '',
         client_address: '',
@@ -102,7 +103,11 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
         if (propUser) {
             setCurrentUser(propUser);
         }
-    }, [propUser]);
+        // Sync email if it's a lead conversion
+        if (initialLeadData?.email && !formData.client_email) {
+            setFormData(prev => ({ ...prev, client_email: initialLeadData.email || '' }));
+        }
+    }, [propUser, initialLeadData]);
 
     const loadCurrentUser = async () => {
         try {
@@ -456,8 +461,8 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
                                 <input required className="w-full p-3 border rounded-lg" placeholder="Apellidos *" value={formData.client_last_name} onChange={e => updateField('client_last_name', e.target.value)} />
                                 <input required type="email" className="w-full p-3 border rounded-lg md:col-span-2" placeholder="Email *" value={formData.client_email} onChange={e => updateField('client_email', e.target.value)} />
                                 <input required className="w-full p-3 border rounded-lg" placeholder="Teléfono *" value={formData.client_phone} onChange={e => updateField('client_phone', normalizePhone(e.target.value))} />
-                                <input required className="w-full p-3 border rounded-lg" placeholder="DNI / NIE *" value={formData.client_dni} onChange={e => updateField('client_dni', e.target.value.toUpperCase())} />
-                                <input required className="w-full p-3 border rounded-lg md:col-span-2" placeholder="Dirección Completa *" value={formData.client_address} onChange={e => updateField('client_address', e.target.value)} />
+                                <input className="w-full p-3 border rounded-lg" placeholder="DNI / NIE (opcional)" value={formData.client_dni} onChange={e => updateField('client_dni', e.target.value.toUpperCase())} />
+                                <input className="w-full p-3 border rounded-lg md:col-span-2" placeholder="Dirección Completa (opcional)" value={formData.client_address} onChange={e => updateField('client_address', e.target.value)} />
                             </div>
                         </div>
 

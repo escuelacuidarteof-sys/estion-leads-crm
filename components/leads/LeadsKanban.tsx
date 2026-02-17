@@ -95,6 +95,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
                 initialLeadData={{
                     lead_id: convertingLead.id,
                     nombre_lead: convertingLead.name || '',
+                    email: convertingLead.email || '',
                     telefono: convertingLead.phone || '',
                     pago: convertingLead.sale_amount ? String(convertingLead.sale_amount) : '',
                 }}
