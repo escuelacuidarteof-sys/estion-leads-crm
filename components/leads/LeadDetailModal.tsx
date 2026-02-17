@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, User as UserType } from '../../types';
 import { leadsService } from '../../services/leadsService';
 import { useToast } from '../ToastProvider';
-import { X, Save, User, Smartphone, Mail, Calendar, Trash2, Clock, Info, Target, Star, Heart, Euro } from 'lucide-react';
+import { X, Save, User, Smartphone, Mail, Calendar, Trash2, Clock, Info, Target, Star, Heart, Euro, ArrowRightCircle } from 'lucide-react';
 
 interface LeadDetailModalProps {
     lead: Partial<Lead> | null;
@@ -10,6 +10,7 @@ interface LeadDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
+    onConvertToSale?: (lead: Partial<Lead>) => void;
 }
 
 const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
@@ -33,7 +34,7 @@ const CALL_OUTCOME_OPTIONS = [
     { value: 'sold', label: 'Venta cerrada' },
 ];
 
-const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, isOpen, onClose, onSave }) => {
+const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, isOpen, onClose, onSave, onConvertToSale }) => {
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Lead>>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -366,7 +367,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
 
                 {/* FOOTER */}
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                    <div>
+                    <div className="flex items-center gap-2">
                         {isEditing && (
                             <button
                                 type="button"
@@ -375,6 +376,20 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, currentUser, is
                                 title="Eliminar Lead"
                             >
                                 <Trash2 className="w-5 h-5" />
+                            </button>
+                        )}
+                        {isEditing && onConvertToSale && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onConvertToSale(formData);
+                                    onClose();
+                                }}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                                title="Convertir este lead en una venta"
+                            >
+                                <ArrowRightCircle className="w-4 h-4" />
+                                Convertir a Venta
                             </button>
                         )}
                     </div>

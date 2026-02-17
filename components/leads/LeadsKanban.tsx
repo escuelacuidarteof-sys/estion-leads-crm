@@ -3,6 +3,7 @@ import { Lead, LeadStatus } from '../../types';
 import { leadsService } from '../../services/leadsService';
 import LeadCard from './LeadCard';
 import LeadDetailModal from './LeadDetailModal';
+import { NewSaleForm } from '../NewSaleForm';
 import { Plus, Search, RefreshCw, Users, Calendar, TrendingUp, XCircle } from 'lucide-react';
 import { useToast } from '../ToastProvider';
 import { User as UserType } from '../../types';
@@ -30,6 +31,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState<Partial<Lead> | null>(null);
+    const [convertingLead, setConvertingLead] = useState<Partial<Lead> | null>(null);
 
     const fetchLeads = async () => {
         setIsLoading(true);
@@ -58,6 +60,10 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
         setIsModalOpen(true);
     };
 
+    const handleConvertToSale = (lead: Partial<Lead>) => {
+        setConvertingLead(lead);
+    };
+
     const filteredLeads = leads.filter(l => {
         if (!searchTerm) return true;
         const searchLower = searchTerm.toLowerCase();
@@ -75,6 +81,27 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
     const agendados = leads.filter(l => l.status === 'appointment_set' || l.status === 'show').length;
     const vendidos = leads.filter(l => l.status === 'sold').length;
     const conversionRate = totalLeads > 0 ? ((vendidos / totalLeads) * 100).toFixed(1) : '0';
+
+    // If converting a lead, show the NewSaleForm
+    if (convertingLead) {
+        // Parse the lead name into first/last
+        const nameParts = (convertingLead.name || '').trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        return (
+            <NewSaleForm
+                currentUser={currentUser}
+                initialLeadData={{
+                    lead_id: convertingLead.id,
+                    nombre_lead: convertingLead.name || '',
+                    telefono: convertingLead.phone || '',
+                    pago: convertingLead.sale_amount ? String(convertingLead.sale_amount) : '',
+                }}
+                onBack={() => setConvertingLead(null)}
+            />
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-slate-50/50">
@@ -179,6 +206,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ currentUser }) => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={fetchLeads}
+                onConvertToSale={handleConvertToSale}
             />
         </div>
     );

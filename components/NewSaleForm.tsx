@@ -19,6 +19,7 @@ interface PaymentMethod {
 }
 
 interface LeadConversionData {
+    lead_id?: string;
     nombre_lead?: string;
     telefono?: string;
     pago?: string;
@@ -290,6 +291,19 @@ export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: 
 
             const link = `${window.location.origin}/#/activar-cuenta/${activationToken}`;
             setCreatedOnboardingLink(link);
+
+            // 5. Update lead status if this was a conversion
+            if (initialLeadData?.lead_id) {
+                try {
+                    await supabase
+                        .from('leads_escuela_cuidarte')
+                        .update({ status: 'sold' })
+                        .eq('id', initialLeadData.lead_id);
+                } catch (err) {
+                    console.error('Error updating lead status:', err);
+                }
+            }
+
             setSuccess(true);
 
             // Webhook N8N
