@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import {
     Heart, Lock, User, Stethoscope, Thermometer, Scale, Utensils, Dumbbell, Target,
-    Loader2, AlertCircle, ArrowLeft, ArrowRight
+    Loader2, AlertCircle, ArrowLeft, ArrowRight, Mail
 } from 'lucide-react';
 import InstallationGuide from '../InstallationGuide';
 
@@ -129,6 +129,8 @@ export function OnboardingPage() {
     const [saleData, setSaleData] = useState<any>(null);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [contractTemplate, setContractTemplate] = useState<any>(null);
+    const [verificationEmail, setVerificationEmail] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const [formData, setFormData] = useState<OnboardingData>({
         email: '',
@@ -216,7 +218,6 @@ export function OnboardingPage() {
 
     const validateToken = async () => {
         if (!token) {
-            setError('Token inválido');
             setLoading(false);
             return;
         }
@@ -259,6 +260,55 @@ export function OnboardingPage() {
         } catch (err) {
             setError('Error al validar el acceso');
             setLoading(false);
+        }
+    };
+
+    const handleEmailVerification = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!verificationEmail) return;
+
+        setIsVerifying(true);
+        setError(null);
+
+        try {
+            const { data: sale, error: saleError } = await supabase
+                .from('sales')
+                .select('*, assigned_coach_id')
+                .eq('client_email', verificationEmail.trim().toLowerCase())
+                .eq('status', 'pending_onboarding')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (saleError || !sale) {
+                setError('No encontramos ninguna valoración pendiente para este email. Por favor, contacta con tu coach.');
+                setIsVerifying(false);
+                return;
+            }
+
+            setSaleData(sale);
+            setFormData(prev => ({
+                ...prev,
+                email: sale.client_email || '',
+                phone: sale.client_phone || '',
+                firstName: sale.client_first_name || '',
+                surname: sale.client_last_name || '',
+                idNumber: sale.client_dni || '',
+                address: sale.client_address || ''
+            }));
+
+            if (sale.contract_template_id) {
+                const { data: template } = await supabase
+                    .from('contract_templates')
+                    .select('*')
+                    .eq('id', sale.contract_template_id)
+                    .single();
+                if (template) setContractTemplate(template);
+            }
+        } catch (err) {
+            setError('Error al validar el acceso');
+        } finally {
+            setIsVerifying(false);
         }
     };
 
@@ -451,7 +501,68 @@ export function OnboardingPage() {
     ];
 
     if (loading) return <div className="min-h-screen bg-emerald-50 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>;
-    if (error) return <div className="min-h-screen bg-red-50 flex items-center justify-center"><div className="text-center">{error}</div></div>;
+
+    if (!saleData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div className="bg-emerald-600 p-8 text-center text-white">
+                        <div className="mb-6 inline-block p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                            <Heart className="w-12 h-12 text-white" />
+                        </div>
+                        <h1 className="text-2xl font-bold mb-2">Comienza tu Valoración</h1>
+                        <p className="text-emerald-100 text-sm">Introduce tu email para acceder a tu formulario personalizado</p>
+                    </div>
+
+                    <form onSubmit={handleEmailVerification} className="p-8 space-y-6">
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-start gap-3 border border-red-100">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                <p>{error}</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700 ml-1">Email de Usuario</label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                <input
+                                    type="email"
+                                    required
+                                    value={verificationEmail}
+                                    onChange={(e) => setVerificationEmail(e.target.value)}
+                                    placeholder="ejemplo@email.com"
+                                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-xl transition-all outline-none text-slate-900 font-medium"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isVerifying}
+                            className="w-full py-4 bg-emerald-600 text-white rounded-xl font-extrabold text-lg shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:translate-y-0"
+                        >
+                            {isVerifying ? (
+                                <>
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                    <span>Verificando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Continuar</span>
+                                    <ArrowRight className="w-6 h-6" />
+                                </>
+                            )}
+                        </button>
+
+                        <p className="text-center text-xs text-slate-400">
+                            ¿Tienes problemas? Contacta con tu coach de Escuela Cuid-Arte
+                        </p>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     const CurrentStepIcon = steps[currentStep].icon;
 

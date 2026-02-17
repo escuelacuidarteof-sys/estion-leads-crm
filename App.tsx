@@ -760,6 +760,7 @@ const App: React.FC = () => {
           <Route path="/update-password" element={<UpdatePasswordPage />} />
 
           {/* Client onboarding route */}
+          <Route path="/bienvenida" element={<Suspense fallback={<LoadingFallback />}><OnboardingPage /></Suspense>} />
           <Route path="/bienvenida/:token" element={<Suspense fallback={<LoadingFallback />}><OnboardingPage /></Suspense>} />
 
           {/* Team member onboarding route - public, no auth required */}
