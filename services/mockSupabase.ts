@@ -978,7 +978,7 @@ export const mockDb = {
         if (clientId) {
           const { data: checkins } = await supabase
             .from('weekly_checkins')
-            .select('id, client_id, created_at, status, reviewed_at')
+            .select('*')
             .eq('client_id', clientId)
             .order('created_at', { ascending: false })
             .limit(1);

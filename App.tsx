@@ -518,6 +518,7 @@ const AppContent: React.FC = () => {
         );
       }
 
+      /* 
       // Limbo Mode: Block access until Phase 2 is completed
       if (!selectedClient.onboarding_phase2_completed) {
         return (
@@ -527,6 +528,7 @@ const AppContent: React.FC = () => {
           />
         );
       }
+      */
 
       if (activeView === 'client-portal') {
         return (
