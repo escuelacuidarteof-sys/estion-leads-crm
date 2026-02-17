@@ -119,6 +119,17 @@ export interface MedicalData {
   symptom_appetite_loss?: number;
   symptom_bloating?: number;
   symptom_sleep_quality?: number;
+  symptom_taste_alteration?: number;
+  symptom_intestinal_transit?: number;
+  symptom_brain_fog?: number;
+  symptom_stress?: number;
+
+  // --- Analíticas ---
+  lab_hemoglobina?: number;
+  lab_hierro?: number;
+  lab_glucosa?: number;
+  lab_vitamina_d?: number;
+  lab_otros_notas?: string;
 }
 
 export interface NutritionData {
@@ -153,6 +164,11 @@ export interface NutritionData {
   willingToWeighFood?: boolean;
   dietaryNotes?: string;
   lastRecallMeal?: string;
+  unwantedFoods?: string;
+  weighFoodPreference?: 'exacto' | 'visual';
+  smokingStatus?: 'si' | 'no' | 'dejado_poco';
+  ed_binge_eating?: boolean;
+  ed_emotional_eating?: boolean;
 }
 
 export interface TrainingData {
@@ -348,6 +364,18 @@ export interface Client {
   functional_limitation_stand_up?: boolean;
   functional_limitation_stairs?: boolean;
   functional_limitation_falls?: boolean;
+
+  // Escuela Cuidarte specific fields
+  daily_routine_description?: string;
+  exercise_availability_slots?: string;
+  main_priority_notes?: string;
+  desired_feeling_notes?: string;
+  short_term_milestone_notes?: string;
+  why_trust_us?: string;
+  concerns_fears_notes?: string;
+
+  weight_evolution_status?: string;
+  habitual_weight_6_months?: number;
 
   // Relación con la comida (scores)
   food_fear_score?: number;

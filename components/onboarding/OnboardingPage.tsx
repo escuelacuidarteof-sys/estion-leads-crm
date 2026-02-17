@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import {
-    CheckCircle, ArrowRight, ArrowLeft, Loader2,
-    User, Heart, Activity, Target,
-    Lock, MapPin, Stethoscope, TrendingUp, Calendar,
-    Clock, Home, Dumbbell, AlertCircle, FileText, Smartphone
+    Heart, Lock, User, Stethoscope, Thermometer, Scale, Utensils, Dumbbell, Target,
+    Loader2, AlertCircle, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import InstallationGuide from '../InstallationGuide';
 
@@ -14,10 +12,11 @@ import { WelcomeStep } from './steps/WelcomeStep';
 import { CredentialsStep } from './steps/CredentialsStep';
 import { PersonalDataStep } from './steps/PersonalDataStep';
 import { MedicalDataStep } from './steps/MedicalDataStep';
+import { SymptomsStep } from './steps/SymptomsStep';
 import { MeasurementsStep } from './steps/MeasurementsStep';
+import { NutritionStep } from './steps/NutritionStep';
 import { ActivityStep } from './steps/ActivityStep';
 import { GoalsStep } from './steps/GoalsStep';
-import { ContractStep } from './steps/ContractStep';
 
 export interface OnboardingData {
     // Credenciales
@@ -25,7 +24,7 @@ export interface OnboardingData {
     password: string;
     confirmPassword: string;
 
-    // Personales
+    // BLOQUE 1: Personales
     firstName: string;
     surname: string;
     birthDate: string;
@@ -35,47 +34,88 @@ export interface OnboardingData {
     address: string;
     city: string;
     province: string;
+    idNumber: string;
 
-    // Médicos
+    // BLOQUE 2 & 3: Médicos y Hormonal
+    oncologyStatus: string;
+    treatments: string[];
+    diagnosisDate: string;
+    treatmentStartDate: string;
     healthConditions: string[];
     otherHealthConditions: string;
     dailyMedication: string;
-    treatments: string[];
-    treatmentStartDate: string;
-    medicationAffectsWeight: boolean;
-    medicationAffectsWeightDetails: string;
-    exerciseLimitations: boolean;
-    exerciseLimitationsDetails: string;
-    specialSituations: string[];
-    symptoms: string[];
+    drugAllergies: string;
+    exerciseLimitations: string;
+    hormonalStatus: string;
+    menopauseSymptoms: string[];
+    labResultsNotes: string;
 
-    // Medidas
+    // BLOQUE 4: Síntomas (0-10)
+    symptom_fatigue: number;
+    symptom_fatigue_interference: number;
+    symptom_pain: number;
+    symptom_nausea: number;
+    symptom_vomiting: number;
+    symptom_diarrhea: number;
+    symptom_constipation: number;
+    symptom_appetite_loss: number;
+    symptom_taste_alteration: number;
+    symptom_bloating: number;
+    symptom_sleep_quality: number;
+    sleep_hours: number;
+    stress_level: number;
+    recovery_capacity: number;
+
+    // BLOQUE 5: Antropometría
     currentWeight: number;
-    targetWeight: number;
     height: number;
-    armCircumference: number;
-    waistCircumference: number;
-    thighCircumference: number;
+    habitualWeight6Months: number;
+    weightEvolutionStatus: string;
+    bodyEvolutionGoal: string;
+    armCircumference?: number;
+    waistCircumference?: number;
+    thighCircumference?: number;
 
-    // Actividad
+    // BLOQUE 6 & 7: Nutrición y Psicología
+    dietType: string;
+    foodAllergies: string;
+    regularFoods: string[];
+    unwantedFoods: string;
+    cooksSelf: string;
+    mealsPerDay: number;
+    mealSchedules: {
+        breakfast: string;
+        midMorning: string;
+        lunch: string;
+        snack: string;
+        dinner: string;
+    };
+    weighFoodPreference: string;
+    alcoholPerWeek: string;
+    smokingStatus: string;
+    last24hMeals: string;
+    psychologySituations: string[];
+
+    // BLOQUE 8: Actividad Física
     dailySteps: string;
-    workSchedule: string;
-    workType: string;
+    dailyRoutineDescription: string;
+    exerciseAvailability: string;
     hasStrengthTraining: string;
     exerciseLocation: string;
+    currentStrengthScale: number;
+    functionalTests: string[];
 
-    // Objetivos
-    goal3Months: string;
-    goal6Months: string;
-    goal1Year: string;
+    // BLOQUE 9: Objetivos
+    mainPriority: string;
+    desiredFeeling: string;
+    shortTermMilestone: string;
     whyTrustUs: string;
-    additionalComments: string;
+    additionalConcerns: string;
 
-    // Firma (Nuevos campos)
+    // Legal
     contractAccepted: boolean;
-    healthConsent: boolean; // New RGPD field
+    healthConsent: boolean;
     signatureImage: string;
-    idNumber: string;
 }
 
 export function OnboardingPage() {
@@ -87,7 +127,6 @@ export function OnboardingPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saleData, setSaleData] = useState<any>(null);
-    const [coachVideo, setCoachVideo] = useState<string>('');
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [contractTemplate, setContractTemplate] = useState<any>(null);
 
@@ -104,37 +143,71 @@ export function OnboardingPage() {
         address: '',
         city: '',
         province: '',
+        idNumber: '',
+        oncologyStatus: '',
+        treatments: [],
+        diagnosisDate: '',
+        treatmentStartDate: '',
         healthConditions: [],
         otherHealthConditions: '',
         dailyMedication: '',
-        treatments: [],
-        treatmentStartDate: '',
-        medicationAffectsWeight: false,
-        medicationAffectsWeightDetails: '',
-        exerciseLimitations: false,
-        exerciseLimitationsDetails: '',
-        specialSituations: [],
-        symptoms: [],
+        drugAllergies: '',
+        exerciseLimitations: '',
+        hormonalStatus: '',
+        menopauseSymptoms: [],
+        labResultsNotes: '',
+        symptom_fatigue: 0,
+        symptom_fatigue_interference: 0,
+        symptom_pain: 0,
+        symptom_nausea: 0,
+        symptom_vomiting: 0,
+        symptom_diarrhea: 0,
+        symptom_constipation: 0,
+        symptom_appetite_loss: 0,
+        symptom_taste_alteration: 0,
+        symptom_bloating: 0,
+        symptom_sleep_quality: 0,
+        sleep_hours: 0,
+        stress_level: 0,
+        recovery_capacity: 0,
         currentWeight: 0,
-        targetWeight: 0,
         height: 0,
-        armCircumference: 0,
-        waistCircumference: 0,
-        thighCircumference: 0,
+        habitualWeight6Months: 0,
+        weightEvolutionStatus: '',
+        bodyEvolutionGoal: '',
+        dietType: '',
+        foodAllergies: '',
+        regularFoods: [],
+        unwantedFoods: '',
+        cooksSelf: '',
+        mealsPerDay: 3,
+        mealSchedules: {
+            breakfast: '',
+            midMorning: '',
+            lunch: '',
+            snack: '',
+            dinner: ''
+        },
+        weighFoodPreference: '',
+        alcoholPerWeek: '',
+        smokingStatus: 'no',
+        last24hMeals: '',
+        psychologySituations: [],
         dailySteps: '',
-        workSchedule: '',
-        workType: '',
+        dailyRoutineDescription: '',
+        exerciseAvailability: '',
         hasStrengthTraining: '',
         exerciseLocation: '',
-        goal3Months: '',
-        goal6Months: '',
-        goal1Year: '',
+        currentStrengthScale: 0,
+        functionalTests: [],
+        mainPriority: '',
+        desiredFeeling: '',
+        shortTermMilestone: '',
         whyTrustUs: '',
-        additionalComments: '',
+        additionalConcerns: '',
         contractAccepted: false,
         healthConsent: false,
-        signatureImage: '',
-        idNumber: ''
+        signatureImage: ''
     });
 
     useEffect(() => {
@@ -163,8 +236,6 @@ export function OnboardingPage() {
             }
 
             setSaleData(sale);
-
-            // Pre-fill email and phone from sale
             setFormData(prev => ({
                 ...prev,
                 email: sale.client_email || '',
@@ -175,23 +246,18 @@ export function OnboardingPage() {
                 address: sale.client_address || ''
             }));
 
-            // Load contract template
             if (sale.contract_template_id) {
                 const { data: template } = await supabase
                     .from('contract_templates')
                     .select('*')
                     .eq('id', sale.contract_template_id)
                     .single();
-
-                if (template) {
-                    setContractTemplate(template);
-                }
+                if (template) setContractTemplate(template);
             }
 
             setLoading(false);
         } catch (err) {
-            console.error('Error validating token:', err);
-            setError('Error al validar el enlace');
+            setError('Error al validar el acceso');
             setLoading(false);
         }
     };
@@ -203,7 +269,8 @@ export function OnboardingPage() {
     const toggleArrayField = (field: keyof OnboardingData, value: string) => {
         setFormData(prev => {
             const currentArray = prev[field] as string[];
-            const newArray = currentArray.includes(value)
+            const isIncluded = currentArray.includes(value);
+            const newArray = isIncluded
                 ? currentArray.filter(item => item !== value)
                 : [...currentArray, value];
             return { ...prev, [field]: newArray };
@@ -224,39 +291,21 @@ export function OnboardingPage() {
         }
     };
 
-    const validateForm = (): string | null => {
-        // FLUJO SIMPLIFICADO: Solo validamos credenciales
-        // El cliente ya tiene sus datos del formulario externo
-        // Solo necesita crear su contraseña para autenticarse
-
-        // Credenciales obligatorias
-        if (!formData.password || formData.password.length < 6) {
-            return 'La contraseña debe tener al menos 6 caracteres';
-        }
-        if (formData.password !== formData.confirmPassword) {
-            return 'Las contraseñas no coinciden';
-        }
-
-        return null;
-    };
-
     const handleSubmit = async () => {
-        console.log('Finalizing onboarding...');
-        // Validate form
-        const validationError = validateForm();
-        if (validationError) {
-            console.warn('Validation error:', validationError);
-            alert(validationError);
+        if (formData.password !== formData.confirmPassword) {
+            alert('Las contraseñas no coinciden');
+            return;
+        }
+        if (!formData.contractAccepted || !formData.healthConsent || !formData.signatureImage) {
+            alert('Por favor, acepta los términos y firma el contrato para finalizar.');
             return;
         }
 
         setSubmitting(true);
 
         try {
-            console.log('Sending data to Supabase...', formData.email);
-            // 1. Create/Update client in clientes
+            // Mapping fields to Supabase column names
             const clientData = {
-                // Personal Info
                 property_nombre: formData.firstName,
                 property_apellidos: formData.surname,
                 property_correo_electr_nico: formData.email,
@@ -267,402 +316,187 @@ export function OnboardingPage() {
                 property_direccion: formData.address,
                 property_poblaci_n: formData.city,
                 property_provincia: formData.province,
-                property_dni: formData.idNumber,
+                id_number: formData.idNumber,
 
-                // Medical Info
-                property_enfermedades: formData.healthConditions.join(', '),
+                oncology_status: formData.oncologyStatus,
+                current_treatments: formData.treatments,
+                oncology_diagnosis_date: formData.diagnosisDate ? `${formData.diagnosisDate}-01` : null,
+                treatment_start_date: formData.treatmentStartDate ? `${formData.treatmentStartDate}-01` : null,
+                health_conditions_prev: formData.healthConditions,
                 property_otras_enfermedades_o_condicionantes: formData.otherHealthConditions,
                 property_medicaci_n: formData.dailyMedication,
-                oncology_status: (formData.healthConditions || []).filter((c: string) => c.toLowerCase().includes('cáncer') || c.toLowerCase().includes('linfoma')).join(', ') || null,
-                treatment_chemotherapy: (formData.treatments || []).includes('Quimioterapia'),
-                treatment_radiotherapy: (formData.treatments || []).includes('Radioterapia'),
-                treatment_hormonotherapy: (formData.treatments || []).includes('Hormonoterapia'),
-                treatment_immunotherapy: (formData.treatments || []).includes('Inmunoterapia'),
-                treatment_surgery: (formData.treatments || []).includes('Cirugía'),
-                treatment_start_date: formData.treatmentStartDate || null,
-                medication_affects_weight: formData.medicationAffectsWeight || false,
-                medication_affects_weight_details: formData.medicationAffectsWeightDetails || null,
-                exercise_medical_limitations: formData.exerciseLimitations || false,
-                exercise_medical_limitations_details: formData.exerciseLimitationsDetails || null,
-                property_situaciones_especiales: formData.specialSituations.join(', '),
-                property_sintomas: formData.symptoms.join(', '),
+                drug_allergies: formData.drugAllergies,
+                exercise_medical_limitations_details: formData.exerciseLimitations,
+                menopause_status: formData.hormonalStatus,
+                menopause_symptoms: formData.menopauseSymptoms,
+                lab_otros_notes: formData.labResultsNotes,
 
-                // Measurements
+                symptom_fatigue: formData.symptom_fatigue,
+                fatigue_interference: formData.symptom_fatigue_interference,
+                symptom_pain: formData.symptom_pain,
+                symptom_nausea: formData.symptom_nausea,
+                symptom_vomiting: formData.symptom_vomiting,
+                symptom_diarrhea: formData.symptom_diarrhea,
+                symptom_constipation: formData.symptom_constipation,
+                symptom_appetite_loss: formData.symptom_appetite_loss,
+                symptom_taste_alteration: formData.symptom_taste_alteration,
+                symptom_bloating: formData.symptom_bloating,
+                symptom_sleep_quality: formData.symptom_sleep_quality,
+                sleep_hours: formData.sleep_hours,
+                stress_level: formData.stress_level,
+                recovery_capacity: formData.recovery_capacity,
+
                 property_peso_actual: formData.currentWeight,
                 property_peso_inicial: formData.currentWeight,
-                property_peso_objetivo: formData.targetWeight,
                 property_altura: formData.height,
-                property_per_metro_abdomen: formData.waistCircumference,
+                habitual_weight_6_months: formData.habitualWeight6Months,
+                weight_evolution_status: formData.weightEvolutionStatus,
+                body_evolution_goal_notes: formData.bodyEvolutionGoal,
                 property_per_metro_brazo: formData.armCircumference,
+                property_per_metro_abdomen: formData.waistCircumference,
                 property_per_metro_muslo: formData.thighCircumference,
 
-                // Activity
+                assigned_nutrition_type: formData.dietType,
+                property_alergias_e_intolerancias: formData.foodAllergies,
+                regular_foods: formData.regularFoods,
+                unwanted_foods: formData.unwantedFoods,
+                cooks_self: formData.cooksSelf,
+                meals_per_day: formData.mealsPerDay,
+                meal_schedules: formData.mealSchedules,
+                weigh_food_preference: formData.weighFoodPreference,
+                alcohol_weekly: formData.alcoholPerWeek,
+                smoking_status: formData.smokingStatus,
+                last_recall_meal: formData.last24hMeals,
+                food_fear_tumor: formData.psychologySituations.some(s => s.includes('miedo')),
+                ed_binge_eating: formData.psychologySituations.some(s => s.includes('atracón')),
+                ed_emotional_eating: formData.psychologySituations.some(s => s.includes('estresado')),
+
                 property_pasos_diarios_promedio: formData.dailySteps,
-                property_horario_disponibilidad: formData.workSchedule,
-                property_actividad_f_sica_general_cliente: formData.workType,
+                daily_routine_description: formData.dailyRoutineDescription,
+                exercise_availability_slots: formData.exerciseAvailability,
                 property_ejercicio_fuerza: formData.hasStrengthTraining,
                 property_lugar_entreno: formData.exerciseLocation,
+                current_strength_score: formData.currentStrengthScale,
+                func_test_lift_bags: formData.functionalTests.some(s => s.includes('levantar')),
+                func_test_get_up_chair: formData.functionalTests.some(s => s.includes('silla')),
+                func_test_stairs: formData.functionalTests.some(s => s.includes('escaleras')),
+                func_test_falls: formData.functionalTests.some(s => s.includes('caídas')),
 
-                // Goals
-                property_objetivo_3_meses: formData.goal3Months,
-                property_objetivo_6_meses: formData.goal6Months,
-                property_objetivo_1_anho: formData.goal1Year,
-                property_motivo_confianza: formData.whyTrustUs,
-                property_comentarios_adicionales: formData.additionalComments,
-                property_informaci_n_extra_cliente: `NOTAS VENTA: ${saleData?.admin_notes || ''}\nNOTAS PARA COACH: ${saleData?.coach_notes || ''}`.trim(),
+                main_priority_notes: formData.mainPriority,
+                desired_feeling_notes: formData.desiredFeeling,
+                short_term_milestone_notes: formData.shortTermMilestone,
+                why_trust_us: formData.whyTrustUs,
+                concerns_fears_notes: formData.additionalConcerns,
 
-                // Bypass Limbo Mode (Phase 2)
-                // Marcamos como completado para que pueda entrar directamente a su ficha
-                onboarding_phase2_completed: true,
-
-                // Metadata from sale
                 coach_id: saleData?.assigned_coach_id,
-                property_meses_servicio_contratados: saleData?.contract_duration || 3,
-                property_fecha_alta: new Date().toISOString().split('T')[0],
-                start_date: new Date().toISOString().split('T')[0],
-                status: 'active'
+                status: 'active',
+                onboarding_phase2_completed: true,
+                start_date: new Date().toISOString().split('T')[0]
             };
 
-            // 1b. Check existence (Upsert Logic to prevent duplicates)
-            const { data: existingClient, error: fetchError } = await supabase
+            // 1. Check if client exists
+            const { data: existingClient } = await supabase
                 .from('clientes')
                 .select('id')
                 .eq('property_correo_electr_nico', formData.email)
                 .maybeSingle();
 
-            if (fetchError) {
-                console.warn('Error fetching existing client:', fetchError);
+            let targetId = existingClient?.id;
+            if (targetId) {
+                await supabase.from('clientes').update(clientData).eq('id', targetId);
+            } else {
+                const { data: newC } = await supabase.from('clientes').insert([clientData]).select('id').single();
+                targetId = newC?.id;
             }
 
-            let newClient;
-            let clientError;
-
-            const performUpsert = async (data) => {
-                if (existingClient) {
-                    return await supabase
-                        .from('clientes')
-                        .update(data)
-                        .eq('id', existingClient.id)
-                        .select('id')
-                        .single();
-                } else {
-                    return await supabase
-                        .from('clientes')
-                        .insert([data])
-                        .select('id')
-                        .single();
-                }
-            };
-
-            // First attempt with all columns
-            const firstAttempt = await performUpsert(clientData);
-            newClient = firstAttempt.data;
-            clientError = firstAttempt.error;
-
-            if (clientError) {
-                console.error('Error upserting client:', clientError);
-                throw new Error('Error al guardar ficha de cliente: ' + clientError.message);
-            }
-
-            // 2. Update sale status
-            const { error: saleUpdateError } = await supabase
-                .from('sales')
-                .update({
-                    status: 'onboarding_completed',
-                    client_id: newClient.id,
-                    onboarding_completed_at: new Date().toISOString()
-                })
-                .eq('id', saleData.id);
-
-            if (saleUpdateError) {
-                console.error('Error updating sale:', saleUpdateError);
-                // Continue anyway, client was created
-            }
-
-            // 3. Create user account
-            // First check if we're using Supabase Auth or custom users table
-            try {
-                // Try Supabase Auth first
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: formData.email,
-                    password: formData.password,
-                    options: {
-                        data: {
-                            name: `${formData.firstName} ${formData.surname}`,
-                            role: 'client',
-                            client_id: newClient.id
-                        }
-                    }
-                });
-
-                if (authError) {
-                    console.warn('Supabase Auth error, trying users table:', authError);
-
-                    // Fallback: Create in users table
-                    const { error: userError } = await supabase
-                        .from('users')
-                        .insert([{
-                            email: formData.email,
-                            password: formData.password, // Note: In production, hash this!
-                            name: `${formData.firstName} ${formData.surname}`,
-                            role: 'client',
-                            created_at: new Date().toISOString()
-                        }]);
-
-                    if (userError) {
-                        console.error('Error creating user:', userError);
-                        // Continue anyway, client is created
+            // 2. Auth Sign Up
+            await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: {
+                        name: `${formData.firstName} ${formData.surname}`,
+                        role: 'client',
+                        client_id: targetId
                     }
                 }
+            });
 
-                // 4. Auto-login
-                if (!authError && authData?.user) {
-                    await supabase.auth.signInWithPassword({
-                        email: formData.email,
-                        password: formData.password
-                    });
-                }
-            } catch (authErr) {
-                console.warn('Auth error:', authErr);
-                // Continue to success screen anyway
-            }
+            // 3. Update Sale
+            await supabase.from('sales').update({
+                status: 'onboarding_completed',
+                client_id: targetId,
+                onboarding_completed_at: new Date().toISOString()
+            }).eq('id', saleData.id);
 
-            // 5. (Optional) Notify coach/system via n8n webhook (Non-blocking)
-            (async () => {
-                try {
-                    // Fetch dynamic webhook URL
-                    const { data: webhookSettings } = await supabase
-                        .from('app_settings')
-                        .select('setting_key, setting_value');
-
-                    const webhookUrl = webhookSettings?.find(s => s.setting_key === 'n8n_webhook_onboarding_completed')?.setting_value;
-                    const webhookEnabled = webhookSettings?.find(s => s.setting_key === 'n8n_webhook_enabled')?.setting_value === 'true';
-
-                    if (webhookUrl && webhookEnabled) {
-                        const response = await fetch(webhookUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                type: 'ONBOARDING_COMPLETED',
-                                client_name: `${formData.firstName} ${formData.surname}`,
-                                client_email: formData.email,
-                                coach_id: saleData.assigned_coach_id,
-                                client_id: newClient.id,
-                                contract_duration: saleData.contract_duration,
-                                signature_image: formData.signatureImage,
-                                completed_at: new Date().toISOString()
-                            })
-                        });
-
-                        if (!response.ok) {
-                            console.warn(`⚠️ Webhook N8N respondió con error ${response.status}`);
-                        }
-                    }
-                } catch (webhookErr) {
-                    console.warn('Webhook notification failed:', webhookErr);
-                }
-            })();
-
-            // 6. Auto-create initial medical assessment for endocrinologist (Non-blocking)
-            (async () => {
-                try {
-                    const oncologyInfo = (formData.healthConditions || []).filter((c: string) =>
-                        c.toLowerCase().includes('cáncer') || c.toLowerCase().includes('linfoma')
-                    ).join(', ') || 'No especificado';
-
-                    await supabase
-                        .from('medical_reviews')
-                        .insert({
-                            client_id: newClient.id,
-                            coach_id: saleData.assigned_coach_id || null,
-                            submission_date: new Date().toISOString(),
-                            oncology_status: oncologyInfo,
-                            treatments: (formData.treatments || []).join(', ') || null,
-                            treatment_start_date: formData.treatmentStartDate || null,
-                            medication: formData.dailyMedication || null,
-                            comments: `Valoración inicial automática generada al completar el onboarding. Paciente: ${formData.firstName} ${formData.surname}. Condiciones: ${(formData.healthConditions || []).join(', ') || 'Ninguna reportada'}. Tratamientos: ${(formData.treatments || []).join(', ') || 'Ninguno'}. Limitaciones ejercicio: ${formData.exerciseLimitations ? (formData.exerciseLimitationsDetails || 'Sí') : 'No'}. Medicación afecta peso: ${formData.medicationAffectsWeight ? (formData.medicationAffectsWeightDetails || 'Sí') : 'No'}.`,
-                            report_type: 'Valoración Inicial',
-                            status: 'pending'
-                        });
-                    console.log('✅ Valoración inicial creada para endocrino.');
-                } catch (err) {
-                    console.warn('⚠️ No se pudo crear la valoración inicial:', err);
-                }
-            })();
-
-            // 7. Success! Navigate to portal or show success
-            alert('¡Registro completado con éxito! Bienvenido/a a Escuela Cuid-Arte 🎉');
+            alert('¡Registro completado! Bienvenido/a.');
             navigate('/');
-
-        } catch (error: any) {
-            console.error('Error in handleSubmit:', error);
-            alert('Error al completar el registro: ' + (error.message || 'Error desconocido'));
+        } catch (err: any) {
+            alert('Error al guardar: ' + err.message);
         } finally {
             setSubmitting(false);
         }
     };
 
-    // FLUJO SIMPLIFICADO: Solo 2 pasos
-    // El cliente ya tiene sus datos del formulario externo
-    // Solo necesita crear credenciales y acceder a su ficha
     const steps = [
-        {
-            title: 'Bienvenida',
-            icon: Heart,
-            component: <WelcomeStep />
-        },
-        {
-            title: 'Crear Contraseña',
-            icon: Lock,
-            component: <CredentialsStep formData={formData} updateField={updateField} />
-        }
+        { title: 'Bienvenida', icon: Heart, component: <WelcomeStep /> },
+        { title: 'Cuenta', icon: Lock, component: <CredentialsStep formData={formData} updateField={updateField} /> },
+        { title: 'Personales', icon: User, component: <PersonalDataStep formData={formData} updateField={updateField} /> },
+        { title: 'Clínico', icon: Stethoscope, component: <MedicalDataStep formData={formData} updateField={updateField} toggleArrayField={toggleArrayField} /> },
+        { title: 'Bienestar', icon: Thermometer, component: <SymptomsStep formData={formData} updateField={updateField} /> },
+        { title: 'Cuerpo', icon: Scale, component: <MeasurementsStep formData={formData} updateField={updateField} /> },
+        { title: 'Nutrición', icon: Utensils, component: <NutritionStep formData={formData} updateField={updateField} toggleArrayField={toggleArrayField} /> },
+        { title: 'Actividad', icon: Dumbbell, component: <ActivityStep formData={formData} updateField={updateField} toggleArrayField={toggleArrayField} /> },
+        { title: 'Finalizar', icon: Target, component: <GoalsStep formData={formData} updateField={updateField} contractTemplate={contractTemplate} /> }
     ];
 
-    // Loading state
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-                    <p className="text-slate-600">Validando tu acceso...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Error state
-    if (error) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Enlace no válido</h2>
-                    <p className="text-slate-600 mb-6">{error}</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold hover:from-emerald-700 hover:to-teal-700 transition-all"
-                    >
-                        Volver al inicio
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return <div className="min-h-screen bg-emerald-50 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>;
+    if (error) return <div className="min-h-screen bg-red-50 flex items-center justify-center"><div className="text-center">{error}</div></div>;
 
     const CurrentStepIcon = steps[currentStep].icon;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 py-8 px-4">
             <div className="max-w-4xl mx-auto">
-                {/* Progress Bar */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-slate-900">
-                            Paso {currentStep + 1} de {steps.length}
-                        </h2>
-                        <span className="text-sm text-slate-500">
-                            {Math.round(((currentStep + 1) / steps.length) * 100)}% completado
-                        </span>
-                        <button
-                            onClick={() => setIsGuideOpen(true)}
-                            className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-3 py-1.5 rounded-full transition-all"
-                        >
-                            <Smartphone className="w-3.5 h-3.5" /> Instalar App
-                        </button>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-emerald-600">Paso {currentStep + 1} de {steps.length}</span>
+                        <span className="text-xs text-slate-400">{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div
-                            className="bg-gradient-to-r from-emerald-600 to-teal-600 h-3 rounded-full transition-all duration-500"
-                            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-                        />
-                    </div>
-                    {/* Step indicators */}
-                    <div className="flex justify-between mt-4 overflow-x-auto">
-                        {steps.map((step, index) => {
-                            const StepIcon = step.icon;
-                            const isCompleted = index < currentStep;
-                            const isCurrent = index === currentStep;
-                            return (
-                                <div
-                                    key={index}
-                                    className={`flex flex-col items-center min-w-[60px] ${isCompleted ? 'text-emerald-600' : isCurrent ? 'text-emerald-700' : 'text-slate-400'
-                                        }`}
-                                >
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${isCompleted ? 'bg-emerald-100' : isCurrent ? 'bg-emerald-600 text-white' : 'bg-slate-100'
-                                        }`}>
-                                        {isCompleted ? (
-                                            <CheckCircle className="w-5 h-5" />
-                                        ) : (
-                                            <StepIcon className="w-4 h-4" />
-                                        )}
-                                    </div>
-                                    <span className="text-xs text-center hidden sm:block">{step.title}</span>
-                                </div>
-                            );
-                        })}
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="bg-emerald-600 h-full transition-all duration-500" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }} />
                     </div>
                 </div>
 
-                {/* Main Content */}
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white">
-                        <div className="flex items-center gap-3">
-                            <CurrentStepIcon className="w-8 h-8" />
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                    <div className="bg-emerald-600 p-6 text-white flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-white rounded-lg">
+                                <img src="https://i.postimg.cc/Kj6R2R75/LOGODRA.png" alt="Cuidarte Logo" className="h-8 w-auto" />
+                            </div>
                             <div>
-                                <h1 className="text-2xl font-bold">{steps[currentStep].title}</h1>
-                                <p className="text-emerald-100 text-sm">Escuela Cuid-Arte</p>
+                                <h1 className="text-xl font-bold">{steps[currentStep].title}</h1>
+                                <p className="text-emerald-100 text-[10px] uppercase tracking-wider font-medium">Escuela Cuid-Arte · Integral</p>
                             </div>
                         </div>
+                        <div className="hidden sm:block p-3 bg-white/20 rounded-xl">
+                            <CurrentStepIcon className="w-6 h-6" />
+                        </div>
                     </div>
-
-                    {/* Step Content */}
-                    <div className="p-8">
-                        {steps[currentStep].component}
-                    </div>
-
-                    {/* Navigation */}
-                    <div className="border-t p-6 flex justify-between items-center bg-slate-50">
-                        <button
-                            onClick={prevStep}
-                            disabled={currentStep === 0}
-                            className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                            Anterior
-                        </button>
-
+                    <div className="p-8 flex-grow">{steps[currentStep].component}</div>
+                    <div className="p-6 bg-slate-50 border-t flex justify-between">
+                        <button onClick={prevStep} disabled={currentStep === 0} className="px-6 py-2 font-bold text-slate-400 disabled:opacity-30">Anterior</button>
                         {currentStep === steps.length - 1 ? (
-                            <button
-                                onClick={handleSubmit}
-                                disabled={submitting}
-                                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-50"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Creando tu cuenta...
-                                    </>
-                                ) : (
-                                    <>
-                                        Completar Registro
-                                        <CheckCircle className="w-5 h-5" />
-                                    </>
-                                )}
+                            <button onClick={handleSubmit} disabled={submitting} className="px-10 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center gap-2">
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Finalizar y Entrar'}
                             </button>
                         ) : (
-                            <button
-                                onClick={nextStep}
-                                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold hover:from-emerald-700 hover:to-teal-700 transition-all"
-                            >
-                                Siguiente
-                                <ArrowRight className="w-5 h-5" />
-                            </button>
+                            <button onClick={nextStep} className="px-10 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">Siguiente</button>
                         )}
                     </div>
                 </div>
-                <InstallationGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
             </div>
+            <InstallationGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
         </div>
     );
 }

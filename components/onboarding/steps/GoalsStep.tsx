@@ -1,151 +1,167 @@
-import React from 'react';
-import { Target, Video, MessageCircle, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Target, Heart, ShieldCheck, Signature, FileText, AlertCircle } from 'lucide-react';
+import SignaturePad from 'react-signature-canvas';
 
 interface Props {
     formData: any;
     updateField: (field: string, value: any) => void;
-    coachVideo?: string;
+    contractTemplate?: any;
 }
 
-export function GoalsStep({ formData, updateField, coachVideo }: Props) {
+export function GoalsStep({ formData, updateField, contractTemplate }: Props) {
+    const [sigPad, setSigPad] = useState<any>(null);
+
+    const clearSignature = () => {
+        sigPad.clear();
+        updateField('signatureImage', '');
+    };
+
+    const saveSignature = () => {
+        if (sigPad) {
+            updateField('signatureImage', sigPad.toDataURL());
+        }
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-10">
             <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Tus Objetivos y Motivación</h3>
-                <p className="text-slate-600">Cuéntanos qué quieres lograr y por qué confías en nosotros</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Bloque 9 · Objetivos y Prioridades</h3>
+                <p className="text-slate-600">Para terminar, ayúdanos a visualizar dónde quieres llegar y formalicemos tu alta.</p>
             </div>
 
-            {/* Objetivo 3 meses */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    <Target className="inline w-4 h-4 mr-1 text-emerald-600" />
-                    ¿Qué objetivo te gustaría alcanzar en 3 meses? *
-                </label>
-                <textarea
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={3}
-                    value={formData.goal3Months}
-                    onChange={(e) => updateField('goal3Months', e.target.value)}
-                    placeholder="Ej: Perder 5 kg, controlar mejor mis niveles de glucosa, empezar a hacer ejercicio..."
-                    required
-                />
+            {/* Objetivos Detallados */}
+            <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">¿Cuál es tu principal prioridad o preocupación AHORA MISMO? *</label>
+                    <textarea
+                        className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.mainPriority}
+                        onChange={(e) => updateField('mainPriority', e.target.value)}
+                        placeholder="Ej: Reducir náuseas, no perder peso, tener energía para el próximo ciclo..."
+                        rows={3}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">¿Cómo te gustaría sentirte en tu día a día gracias a este programa?</label>
+                    <textarea
+                        className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.desiredFeeling}
+                        onChange={(e) => updateField('desiredFeeling', e.target.value)}
+                        placeholder="Ej: Poder dar paseos largos, levantarme con menos fatiga, sentirme fuerte..."
+                        rows={3}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">¿Hay algún "hito" médico o personal a corto plazo? (Operación, viaje...)</label>
+                    <input
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.shortTermMilestone}
+                        onChange={(e) => updateField('shortTermMilestone', e.target.value)}
+                        placeholder="Ej: Me operan el mes que viene, tengo un viaje familiar..."
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">¿Por qué has decidido confiar en Escuela Cuidarte?</label>
+                    <textarea
+                        className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.whyTrustUs}
+                        onChange={(e) => updateField('whyTrustUs', e.target.value)}
+                        placeholder="Tu motivo principal para empezar hoy"
+                        rows={2}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">¿Hay algo más que te preocupe o te dé miedo?</label>
+                    <textarea
+                        className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.additionalConcerns}
+                        onChange={(e) => updateField('additionalConcerns', e.target.value)}
+                        placeholder="Cualquier cosa que quieras que sepamos al crear tu plan"
+                        rows={2}
+                    />
+                </div>
             </div>
 
-            {/* Objetivo 6 meses */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    <Target className="inline w-4 h-4 mr-1 text-teal-600" />
-                    ¿Qué objetivo te gustaría alcanzar en 6 meses? *
-                </label>
-                <textarea
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={3}
-                    value={formData.goal6Months}
-                    onChange={(e) => updateField('goal6Months', e.target.value)}
-                    placeholder="Ej: Haber perdido 10 kg, reducir mi HbA1c, tener un hábito de ejercicio..."
-                    required
-                />
-            </div>
-
-            {/* Objetivo 1 año */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    <Target className="inline w-4 h-4 mr-1 text-blue-600" />
-                    ¿Qué objetivo te gustaría alcanzar en 1 año? *
-                </label>
-                <textarea
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={3}
-                    value={formData.goal1Year}
-                    onChange={(e) => updateField('goal1Year', e.target.value)}
-                    placeholder="Ej: Mantener mi peso ideal, tener la diabetes controlada, sentirme lleno de energía..."
-                    required
-                />
-            </div>
-
-            {/* Por qué confías en nosotros */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    <MessageCircle className="inline w-4 h-4 mr-1 text-purple-600" />
-                    ¿Por qué confías en nosotros para ayudarte? *
-                </label>
-                <textarea
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={3}
-                    value={formData.whyTrustUs}
-                    onChange={(e) => updateField('whyTrustUs', e.target.value)}
-                    placeholder="Cuéntanos qué te motivó a unirte a Escuela Cuid-Arte..."
-                    required
-                />
-            </div>
-
-            {/* Comentarios adicionales */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Comentarios Adicionales (opcional)
-                </label>
-                <textarea
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={3}
-                    value={formData.additionalComments}
-                    onChange={(e) => updateField('additionalComments', e.target.value)}
-                    placeholder="¿Hay algo más que quieras que sepamos?"
-                />
-            </div>
-
-            {/* Video del Coach */}
-            {coachVideo && (
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
-                    <h4 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
-                        <Video className="w-5 h-5" />
-                        Mensaje de Bienvenida de tu Coach
-                    </h4>
-                    <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                        <iframe
-                            src={coachVideo}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
+            {/* CONTRATO Y LEGAL */}
+            <div className="pt-10 border-t space-y-8">
+                <div className="flex items-center gap-3">
+                    < ShieldCheck className="w-8 h-8 text-emerald-600" />
+                    <div>
+                        <h4 className="text-xl font-bold text-slate-900">Legal y Aceptación</h4>
+                        <p className="text-sm text-slate-600">Revisa tu contrato de servicio y firma para finalizar.</p>
                     </div>
                 </div>
-            )}
 
-            {/* Mensaje Final de Bienvenida */}
-            <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl p-6 border border-emerald-200 text-center">
-                <Sparkles className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
-                <h4 className="text-xl font-bold text-emerald-900 mb-2">
-                    ¡Ya casi estás dentro!
-                </h4>
-                <p className="text-emerald-800 mb-4">
-                    Al pulsar <strong>"Completar Registro"</strong> crearemos tu cuenta y tendrás acceso inmediato
-                    a tu portal personal donde encontrarás:
-                </p>
-                <ul className="text-left text-emerald-700 space-y-2 max-w-md mx-auto mb-4">
-                    <li className="flex items-start gap-2">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        Tu plan nutricional personalizado
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        Tu programa de entrenamiento
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        Acceso a clases en directo y grabadas
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        Seguimiento de tu progreso
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        Contacto directo con tu coach
-                    </li>
-                </ul>
-                <p className="text-sm text-emerald-600">
-                    Tu coach revisará tus datos y se pondrá en contacto contigo pronto 💚
-                </p>
+                {/* Contrato Mockup/Viewer */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 h-64 overflow-y-auto text-xs text-slate-600 space-y-4">
+                    <h5 className="font-bold text-sm text-slate-900 uppercase">Contrato de Prestación de Servicios · Escuela Cuidarte</h5>
+                    <p>Por la presente, el cliente acepta las condiciones de servicio de Escuela Cuidarte...</p>
+                    {contractTemplate?.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: contractTemplate.content }} />
+                    ) : (
+                        <p>Cargando condiciones específicas...</p>
+                    )}
+                    <p className="italic mt-4">Al firmar a continuación, aceptas que tus datos sean tratados conforme al RGPD para la gestión de tu salud y asesoramiento.</p>
+                </div>
+
+                {/* Checks Legales */}
+                <div className="space-y-3">
+                    <label className="flex items-start gap-3 cursor-pointer p-4 border rounded-xl hover:bg-emerald-50 transition-all">
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 mt-0.5 text-emerald-600"
+                            checked={formData.contractAccepted}
+                            onChange={(e) => updateField('contractAccepted', e.target.checked)}
+                        />
+                        <span className="text-sm text-slate-700 font-medium">He leído y acepto el contrato de prestación de servicios.</span>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer p-4 border rounded-xl hover:bg-emerald-50 transition-all">
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 mt-0.5 text-emerald-600"
+                            checked={formData.healthConsent}
+                            onChange={(e) => updateField('healthConsent', e.target.checked)}
+                        />
+                        <span className="text-sm text-slate-700 font-medium">Doy mi consentimiento para el tratamiento de mis datos de salud con fines de seguimiento médico y nutricional.</span>
+                    </label>
+                </div>
+
+                {/* Firma Digital */}
+                <div className="space-y-4">
+                    <label className="block text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <Signature className="w-5 h-5 text-emerald-600" />
+                        Firma aquí (con el ratón o el dedo)
+                    </label>
+                    <div className="border-2 border-slate-200 rounded-xl bg-white overflow-hidden">
+                        <SignaturePad
+                            ref={(ref) => setSigPad(ref)}
+                            canvasProps={{
+                                className: "w-full h-48 cursor-crosshair"
+                            }}
+                            onEnd={saveSignature}
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={clearSignature}
+                            className="text-xs font-bold text-red-500 hover:text-red-600 p-2"
+                        >
+                            Borrar firma
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-emerald-600 p-6 rounded-2xl text-white flex gap-4 items-center">
+                <Target className="w-10 h-10 opacity-50" />
+                <div>
+                    <h5 className="font-bold text-lg">¡Casi hemos terminado!</h5>
+                    <p className="text-emerald-100 text-sm">Al pulsar en "Finalizar y Entrar", tu cuenta se activará y tu coach recibirá toda esta información de inmediato.</p>
+                </div>
             </div>
         </div>
     );

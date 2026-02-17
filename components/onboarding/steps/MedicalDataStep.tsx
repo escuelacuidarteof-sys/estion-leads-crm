@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stethoscope, Pill, Activity, AlertCircle } from 'lucide-react';
+import { Stethoscope, Calendar, Activity, Pill, AlertCircle, Thermometer } from 'lucide-react';
 
 interface Props {
     formData: any;
@@ -8,195 +8,232 @@ interface Props {
 }
 
 export function MedicalDataStep({ formData, updateField, toggleArrayField }: Props) {
-    const healthConditionsList = [
-        'Cáncer de mama',
-        'Cáncer de colon',
-        'Cáncer de pulmón',
-        'Linfoma',
-        'Otro tipo de cáncer',
-        'Linfedema',
-        'Neuropatía periférica',
-        'Sobrepeso',
-        'Obesidad',
-        'Hipotiroidismo',
-        'Ovario poliquístico',
-        'Condropatía Rotuliana',
-        'Otros'
+    const treatmentsList = [
+        'Quimioterapia',
+        'Radioterapia',
+        'Hormonoterapia (ej. Tamoxifeno, Letrozol, etc.)',
+        'Inmunoterapia',
+        'Cirugía reciente',
+        'Ninguno actualmente'
     ];
 
-    const symptomsList = [
-        'Insomnio',
-        'Fatiga',
-        'Ansiedad',
+    const conditionsList = [
+        'Diabetes (Tipo 1, Tipo 2, etc.)',
+        'Hipertensión',
+        'Dislipemia (Colesterol / Triglicéridos)',
+        'Hipotiroidismo / Hipertiroidismo',
+        'Ovario Poliquístico (SOP)',
+        'Sobrepeso / Obesidad',
+        'Osteopenia / Osteoporosis',
+        'Enfermedades cardiovasculares',
+        'Ninguna de las anteriores'
+    ];
+
+    const menopauseSymptomsList = [
+        'Sofocos',
+        'Sequedad vaginal o de mucosas',
+        'Niebla mental / Falta de concentración',
         'Dolores articulares',
-        'Otros'
-    ];
-
-    const specialSituationsList = [
-        'Menopausia',
-        'Embarazo',
-        'Lactancia'
+        'Insomnio'
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Datos Médicos</h3>
-                <p className="text-slate-600">Información sobre tu salud actual</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Contexto Oncológico y Clínico</h3>
+                <p className="text-slate-600">Bloques 2 y 3: Situación actual y salud metabólica</p>
             </div>
 
-            {/* Enfermedades */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-3">
-                    Enfermedades y condiciones de salud actuales *
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {healthConditionsList.map(condition => (
-                        <label key={condition} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
+            {/* Situación Oncológica */}
+            <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700">Situación oncológica actual *</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                        { id: 'activo', label: 'En tratamiento activo' },
+                        { id: 'finalizado', label: 'Finalizado (Seguimiento)' },
+                        { id: 'supervivencia', label: 'Supervivencia / Largo plazo' }
+                    ].map(status => (
+                        <label key={status.id} className={`p-4 border rounded-xl cursor-pointer transition-all ${formData.oncologyStatus === status.id ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-200' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
                             <input
-                                type="checkbox"
-                                checked={formData.healthConditions.includes(condition)}
-                                onChange={() => toggleArrayField('healthConditions', condition)}
-                                className="w-4 h-4 text-emerald-600 rounded"
+                                type="radio"
+                                name="oncologyStatus"
+                                value={status.id}
+                                checked={formData.oncologyStatus === status.id}
+                                onChange={(e) => updateField('oncologyStatus', e.target.value)}
+                                className="hidden"
                             />
-                            <span className="text-sm">{condition}</span>
+                            <span className="text-sm font-bold block text-center text-slate-700">{status.label}</span>
                         </label>
                     ))}
                 </div>
-                {formData.healthConditions.includes('Otros') && (
-                    <textarea
-                        className="w-full mt-3 px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                        rows={2}
-                        value={formData.otherHealthConditions}
-                        onChange={(e) => updateField('otherHealthConditions', e.target.value)}
-                        placeholder="Especifica otras enfermedades o condiciones..."
-                    />
-                )}
             </div>
 
-            {/* Medicación */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Medicación diaria (incluyendo suplementos) *
-                </label>
+            {/* Tratamientos */}
+            <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700 font-bold">Tratamiento actual o reciente (marca todos los que apliquen) *</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {treatmentsList.map(t => (
+                        <label key={t} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={formData.treatments.includes(t)}
+                                onChange={() => toggleArrayField('treatments', t)}
+                                className="w-4 h-4 text-emerald-600 rounded"
+                            />
+                            <span className="text-sm text-slate-600">{t}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {/* Fechas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Fecha de diagnóstico (mes/año)</label>
+                    <input
+                        type="month"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.diagnosisDate}
+                        onChange={(e) => updateField('diagnosisDate', e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Fecha inicio tratamiento actual</label>
+                    <input
+                        type="month"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.treatmentStartDate}
+                        onChange={(e) => updateField('treatmentStartDate', e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Enfermedades previas */}
+            <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700">Otras enfermedades y condiciones *</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {conditionsList.map(c => (
+                        <label key={c} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={formData.healthConditions.includes(c)}
+                                onChange={() => toggleArrayField('healthConditions', c)}
+                                className="w-4 h-4 text-emerald-600 rounded"
+                            />
+                            <span className="text-sm text-slate-600">{c}</span>
+                        </label>
+                    ))}
+                </div>
                 <textarea
-                    required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                    rows={4}
-                    value={formData.dailyMedication}
-                    onChange={(e) => updateField('dailyMedication', e.target.value)}
-                    placeholder="Ej: Omeprazol 20mg (mañana), Metformina 850mg (mañana y noche)..."
+                    className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                    placeholder="Especifica otras enfermedades o intervenciones quirúrgicas previas..."
+                    value={formData.otherHealthConditions}
+                    onChange={(e) => updateField('otherHealthConditions', e.target.value)}
+                    rows={2}
                 />
             </div>
 
-            {/* Tratamientos oncológicos */}
-            <div className="space-y-4 p-4 bg-white/50 rounded-xl border border-slate-200">
-                <p className="text-sm font-semibold text-slate-700">Tratamientos recibidos o en curso</p>
-                <div className="grid grid-cols-2 gap-3">
-                    {['Quimioterapia', 'Radioterapia', 'Hormonoterapia', 'Inmunoterapia', 'Cirugía', 'Ninguno actualmente'].map(t => (
-                        <label key={t} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={(formData.treatments || []).includes(t)}
-                                onChange={(e) => {
-                                    const current = formData.treatments || [];
-                                    updateField('treatments', e.target.checked ? [...current, t] : current.filter((x: string) => x !== t));
-                                }}
-                                className="w-4 h-4 rounded border-slate-300 text-brand-green focus:ring-brand-green"
-                            />
-                            {t}
-                        </label>
-                    ))}
+            {/* Medicación y Alergias */}
+            <div className="grid grid-cols-1 gap-4">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Medicación diaria * (Detallar corticoides, protectores, etc.)</label>
+                    <textarea
+                        className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.dailyMedication}
+                        onChange={(e) => updateField('dailyMedication', e.target.value)}
+                        placeholder="Ej: Tamoxifeno 20mg, Corticoides, Protector..."
+                        rows={3}
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">Fecha inicio tratamiento</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Alergias a medicamentos</label>
                     <input
-                        type="date"
-                        value={formData.treatmentStartDate || ''}
-                        onChange={e => updateField('treatmentStartDate', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 outline-none"
+                        value={formData.drugAllergies}
+                        onChange={(e) => updateField('drugAllergies', e.target.value)}
+                        placeholder="Escribe tus alergias o 'Ninguna'"
                     />
                 </div>
             </div>
 
-            {/* Medicación y peso */}
-            <div className="space-y-3 p-4 bg-white/50 rounded-xl border border-slate-200">
-                <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={formData.medicationAffectsWeight || false} onChange={e => updateField('medicationAffectsWeight', e.target.checked)} className="w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green" />
-                    <span className="text-sm font-medium text-slate-700">¿Tu medicación afecta a tu peso?</span>
-                </label>
-                {formData.medicationAffectsWeight && (
-                    <textarea
-                        value={formData.medicationAffectsWeightDetails || ''}
-                        onChange={e => updateField('medicationAffectsWeightDetails', e.target.value)}
-                        placeholder="Describe cómo afecta la medicación a tu peso..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
-                        rows={2}
-                    />
+            {/* Limitaciones Ejercicio */}
+            <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">¿Tienes alguna limitación específica para el ejercicio físico? *</label>
+                <textarea
+                    className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                    value={formData.exerciseLimitations}
+                    onChange={(e) => updateField('exerciseLimitations', e.target.value)}
+                    placeholder="Ej: No puedo levantar el brazo derecho por cirugía, linfedema..."
+                    rows={2}
+                />
+            </div>
+
+            {/* BLOQUE 3: Salud Hormonal */}
+            <div className="pt-6 border-t">
+                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Thermometer className="w-5 h-5 text-emerald-600" />
+                    Salud Hormonal (Solo mujeres)
+                </h4>
+                <div className="space-y-4">
+                    <label className="block text-sm font-bold text-slate-700">Historia Menopáusica</label>
+                    <div className="grid grid-cols-1 gap-2">
+                        {[
+                            'Ciclos menstruales regulares',
+                            'Alteraciones en el ciclo',
+                            'Menopausia (Natural)',
+                            'Menopausia (Inducida por tratamientos)'
+                        ].map(opt => (
+                            <label key={opt} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="hormonalStatus"
+                                    value={opt}
+                                    checked={formData.hormonalStatus === opt}
+                                    onChange={(e) => updateField('hormonalStatus', e.target.value)}
+                                    className="w-4 h-4 text-emerald-600"
+                                />
+                                <span className="text-sm text-slate-600">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {formData.hormonalStatus?.includes('Menopausia') && (
+                    <div className="mt-4 space-y-3">
+                        <label className="block text-sm font-bold text-slate-700 italic">¿Tienes síntomas actualmente?</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {menopauseSymptomsList.map(s => (
+                                <label key={s} className="flex items-center gap-2 text-sm text-slate-600">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.menopauseSymptoms?.includes(s)}
+                                        onChange={() => toggleArrayField('menopauseSymptoms', s)}
+                                        className="w-4 h-4 text-emerald-600 rounded"
+                                    />
+                                    {s}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* Limitaciones para ejercicio */}
-            <div className="space-y-3 p-4 bg-white/50 rounded-xl border border-slate-200">
-                <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={formData.exerciseLimitations || false} onChange={e => updateField('exerciseLimitations', e.target.checked)} className="w-5 h-5 rounded border-slate-300 text-brand-green focus:ring-brand-green" />
-                    <span className="text-sm font-medium text-slate-700">¿Tienes limitaciones médicas para el ejercicio?</span>
-                </label>
-                {formData.exerciseLimitations && (
-                    <textarea
-                        value={formData.exerciseLimitationsDetails || ''}
-                        onChange={e => updateField('exerciseLimitationsDetails', e.target.value)}
-                        placeholder="Describe tus limitaciones (ej: linfedema, fatiga post-tratamiento, neuropatía...)"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-green focus:border-brand-green"
-                        rows={2}
-                    />
-                )}
-            </div>
-
-            {/* Situaciones especiales */}
+            {/* Analíticas */}
             <div>
-                <label className="block text-sm font-bold text-slate-700 mb-3">
-                    ¿Te encuentras en alguna de estas situaciones?
-                </label>
-                <div className="flex flex-wrap gap-3">
-                    {specialSituationsList.map(situation => (
-                        <label key={situation} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
-                            <input
-                                type="checkbox"
-                                checked={formData.specialSituations.includes(situation)}
-                                onChange={() => toggleArrayField('specialSituations', situation)}
-                                className="w-4 h-4 text-emerald-600 rounded"
-                            />
-                            <span className="text-sm">{situation}</span>
-                        </label>
-                    ))}
-                </div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Analíticas recientes (¿Algún valor alterado?)</label>
+                <textarea
+                    className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
+                    value={formData.labResultsNotes}
+                    onChange={(e) => updateField('labResultsNotes', e.target.value)}
+                    placeholder="Glucosa, HbA1c, anemia, colesterol... (Si no lo sabes, pon 'no lo sé')"
+                    rows={2}
+                />
             </div>
 
-            {/* Síntomas */}
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-3">
-                    Síntomas actuales
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {symptomsList.map(symptom => (
-                        <label key={symptom} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
-                            <input
-                                type="checkbox"
-                                checked={formData.symptoms.includes(symptom)}
-                                onChange={() => toggleArrayField('symptoms', symptom)}
-                                className="w-4 h-4 text-emerald-600 rounded"
-                            />
-                            <span className="text-sm">{symptom}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-900">
-                    <strong>Importante:</strong> Esta información es confidencial y solo será vista por tu coach y equipo médico.
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
+                <AlertCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-emerald-900 italic">
+                    Esta información técnica nos ayuda a crear un plan 100% seguro para tu situación oncológica específica.
                 </p>
             </div>
         </div>
