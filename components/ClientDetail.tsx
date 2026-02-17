@@ -3622,15 +3622,15 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
                                        {/* Alert visual si hay factores de riesgo alto */}
                                        {(formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' ||
-                                         formData.medical.bone_risk === 'metastasis_oseas') && (
-                                          <div className="bg-red-100 border border-red-300 rounded-xl p-3 flex items-start gap-2">
-                                             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                                             <p className="text-xs text-red-700 font-medium">
-                                                {formData.medical.bone_risk === 'metastasis_oseas' && 'Metástasis óseas detectadas — revisar ejercicio con cargas. '}
-                                                {formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' && `Linfedema: ${formData.medical.lymphedema}. `}
-                                             </p>
-                                          </div>
-                                       )}
+                                          formData.medical.bone_risk === 'metastasis_oseas') && (
+                                             <div className="bg-red-100 border border-red-300 rounded-xl p-3 flex items-start gap-2">
+                                                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                                                <p className="text-xs text-red-700 font-medium">
+                                                   {formData.medical.bone_risk === 'metastasis_oseas' && 'Metástasis óseas detectadas — revisar ejercicio con cargas. '}
+                                                   {formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' && `Linfedema: ${formData.medical.lymphedema}. `}
+                                                </p>
+                                             </div>
+                                          )}
 
                                        <DataField
                                           label="Neuropatía periférica"
@@ -4929,7 +4929,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     value={program.contract_date || ''}
                                     onChange={(e) => setFormData({ ...formData, program: { ...formData.program, contract_date: e.target.value } })}
                                     onBlur={() => handleProgramFieldSave('contract_date', formData.program?.contract_date)}
-                                    disabled={readOnly}
+                                    disabled={isLocked}
                                     className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent w-full max-w-xs disabled:opacity-50"
                                  />
                               </div>

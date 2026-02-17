@@ -98,12 +98,12 @@ export const BUSINESS_CONFIG = {
 
   // --- Datos del contrato ---
   contract: {
-    companyName: 'Escuela Cuid-Arte',
-    companyLegalName: '', // Razón social completa
-    responsibleName: 'Dra. Odiel Fernández',
-    responsibleId: '45345678W', // TODO: Validar NIF oficial
-    companyAddress: 'Granada, España', // TODO: Dirección fiscal oficial
-    collegiateNumber: '181808453', // TODO: Nº Colegiado oficial
+    companyName: 'Escuela CUIDARTE',
+    companyLegalName: 'NEIKO HEALTH, S.L.', // Razón social completa
+    responsibleName: 'NEIKO HEALTH, S.L.',
+    responsibleId: 'B22928311', // NIF/DNI
+    companyAddress: 'C/ Princesa 31, 2º puerta 2, 28008 Madrid', // Dirección fiscal
+    collegiateNumber: '', // No aplica si es empresa
     serviceDescription: 'Servicio de coaching y acompañamiento personalizado en salud y bienestar',
   },
 
