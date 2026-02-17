@@ -1,5 +1,6 @@
-import React from 'react';
-import { Stethoscope, Calendar, Activity, Pill, AlertCircle, Thermometer } from 'lucide-react';
+import React, { useState } from 'react';
+import { Stethoscope, Calendar, Activity, Pill, AlertCircle, Thermometer, Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { supabase } from '../../../services/supabaseClient';
 
 interface Props {
     formData: any;
@@ -8,6 +9,43 @@ interface Props {
 }
 
 export function MedicalDataStep({ formData, updateField, toggleArrayField }: Props) {
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validar tamaño (máx 10MB para informes)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('El archivo es demasiado grande (máximo 10MB)');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `onboarding-docs/${Date.now()}_${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('documents')
+                .getPublicUrl(filePath);
+
+            updateField('labResultsFile', publicUrl);
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            alert('Error al subir el archivo: ' + error.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const treatmentsList = [
         'Quimioterapia',
         'Radioterapia',
@@ -228,6 +266,49 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                     placeholder="Glucosa, HbA1c, anemia, colesterol... (Si no lo sabes, pon 'no lo sé')"
                     rows={2}
                 />
+            </div>
+
+            <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-700">
+                    Opcional: Sube tu última analítica o informe médico
+                </label>
+                <div className={`relative border-2 border-dashed rounded-2xl p-8 transition-all flex flex-col items-center justify-center gap-4 ${formData.labResultsFile ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
+                    {uploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                            <p className="text-sm font-medium text-slate-600">Subiendo documento...</p>
+                        </div>
+                    ) : formData.labResultsFile ? (
+                        <div className="flex flex-col items-center gap-2 text-center">
+                            <div className="p-3 bg-emerald-100 rounded-full">
+                                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <p className="text-sm font-bold text-emerald-900">¡Documento subido correctamente!</p>
+                            <button
+                                onClick={() => updateField('labResultsFile', '')}
+                                className="text-xs text-red-500 font-bold hover:underline"
+                            >
+                                Cambiar archivo
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="p-4 bg-white rounded-2xl shadow-sm">
+                                <Upload className="w-8 h-8 text-emerald-600" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-slate-700">Pulsa para seleccionar o arrastra aquí</p>
+                                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">PDF, JPG o PNG (Máx 10MB)</p>
+                            </div>
+                            <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleFileUpload}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">

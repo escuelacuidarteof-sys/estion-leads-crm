@@ -116,6 +116,7 @@ export interface OnboardingData {
     contractAccepted: boolean;
     healthConsent: boolean;
     signatureImage: string;
+    labResultsFile: string;
 }
 
 export function OnboardingPage() {
@@ -209,7 +210,8 @@ export function OnboardingPage() {
         additionalConcerns: '',
         contractAccepted: false,
         healthConsent: false,
-        signatureImage: ''
+        signatureImage: '',
+        labResultsFile: ''
     });
 
     useEffect(() => {
@@ -265,12 +267,17 @@ export function OnboardingPage() {
 
     const handleEmailVerification = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!verificationEmail) return;
+        if (!verificationEmail) {
+            // Si el usuario no pone email y pulsa continuar, permitimos formulario en blanco
+            setLoading(false);
+            return;
+        }
 
         setIsVerifying(true);
         setError(null);
 
         try {
+            // Intentamos buscar una venta que coincida con este email
             const { data: sale, error: saleError } = await supabase
                 .from('sales')
                 .select('*, assigned_coach_id')
@@ -280,33 +287,38 @@ export function OnboardingPage() {
                 .limit(1)
                 .single();
 
-            if (saleError || !sale) {
-                setError('No encontramos ninguna valoración pendiente para este email. Por favor, contacta con tu coach.');
-                setIsVerifying(false);
-                return;
-            }
+            if (sale) {
+                // EXITO: Hemos encontrado una venta previa del Closer. Cargamos los datos.
+                setSaleData(sale);
+                setFormData(prev => ({
+                    ...prev,
+                    email: sale.client_email || verificationEmail,
+                    phone: sale.client_phone || '',
+                    firstName: sale.client_first_name || '',
+                    surname: sale.client_last_name || '',
+                    idNumber: sale.client_dni || '',
+                    address: sale.client_address || ''
+                }));
 
-            setSaleData(sale);
-            setFormData(prev => ({
-                ...prev,
-                email: sale.client_email || '',
-                phone: sale.client_phone || '',
-                firstName: sale.client_first_name || '',
-                surname: sale.client_last_name || '',
-                idNumber: sale.client_dni || '',
-                address: sale.client_address || ''
-            }));
-
-            if (sale.contract_template_id) {
-                const { data: template } = await supabase
-                    .from('contract_templates')
-                    .select('*')
-                    .eq('id', sale.contract_template_id)
-                    .single();
-                if (template) setContractTemplate(template);
+                if (sale.contract_template_id) {
+                    const { data: template } = await supabase
+                        .from('contract_templates')
+                        .select('*')
+                        .eq('id', sale.contract_template_id)
+                        .single();
+                    if (template) setContractTemplate(template);
+                }
+            } else {
+                // NO HAY VENTA PREVIA: Es un alta 100% nueva.
+                // Simplemente inicializamos el email y dejamos que siga.
+                setFormData(prev => ({ ...prev, email: verificationEmail.trim().toLowerCase() }));
+                // Creamos un saleData ficticio o marcamos que es nuevo
+                setSaleData({ id: 'new', is_new_signup: true });
             }
         } catch (err) {
-            setError('Error al validar el acceso');
+            console.error('Error in verification:', err);
+            // Si hay error, permitimos continuar como alta nueva por si acaso
+            setSaleData({ id: 'new', is_new_signup: true });
         } finally {
             setIsVerifying(false);
         }
@@ -437,6 +449,7 @@ export function OnboardingPage() {
                 short_term_milestone_notes: formData.shortTermMilestone,
                 why_trust_us: formData.whyTrustUs,
                 concerns_fears_notes: formData.additionalConcerns,
+                lab_results_url: formData.labResultsFile,
 
                 coach_id: saleData?.assigned_coach_id,
                 status: 'active',
@@ -511,7 +524,7 @@ export function OnboardingPage() {
                             <Heart className="w-12 h-12 text-white" />
                         </div>
                         <h1 className="text-2xl font-bold mb-2">Comienza tu Valoración</h1>
-                        <p className="text-emerald-100 text-sm">Introduce tu email para acceder a tu formulario personalizado</p>
+                        <p className="text-emerald-100 text-sm">Usa el email con el que te inscribiste en la Escuela o introduce uno nuevo para empezar.</p>
                     </div>
 
                     <form onSubmit={handleEmailVerification} className="p-8 space-y-6">
@@ -523,7 +536,7 @@ export function OnboardingPage() {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700 ml-1">Email de Usuario</label>
+                            <label className="text-sm font-semibold text-slate-700 ml-1">Tu Correo Electrónico</label>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input
@@ -545,19 +558,15 @@ export function OnboardingPage() {
                             {isVerifying ? (
                                 <>
                                     <Loader2 className="w-6 h-6 animate-spin" />
-                                    <span>Verificando...</span>
+                                    <span>Buscando tu perfil...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Continuar</span>
+                                    <span>Entrar al Formulario</span>
                                     <ArrowRight className="w-6 h-6" />
                                 </>
                             )}
                         </button>
-
-                        <p className="text-center text-xs text-slate-400">
-                            ¿Tienes problemas? Contacta con tu coach de Escuela Cuid-Arte
-                        </p>
                     </form>
                 </div>
             </div>

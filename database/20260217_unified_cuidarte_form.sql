@@ -78,3 +78,7 @@ ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS desired_feeling_notes TEXT;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS short_term_milestone_notes TEXT;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS why_trust_us TEXT;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS concerns_fears_notes TEXT;
+
+-- Extras
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS lab_results_url TEXT; 
+
