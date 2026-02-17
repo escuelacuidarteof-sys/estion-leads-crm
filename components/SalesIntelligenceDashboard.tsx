@@ -12,6 +12,7 @@ import {
     ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, RadialBarChart, RadialBar
 } from 'recharts';
 import LeadsManagement from './leads/LeadsManagement';
+import { NewSaleForm } from './NewSaleForm';
 import { User, UserRole } from '../types';
 
 // Props para el dashboard
@@ -101,6 +102,8 @@ const SalesIntelligenceDashboard = ({ currentUser }: SalesIntelligenceDashboardP
     const [filterYear, setFilterYear] = useState(new Date().getFullYear());
     const [projectFilter, setProjectFilter] = useState<'all' | 'ADO' | 'ME'>('all');
     const [activeTab, setActiveTab] = useState<'overview' | 'setters' | 'closers' | 'management'>('overview');
+    // Lead conversion state
+    const [convertingLead, setConvertingLead] = useState<any>(null);
 
     useEffect(() => {
         fetchLeads();
@@ -1083,7 +1086,15 @@ const SalesIntelligenceDashboard = ({ currentUser }: SalesIntelligenceDashboardP
 
                 {/* === PESTAÑA GESTIÓN === */}
                 {activeTab === 'management' && (
-                    <LeadsManagement />
+                    convertingLead ? (
+                        <NewSaleForm
+                            currentUser={currentUser}
+                            initialLeadData={convertingLead}
+                            onBack={() => setConvertingLead(null)}
+                        />
+                    ) : (
+                        <LeadsManagement onConvert={(lead) => setConvertingLead(lead)} />
+                    )
                 )}
 
             </div>

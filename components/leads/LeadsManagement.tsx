@@ -65,7 +65,12 @@ const VALID_CLOSERS = ['Sergi', 'Yassine', 'Elena', 'Raquel'];
 // Procedencias comunes
 const PROCEDENCIAS = ['Instagram', 'Facebook', 'Referido', 'Web', 'YouTube', 'TikTok', 'Otro'];
 
-const LeadsManagement: React.FC = () => {
+interface LeadsManagementProps {
+    onConvert?: (lead: NotionLead) => void;
+}
+
+const LeadsManagement: React.FC<LeadsManagementProps> = ({ onConvert }) => {
+
     const { toast } = useToast();
     const [leads, setLeads] = useState<NotionLead[]>([]);
     const [loading, setLoading] = useState(true);
@@ -632,7 +637,8 @@ const LeadsManagement: React.FC = () => {
             {/* Tabla de Leads */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[1200px]">
+
                         <thead>
                             <tr className="border-b border-slate-700/50 text-left">
                                 <th className="p-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -799,15 +805,27 @@ const LeadsManagement: React.FC = () => {
                                                             setEditFormData(lead);
                                                         }}
                                                         className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                                        title="Editar lead"
                                                     >
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
+                                                    {onConvert && (
+                                                        <button
+                                                            onClick={() => onConvert(lead)}
+                                                            className="p-2 text-emerald-400 hover:text-white hover:bg-emerald-500 rounded-lg transition-colors"
+                                                            title="Convertir en Venta"
+                                                        >
+                                                            <DollarSign className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => handleDeleteLead(lead.notion_id)}
                                                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        title="Eliminar lead"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
+
                                                 </div>
                                             </td>
                                         </tr>

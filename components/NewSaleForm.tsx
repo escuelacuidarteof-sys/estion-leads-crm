@@ -18,11 +18,21 @@ interface PaymentMethod {
     platform_fee_percentage: number;
 }
 
-interface NewSaleFormProps {
-    currentUser?: any;
+interface LeadConversionData {
+    nombre_lead?: string;
+    telefono?: string;
+    pago?: string;
+    closer?: string;
+    perfil_ig?: string;
 }
 
-export function NewSaleForm({ currentUser: propUser }: NewSaleFormProps) {
+interface NewSaleFormProps {
+    currentUser?: any;
+    initialLeadData?: LeadConversionData;
+    onBack?: () => void;
+}
+
+export function NewSaleForm({ currentUser: propUser, initialLeadData, onBack }: NewSaleFormProps) {
     const [coaches, setCoaches] = useState<Coach[]>([]);
     const [closers, setClosers] = useState<any[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -32,19 +42,35 @@ export function NewSaleForm({ currentUser: propUser }: NewSaleFormProps) {
     const [createdOnboardingLink, setCreatedOnboardingLink] = useState('');
     const [notificationStatus, setNotificationStatus] = useState<'pending' | 'sent' | 'failed' | 'none'>('none');
 
+    // Parse lead name into first/last
+    const parseLeadName = (name?: string) => {
+        if (!name) return { first: '', last: '' };
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return { first: parts[0], last: '' };
+        return { first: parts[0], last: parts.slice(1).join(' ') };
+    };
+
+    const parsedName = parseLeadName(initialLeadData?.nombre_lead);
+    // Parse pago: extract numeric value (e.g. "1500€" -> "1500")
+    const parsePago = (pago?: string) => {
+        if (!pago) return '';
+        const match = pago.replace(/[^0-9.,]/g, '');
+        return match || '';
+    };
+
     const [formData, setFormData] = useState({
-        client_first_name: '',
-        client_last_name: '',
+        client_first_name: parsedName.first,
+        client_last_name: parsedName.last,
         client_email: '',
-        client_phone: '',
+        client_phone: initialLeadData?.telefono || '',
         client_dni: '',
         client_address: '',
         contract_duration: '3',
         hotmart_payment_link: '',
         assigned_coach_id: '',
-        admin_notes: '',
+        admin_notes: initialLeadData ? `Convertido desde lead: ${initialLeadData.nombre_lead || ''}${initialLeadData.perfil_ig ? ' | IG: ' + initialLeadData.perfil_ig : ''}` : '',
         coach_notes: '',
-        sale_amount: '',
+        sale_amount: parsePago(initialLeadData?.pago),
         payment_method_id: '',
         contract_template_id: '',
         custom_duration: '',
@@ -367,9 +393,23 @@ export function NewSaleForm({ currentUser: propUser }: NewSaleFormProps) {
         <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900">Nueva Alta de Socio</h1>
-                    <p className="text-slate-500 mt-2">Registra los datos para el onboarding.</p>
+                    <h1 className="text-3xl font-black text-slate-900">
+                        {initialLeadData ? '⚡ Convertir Lead en Venta' : 'Nueva Alta de Socio'}
+                    </h1>
+                    <p className="text-slate-500 mt-2">
+                        {initialLeadData
+                            ? `Convirtiendo a: ${initialLeadData.nombre_lead || 'Lead sin nombre'}`
+                            : 'Registra los datos para el onboarding.'}
+                    </p>
                 </div>
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors"
+                    >
+                        ← Volver a Leads
+                    </button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
