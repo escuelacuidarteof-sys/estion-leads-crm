@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stethoscope, Calendar, Activity, Pill, AlertCircle, Thermometer, Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { Stethoscope, Thermometer, Upload, FileText, Loader2, CheckCircle2, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 
 interface Props {
@@ -14,29 +14,18 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        // Validar tamaño (máx 10MB para informes)
         if (file.size > 10 * 1024 * 1024) {
             alert('El archivo es demasiado grande (máximo 10MB)');
             return;
         }
-
         setUploading(true);
         try {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `onboarding-docs/${Date.now()}_${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('documents')
-                .upload(filePath, file);
-
+            const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
             if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('documents')
-                .getPublicUrl(filePath);
-
+            const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(filePath);
             updateField('labResultsFile', publicUrl);
         } catch (error: any) {
             console.error('Upload error:', error);
@@ -61,7 +50,6 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
         'Dislipemia (Colesterol / Triglicéridos)',
         'Hipotiroidismo / Hipertiroidismo',
         'Ovario Poliquístico (SOP)',
-        'Sobrepeso / Obesidad',
         'Osteopenia / Osteoporosis',
         'Enfermedades cardiovasculares',
         'Ninguna de las anteriores'
@@ -79,7 +67,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
         <div className="space-y-8">
             <div className="mb-6">
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Contexto Oncológico y Clínico</h3>
-                <p className="text-slate-600">Bloques 2 y 3: Situación actual y salud metabólica</p>
+                <p className="text-slate-600">Esta información técnica nos permite crear un plan 100% seguro para tu situación específica.</p>
             </div>
 
             {/* Situación Oncológica */}
@@ -89,7 +77,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                     {[
                         { id: 'activo', label: 'En tratamiento activo' },
                         { id: 'finalizado', label: 'Finalizado (Seguimiento)' },
-                        { id: 'supervivencia', label: 'Supervivencia / Largo plazo' }
+                        { id: 'supervivencia', label: 'Seguimiento oncológico' }
                     ].map(status => (
                         <label key={status.id} className={`p-4 border rounded-xl cursor-pointer transition-all ${formData.oncologyStatus === status.id ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-200' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
                             <input
@@ -106,15 +94,27 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                 </div>
             </div>
 
+            {/* Tipo de tumor */}
+            <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Tipo de cáncer / Localización del tumor *</label>
+                <input
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 outline-none"
+                    value={formData.tumorType || ''}
+                    onChange={(e) => updateField('tumorType', e.target.value)}
+                    placeholder="Ej: Cáncer de mama HER2+, adenocarcinoma de colon estadio II, linfoma..."
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Nos ayuda a adaptar el ejercicio a las restricciones específicas de tu diagnóstico.</p>
+            </div>
+
             {/* Tratamientos */}
             <div className="space-y-4">
-                <label className="block text-sm font-bold text-slate-700 font-bold">Tratamiento actual o reciente (marca todos los que apliquen) *</label>
+                <label className="block text-sm font-bold text-slate-700">Tratamiento actual o reciente (marca todos los que apliquen) *</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {treatmentsList.map(t => (
                         <label key={t} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={formData.treatments.includes(t)}
+                                checked={formData.treatments?.includes(t)}
                                 onChange={() => toggleArrayField('treatments', t)}
                                 className="w-4 h-4 text-emerald-600 rounded"
                             />
@@ -146,6 +146,94 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                 </div>
             </div>
 
+            {/* ── FACTORES DE SEGURIDAD PARA EL EJERCICIO ── */}
+            <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl space-y-5">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-100 rounded-xl">
+                        <ShieldAlert className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-red-900">Factores de seguridad para el ejercicio</h4>
+                        <p className="text-xs text-red-700">Esta información es clave para que el plan de ejercicio sea 100% seguro. Si no estás segura de algún término, consúltalo con tu médico.</p>
+                    </div>
+                </div>
+
+                {/* Neuropatía */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">Neuropatía periférica</label>
+                    <p className="text-[11px] text-slate-500">Hormigueo, entumecimiento o debilidad en manos y pies. Frecuente con algunos quimioterápicos (Taxol, Vincristina, etc.)</p>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { val: 'ninguna', label: 'Sin neuropatía' },
+                            { val: 'leve', label: 'Leve (hormigueo ocasional)' },
+                            { val: 'moderada_severa', label: 'Moderada/severa (afecta al equilibrio o agarre)' }
+                        ].map(opt => (
+                            <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-all ${formData.peripheralNeuropathy === opt.val ? 'bg-red-100 border-red-500 font-bold text-red-900' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                <input type="radio" name="peripheralNeuropathy" value={opt.val} checked={formData.peripheralNeuropathy === opt.val} onChange={(e) => updateField('peripheralNeuropathy', e.target.value)} className="hidden" />
+                                {opt.label}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Linfedema */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">Linfedema</label>
+                    <p className="text-[11px] text-slate-500">Hinchazón crónica en brazo o pierna. Frecuente tras cirugía axilar (cáncer de mama) o ganglios pélvicos. Limita el tipo de ejercicio que podemos prescribir.</p>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { val: 'ninguno', label: 'Ninguno' },
+                            { val: 'miembro_superior', label: 'Brazo / Mano (miembro superior)' },
+                            { val: 'miembro_inferior', label: 'Pierna / Pie (miembro inferior)' },
+                            { val: 'bilateral', label: 'Ambos' }
+                        ].map(opt => (
+                            <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-all ${formData.lymphedema === opt.val ? 'bg-red-100 border-red-500 font-bold text-red-900' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                <input type="radio" name="lymphedema" value={opt.val} checked={formData.lymphedema === opt.val} onChange={(e) => updateField('lymphedema', e.target.value)} className="hidden" />
+                                {opt.label}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Acceso venoso */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700">Acceso venoso permanente</label>
+                    <p className="text-[11px] text-slate-500">El Port-a-cath y el PICC limitan algunos ejercicios de hombro y pecho para proteger el dispositivo.</p>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { val: 'ninguno', label: 'Ninguno' },
+                            { val: 'port_a_cath', label: 'Port-a-cath (reservorio subcutáneo)' },
+                            { val: 'picc', label: 'PICC (catéter periférico central)' }
+                        ].map(opt => (
+                            <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-all ${formData.venousAccess === opt.val ? 'bg-red-100 border-red-500 font-bold text-red-900' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                <input type="radio" name="venousAccess" value={opt.val} checked={formData.venousAccess === opt.val} onChange={(e) => updateField('venousAccess', e.target.value)} className="hidden" />
+                                {opt.label}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Riesgo óseo */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600" /> Riesgo óseo
+                    </label>
+                    <p className="text-[11px] text-slate-500">Las metástasis óseas condicionan completamente el tipo de ejercicio con cargas. Fundamental para tu seguridad.</p>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { val: 'ninguno', label: 'Sin riesgo conocido' },
+                            { val: 'osteoporosis', label: 'Osteoporosis (por tratamiento o previa)' },
+                            { val: 'metastasis_oseas', label: 'Metástasis óseas' }
+                        ].map(opt => (
+                            <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-all ${formData.boneRisk === opt.val ? (opt.val === 'metastasis_oseas' ? 'bg-red-200 border-red-600 font-bold text-red-900' : 'bg-red-100 border-red-500 font-bold text-red-900') : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                <input type="radio" name="boneRisk" value={opt.val} checked={formData.boneRisk === opt.val} onChange={(e) => updateField('boneRisk', e.target.value)} className="hidden" />
+                                {opt.label}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             {/* Enfermedades previas */}
             <div className="space-y-4">
                 <label className="block text-sm font-bold text-slate-700">Otras enfermedades y condiciones *</label>
@@ -154,7 +242,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                         <label key={c} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={formData.healthConditions.includes(c)}
+                                checked={formData.healthConditions?.includes(c)}
                                 onChange={() => toggleArrayField('healthConditions', c)}
                                 className="w-4 h-4 text-emerald-600 rounded"
                             />
@@ -179,7 +267,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                         className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
                         value={formData.dailyMedication}
                         onChange={(e) => updateField('dailyMedication', e.target.value)}
-                        placeholder="Ej: Tamoxifeno 20mg, Corticoides, Protector..."
+                        placeholder="Ej: Tamoxifeno 20mg, Letrozol 2.5mg, Corticoides, Antiemético..."
                         rows={3}
                     />
                 </div>
@@ -201,7 +289,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                     className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
                     value={formData.exerciseLimitations}
                     onChange={(e) => updateField('exerciseLimitations', e.target.value)}
-                    placeholder="Ej: No puedo levantar el brazo derecho por cirugía, linfedema..."
+                    placeholder="Ej: No puedo levantar el brazo derecho por la cirugía, linfedema en brazo izquierdo, dolor lumbar..."
                     rows={2}
                 />
             </div>
@@ -263,7 +351,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                     className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-200 outline-none"
                     value={formData.labResultsNotes}
                     onChange={(e) => updateField('labResultsNotes', e.target.value)}
-                    placeholder="Glucosa, HbA1c, anemia, colesterol... (Si no lo sabes, pon 'no lo sé')"
+                    placeholder="Hemoglobina, ferritina, vitamina D, leucocitos, plaquetas... (Si no lo sabes, pon 'no lo sé')"
                     rows={2}
                 />
             </div>
@@ -284,10 +372,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                                 <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                             </div>
                             <p className="text-sm font-bold text-emerald-900">¡Documento subido correctamente!</p>
-                            <button
-                                onClick={() => updateField('labResultsFile', '')}
-                                className="text-xs text-red-500 font-bold hover:underline"
-                            >
+                            <button onClick={() => updateField('labResultsFile', '')} className="text-xs text-red-500 font-bold hover:underline">
                                 Cambiar archivo
                             </button>
                         </div>
@@ -309,13 +394,6 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                         </>
                     )}
                 </div>
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-emerald-900 italic">
-                    Esta información técnica nos ayuda a crear un plan 100% seguro para tu situación oncológica específica.
-                </p>
             </div>
         </div>
     );

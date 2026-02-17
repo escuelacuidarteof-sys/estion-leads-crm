@@ -13,7 +13,8 @@ import {
     TrendingDown, Target, Calendar, Award, Activity, Heart, Zap, ChevronRight, Play, CheckCircle2,
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
-    Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil
+    Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
+    Moon, Shield
 } from 'lucide-react';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -927,128 +928,103 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             </div>
                         </div>
 
-                        {/* 1. PROGRESS CARD - Premium Design */}
-                        <div className="relative rounded-3xl overflow-hidden group">
-                            {/* Gradient Background */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950"></div>
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-500/30 to-purple-500/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-500/20 to-cyan-500/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
+                        {/* 1. BIENESTAR CARD — oncológico */}
+                        {(() => {
+                            const oncologyStatus = (medical as any).oncology_status || '';
+                            const statusLabel: Record<string, { label: string; color: string }> = {
+                                en_tratamiento: { label: 'En tratamiento activo', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+                                seguimiento_oncologico: { label: 'Seguimiento oncológico', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+                                superviviente: { label: 'Superviviente', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+                                recidiva: { label: 'Recidiva / Recaída', color: 'bg-red-100 text-red-800 border-red-200' },
+                                paliativo: { label: 'Cuidados paliativos', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+                            };
+                            const badge = statusLabel[oncologyStatus];
 
-                            <div className="relative z-10 p-6 sm:p-8">
-                                {/* Header */}
-                                <div className="flex items-center gap-4 mb-8">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 ring-4 ring-white/10">
-                                        <Target className="w-7 h-7" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl sm:text-3xl font-bold text-white">Tu Progreso</h2>
-                                        <p className="text-indigo-200/80">
-                                            {Math.abs(parseFloat(remainingWeight)) > 0
-                                                ? `Estás a ${remainingWeight} kg de tu meta`
-                                                : '¡Has alcanzado tu objetivo! 🎉'}
-                                        </p>
-                                    </div>
-                                </div>
+                            const fatigueVal = (medical as any).symptom_fatigue ?? null;
+                            const energyVal = client.energy_level ?? null;
+                            const sleepVal = (medical as any).symptom_sleep_quality ?? null;
 
-                                {/* Weight Cards */}
-                                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
-                                    {/* Inicial */}
-                                    <div className="text-center p-4 sm:p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors">
-                                        <div className="w-8 h-8 mx-auto mb-2 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                                            <Scale className="w-4 h-4 text-slate-400" />
-                                        </div>
-                                        <p className="text-slate-400 text-[10px] sm:text-xs uppercase font-bold tracking-wider mb-1">Inicial</p>
-                                        <p className="text-2xl sm:text-3xl font-bold text-white">{startWeight}</p>
-                                        <p className="text-xs text-slate-500 font-medium">kg</p>
-                                    </div>
+                            const scoreColor = (val: number | null, invert = false) => {
+                                if (val === null) return 'text-slate-300';
+                                const good = invert ? val <= 3 : val >= 7;
+                                const mid = invert ? val <= 6 : val >= 4;
+                                return good ? 'text-emerald-400' : mid ? 'text-amber-400' : 'text-red-400';
+                            };
 
-                                    {/* Actual - Highlighted */}
-                                    <div className="text-center p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 backdrop-blur-sm border-2 border-indigo-400/50 shadow-xl shadow-indigo-500/20 relative overflow-hidden transform hover:scale-[1.02] transition-transform">
-                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"></div>
-                                        <div className="w-8 h-8 mx-auto mb-2 rounded-xl bg-indigo-500/30 flex items-center justify-center">
-                                            <Activity className="w-4 h-4 text-indigo-300" />
-                                        </div>
-                                        <p className="text-indigo-300 text-[10px] sm:text-xs uppercase font-bold tracking-wider mb-1">Actual</p>
-                                        <p className="text-3xl sm:text-4xl font-bold text-white">{currentWeight}</p>
-                                        <p className="text-xs text-indigo-300 font-medium">kg</p>
-                                    </div>
+                            return (
+                                <div className="relative rounded-3xl overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950" />
+                                    <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-full blur-3xl -mr-24 -mt-24" />
+                                    <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-emerald-600/10 to-cyan-500/10 rounded-full blur-3xl -ml-12 -mb-12" />
 
-                                    {/* Objetivo */}
-                                    <div
-                                        className={`text-center p-4 sm:p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 transition-colors relative ${!isEditingTargetWeight ? 'cursor-pointer hover:bg-white/10' : ''}`}
-                                        onClick={() => { if (!isEditingTargetWeight) { setTempTargetWeight(client.target_weight?.toString() || ''); setIsEditingTargetWeight(true); } }}
-                                    >
-                                        <div className="w-8 h-8 mx-auto mb-2 rounded-xl bg-emerald-700/50 flex items-center justify-center">
-                                            <Award className="w-4 h-4 text-emerald-400" />
-                                        </div>
-                                        <div className="flex items-center justify-center gap-1 mb-1">
-                                            <p className="text-slate-400 text-[10px] sm:text-xs uppercase font-bold tracking-wider">Objetivo</p>
-                                            {!isEditingTargetWeight && (
-                                                <Pencil className="w-2.5 h-2.5 text-emerald-400" />
+                                    <div className="relative z-10 p-6 sm:p-8">
+                                        {/* Header */}
+                                        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-xl shadow-emerald-500/30 ring-4 ring-white/10">
+                                                    <Heart className="w-7 h-7" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Tu Bienestar</h2>
+                                                    <p className="text-emerald-200/80 text-sm">
+                                                        {programWeek ? `Semana ${programWeek.current} de ${programWeek.total}` : 'Programa activo'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {badge && (
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${badge.color}`}>
+                                                    <Shield className="w-3 h-3" />
+                                                    {badge.label}
+                                                </span>
                                             )}
                                         </div>
 
-                                        {isEditingTargetWeight ? (
-                                            <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    value={tempTargetWeight}
-                                                    onChange={(e) => setTempTargetWeight(e.target.value)}
-                                                    className="w-20 bg-slate-800 text-white text-center font-bold p-1 rounded border border-indigo-500 text-lg"
-                                                    autoFocus
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={handleTargetWeightSave}
-                                                        disabled={isSavingTargetWeight}
-                                                        className="p-1 px-2 bg-emerald-600 text-white text-[10px] font-bold rounded hover:bg-emerald-500"
-                                                    >
-                                                        {isSavingTargetWeight ? '...' : 'Guardar'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsEditingTargetWeight(false);
-                                                            setTempTargetWeight(client.target_weight?.toString() || '');
-                                                        }}
-                                                        className="p-1 px-2 bg-slate-700 text-white text-[10px] font-bold rounded hover:bg-slate-600"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
+                                        {/* Indicators */}
+                                        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+                                                <Zap className="w-5 h-5 mx-auto mb-1 text-amber-400" />
+                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Fatiga</p>
+                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(fatigueVal, true)}`}>
+                                                    {fatigueVal !== null ? fatigueVal : '--'}
+                                                    {fatigueVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
+                                                </p>
                                             </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-2xl sm:text-3xl font-bold text-emerald-400">{targetWeight}</p>
-                                                <p className="text-xs text-emerald-500/70 font-medium">kg</p>
-                                            </>
+                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+                                                <Activity className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
+                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Energía</p>
+                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(energyVal)}`}>
+                                                    {energyVal !== null ? energyVal : '--'}
+                                                    {energyVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
+                                                </p>
+                                            </div>
+                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+                                                <Moon className="w-5 h-5 mx-auto mb-1 text-blue-400" />
+                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Sueño</p>
+                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(sleepVal)}`}>
+                                                    {sleepVal !== null ? sleepVal : '--'}
+                                                    {sleepVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* CTA */}
+                                        <button
+                                            onClick={() => setActiveView('checkin')}
+                                            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:from-emerald-400 hover:to-teal-400 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            Registrar cómo me siento hoy
+                                        </button>
+
+                                        {lastCheckinDate && (
+                                            <p className="text-center text-xs text-emerald-200/50 mt-3">
+                                                Último check-in: {lastCheckinDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                                            </p>
                                         )}
                                     </div>
                                 </div>
-
-                                {/* Progress Bar */}
-                                <div>
-                                    <div className="flex justify-between text-sm mb-3 font-medium">
-                                        <span className="text-white flex items-center gap-2">
-                                            <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                                            {weightProgress}% completado
-                                        </span>
-                                        <span className={`flex items-center gap-1 ${isWeightLoss ? 'text-emerald-400' : 'text-blue-400'}`}>
-                                            {isWeightLoss ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-                                            {remainingWeight} kg restantes
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-slate-800/50 rounded-full h-4 sm:h-5 overflow-hidden backdrop-blur-sm border border-white/5">
-                                        <div
-                                            className="h-full rounded-full shadow-lg transition-all duration-1000 ease-out relative bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                                            style={{ width: `${weightProgress}%` }}
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-shimmer"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })()}
 
                         {/* 2. MEDICAL & PERSONAL DATA GRID */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1175,24 +1151,21 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             </span>
                                         )}
                                     </div>
-                                    {/* Last Weight */}
+                                    {/* Last Body Measurements */}
                                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                                         <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${lastWeightDate ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-400'}`}>
-                                                <Scale className="w-4 h-4" />
+                                            <div className={`p-2 rounded-lg ${(client as any).arm_perimeter ? 'bg-teal-100 text-teal-600' : 'bg-slate-200 text-slate-400'}`}>
+                                                <Activity className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <p className="text-xs text-slate-400 font-bold uppercase">Último Peso</p>
+                                                <p className="text-xs text-slate-400 font-bold uppercase">Masa Muscular</p>
                                                 <p className="font-medium text-slate-700">
-                                                    {lastWeightDate ? `${weightHistory[0].weight} kg` : 'Sin registros'}
+                                                    {(client as any).arm_perimeter
+                                                        ? `Brazo: ${(client as any).arm_perimeter} cm`
+                                                        : 'Sin registros'}
                                                 </p>
                                             </div>
                                         </div>
-                                        {lastWeightDate && (
-                                            <span className="text-xs text-slate-400">
-                                                {lastWeightDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                                            </span>
-                                        )}
                                     </div>
                                     {/* Next Appointment */}
                                     {(client as any).next_appointment_date && (
@@ -1497,18 +1470,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             </h3>
                             <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
                                 <button
-                                    onClick={() => setIsWeightModalOpen(true)}
-                                    className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-white/20 p-2 rounded-xl"><Scale className="w-5 h-5" /></div>
-                                        <div className="text-left">
-                                            <p className="font-bold text-sm">Registrar Peso</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                <button
                                     onClick={() => activeView !== 'checkin' && setActiveView('checkin')}
                                     className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-200 hover:shadow-xl transition-all group"
                                 >
@@ -1516,9 +1477,20 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                         <div className="bg-white/20 p-2 rounded-xl"><CheckCircle2 className="w-5 h-5" /></div>
                                         <div className="text-left">
                                             <p className="font-bold text-sm">Check-in Semanal</p>
+                                            <p className="text-xs text-white/70">¿Cómo te has sentido?</p>
                                         </div>
                                     </div>
                                     <ChevronRight className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" />
+                                </button>
+                                <button
+                                    onClick={() => setIsWeightModalOpen(true)}
+                                    className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-slate-100 p-2 rounded-xl"><Scale className="w-4 h-4" /></div>
+                                        <p className="font-medium text-sm">Registrar Peso</p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 opacity-40 group-hover:translate-x-1 transition-transform" />
                                 </button>
                             </div>
                         </div>

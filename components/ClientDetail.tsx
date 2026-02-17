@@ -3601,6 +3601,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        </div>
                                        <DataField label="Fecha inicio tratamiento" value={formData.medical.treatment_start_date} path="medical.treatment_start_date" type="date" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                        <div className="border-t border-brand-mint pt-3 mt-2 space-y-3">
+                                          <DataField label="Tipo de cáncer / Localización" value={formData.medical.tumor_type} path="medical.tumor_type" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                           <DataField label="¿Medicación afecta al peso?" value={formData.medical.medication_affects_weight} path="medical.medication_affects_weight" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                           {formData.medical.medication_affects_weight && (
                                              <DataField label="Detalles efecto en peso" value={formData.medical.medication_affects_weight_details} path="medical.medication_affects_weight_details" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
@@ -3610,6 +3611,84 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              <DataField label="Detalles limitaciones" value={formData.medical.exercise_medical_limitations_details} path="medical.exercise_medical_limitations_details" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                           )}
                                        </div>
+                                    </div>
+
+                                    {/* ===== FACTORES DE SEGURIDAD PARA EL EJERCICIO ===== */}
+                                    <div className="bg-red-50 border border-red-200 rounded-2xl p-5 space-y-4">
+                                       <div className="flex items-center gap-2">
+                                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                                          <p className="text-sm font-bold text-red-800">Factores de Seguridad para el Ejercicio</p>
+                                       </div>
+
+                                       {/* Alert visual si hay factores de riesgo alto */}
+                                       {(formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' ||
+                                         formData.medical.bone_risk === 'metastasis_oseas') && (
+                                          <div className="bg-red-100 border border-red-300 rounded-xl p-3 flex items-start gap-2">
+                                             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                                             <p className="text-xs text-red-700 font-medium">
+                                                {formData.medical.bone_risk === 'metastasis_oseas' && 'Metástasis óseas detectadas — revisar ejercicio con cargas. '}
+                                                {formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' && `Linfedema: ${formData.medical.lymphedema}. `}
+                                             </p>
+                                          </div>
+                                       )}
+
+                                       <DataField
+                                          label="Neuropatía periférica"
+                                          value={formData.medical.peripheral_neuropathy}
+                                          path="medical.peripheral_neuropathy"
+                                          type="select"
+                                          options={[
+                                             { label: 'Sin neuropatía', value: 'ninguna' },
+                                             { label: 'Leve (hormigueo)', value: 'leve' },
+                                             { label: 'Moderada-severa (afecta al equilibrio)', value: 'moderada_severa' },
+                                          ]}
+                                          isEditing={isEditing}
+                                          onUpdate={updateField}
+                                          readOnly={readOnlyMedical}
+                                       />
+                                       <DataField
+                                          label="Linfedema"
+                                          value={formData.medical.lymphedema}
+                                          path="medical.lymphedema"
+                                          type="select"
+                                          options={[
+                                             { label: 'Ninguno', value: 'ninguno' },
+                                             { label: 'Miembro superior (brazo/mano)', value: 'miembro_superior' },
+                                             { label: 'Miembro inferior', value: 'miembro_inferior' },
+                                             { label: 'Bilateral', value: 'bilateral' },
+                                          ]}
+                                          isEditing={isEditing}
+                                          onUpdate={updateField}
+                                          readOnly={readOnlyMedical}
+                                       />
+                                       <DataField
+                                          label="Acceso venoso"
+                                          value={formData.medical.venous_access}
+                                          path="medical.venous_access"
+                                          type="select"
+                                          options={[
+                                             { label: 'Ninguno', value: 'ninguno' },
+                                             { label: 'Port-a-cath', value: 'port_a_cath' },
+                                             { label: 'PICC line', value: 'picc' },
+                                          ]}
+                                          isEditing={isEditing}
+                                          onUpdate={updateField}
+                                          readOnly={readOnlyMedical}
+                                       />
+                                       <DataField
+                                          label="Riesgo óseo"
+                                          value={formData.medical.bone_risk}
+                                          path="medical.bone_risk"
+                                          type="select"
+                                          options={[
+                                             { label: 'Sin riesgo conocido', value: 'ninguno' },
+                                             { label: 'Osteoporosis', value: 'osteoporosis' },
+                                             { label: 'Metástasis óseas', value: 'metastasis_oseas' },
+                                          ]}
+                                          isEditing={isEditing}
+                                          onUpdate={updateField}
+                                          readOnly={readOnlyMedical}
+                                       />
                                     </div>
                                  </div>
 
