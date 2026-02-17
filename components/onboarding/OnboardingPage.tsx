@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import {
     Heart, Lock, User, Stethoscope, Thermometer, Scale, Utensils, Dumbbell, Target,
-    Loader2, AlertCircle, ArrowLeft, ArrowRight, Mail
+    Loader2, AlertCircle, ArrowLeft, ArrowRight, Mail, FileText
 } from 'lucide-react';
 import InstallationGuide from '../InstallationGuide';
 import { storageKey } from '../../config/business';
@@ -18,6 +18,7 @@ import { MeasurementsStep } from './steps/MeasurementsStep';
 import { NutritionStep } from './steps/NutritionStep';
 import { ActivityStep } from './steps/ActivityStep';
 import { GoalsStep } from './steps/GoalsStep';
+import { ContractStep } from './steps/ContractStep';
 
 export interface OnboardingData {
     // Credenciales
@@ -488,7 +489,8 @@ export function OnboardingPage() {
                 onboarding_completed_at: new Date().toISOString(),
                 onboarding_phase2_completed: true,
                 onboarding_phase2_completed_at: new Date().toISOString(),
-                subscription_start: new Date().toISOString().split('T')[0]
+                subscription_start: new Date().toISOString().split('T')[0],
+                program_duration_months: saleData?.program_duration_months || 3
             };
 
             // 1. Check if client exists
@@ -598,7 +600,17 @@ export function OnboardingPage() {
         { title: 'Cuerpo', icon: Scale, component: <MeasurementsStep formData={formData} updateField={updateField} /> },
         { title: 'Nutrición', icon: Utensils, component: <NutritionStep formData={formData} updateField={updateField} toggleArrayField={toggleArrayField} /> },
         { title: 'Actividad', icon: Dumbbell, component: <ActivityStep formData={formData} updateField={updateField} toggleArrayField={toggleArrayField} /> },
-        { title: 'Finalizar', icon: Target, component: <GoalsStep formData={formData} updateField={updateField} contractTemplate={contractTemplate} /> }
+        { title: 'Objetivos', icon: Target, component: <GoalsStep formData={formData} updateField={updateField} contractTemplate={contractTemplate} /> },
+        {
+            title: 'Firma',
+            icon: FileText,
+            component: <ContractStep
+                formData={formData}
+                updateField={updateField}
+                contractDuration={saleData?.program_duration_months || 3}
+                templateContent={contractTemplate?.content}
+            />
+        }
     ];
 
     if (loading) return <div className="min-h-screen bg-emerald-50 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>;

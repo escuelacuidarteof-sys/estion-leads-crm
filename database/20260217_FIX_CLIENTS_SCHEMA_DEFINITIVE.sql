@@ -102,6 +102,8 @@ ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_completed_at TIM
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_phase2_completed BOOLEAN DEFAULT false;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS onboarding_phase2_completed_at TIMESTAMPTZ;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS subscription_start DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS subscription_end DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS program_duration_months INTEGER;
 
 -- =====================================================
 -- ✅ LISTO - RECUERDA EJECUTAR EN SUPABASE SQL EDITOR

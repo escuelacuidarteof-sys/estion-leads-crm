@@ -1337,7 +1337,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       if (!amount && selectedLink) {
          const rawPrice = selectedLink.price;
          amount = typeof rawPrice === 'string'
-            ? parseFloat(rawPrice.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, ''))
+            ? parseFloat((rawPrice as any).replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, ''))
             : (rawPrice || 0);
       }
 
@@ -1497,6 +1497,22 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       try {
          const newData = JSON.parse(JSON.stringify(formData));
          setNestedValue(newData, path, value);
+
+         // Sincronización de campos duplicados (Raíz <-> Program)
+         if (path === 'program_duration_months') {
+            if (newData.program) newData.program.durationMonths = value;
+         } else if (path === 'program.durationMonths') {
+            newData.program_duration_months = value;
+         } else if (path === 'start_date') {
+            if (newData.program) newData.program.startDate = value;
+         } else if (path === 'program.startDate') {
+            newData.start_date = value;
+         } else if (path === 'contract_end_date') {
+            if (newData.program) newData.program.endDate = value;
+         } else if (path === 'program.endDate') {
+            newData.contract_end_date = value;
+         }
+
          setFormData(newData);
          await onSave(newData);
          toast.success('Dato actualizado correctamente');
@@ -1816,6 +1832,22 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       setFormData(prev => {
          const newData = JSON.parse(JSON.stringify(prev));
          setNestedValue(newData, path, value);
+
+         // Sincronización de campos duplicados (Raíz <-> Program)
+         if (path === 'program_duration_months') {
+            if (newData.program) newData.program.durationMonths = value;
+         } else if (path === 'program.durationMonths') {
+            newData.program_duration_months = value;
+         } else if (path === 'start_date') {
+            if (newData.program) newData.program.startDate = value;
+         } else if (path === 'program.startDate') {
+            newData.start_date = value;
+         } else if (path === 'contract_end_date') {
+            if (newData.program) newData.program.endDate = value;
+         } else if (path === 'program.endDate') {
+            newData.contract_end_date = value;
+         }
+
          return newData;
       });
    }, []);
@@ -4748,10 +4780,20 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         financiacionImporte: cFinImporte
                      };
 
+                     const isLocked = readOnly || program.contract_signed;
                      const contractHTML = generateContractHTML(contractData);
 
                      const handleContractFieldSave = async (updates: Partial<Client>) => {
-                        const updatedData = { ...formData, ...updates };
+                        let updatedData = { ...formData, ...updates };
+
+                        // Sincronización con el objeto program anidado
+                        if (updates.program_duration_months !== undefined) {
+                           updatedData.program = { ...updatedData.program, durationMonths: updates.program_duration_months };
+                        }
+                        if (updates.start_date !== undefined) {
+                           updatedData.program = { ...updatedData.program, startDate: updates.start_date };
+                        }
+
                         setFormData(updatedData);
                         try {
                            await onSave(updatedData);
@@ -4766,6 +4808,16 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            ...formData,
                            program: { ...formData.program, [field]: value }
                         };
+
+                        // Sincronización con campos de raíz
+                        if (field === 'durationMonths') {
+                           updatedData.program_duration_months = value;
+                        } else if (field === 'startDate') {
+                           updatedData.start_date = value;
+                        } else if (field === 'endDate') {
+                           updatedData.contract_end_date = value;
+                        }
+
                         setFormData(updatedData);
                         try {
                            await onSave(updatedData);
@@ -4948,7 +5000,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           setFormData({ ...formData, firstName: first, surname: rest });
                                        }}
                                        onBlur={() => handleContractFieldSave({ firstName: formData.firstName, surname: formData.surname })}
-                                       disabled={readOnly}
+                                       disabled={isLocked}
                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                                     />
                                  </div>
@@ -4959,7 +5011,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        value={formData.idNumber || ''}
                                        onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
                                        onBlur={() => handleContractFieldSave({ idNumber: formData.idNumber })}
-                                       disabled={readOnly}
+                                       disabled={isLocked}
                                        placeholder="12345678X"
                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                                     />
@@ -4971,7 +5023,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        value={formData.address || ''}
                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                        onBlur={() => handleContractFieldSave({ address: formData.address })}
-                                       disabled={readOnly}
+                                       disabled={isLocked}
                                        placeholder="Calle, Ciudad, CP"
                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                                     />
@@ -4989,7 +5041,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           setFormData({ ...formData, program_duration_months: val });
                                        }}
                                        onBlur={() => handleContractFieldSave({ program_duration_months: formData.program_duration_months })}
-                                       disabled={readOnly}
+                                       disabled={isLocked}
                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                                     >
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].map(m => (
@@ -5005,7 +5057,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           value={program.contract_amount || ''}
                                           onChange={(e) => setFormData({ ...formData, program: { ...formData.program, contract_amount: parseFloat(e.target.value) || 0 } })}
                                           onBlur={() => handleProgramFieldSave('contract_amount', formData.program?.contract_amount)}
-                                          disabled={readOnly}
+                                          disabled={isLocked}
                                           placeholder="2197"
                                           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 pr-8 disabled:opacity-50"
                                        />
@@ -5018,7 +5070,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        value={program.contract_financing_installments || 0}
                                        onChange={(e) => setFormData({ ...formData, program: { ...formData.program, contract_financing_installments: parseInt(e.target.value) } })}
                                        onBlur={() => handleProgramFieldSave('contract_financing_installments', formData.program?.contract_financing_installments)}
-                                       disabled={readOnly}
+                                       disabled={isLocked}
                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                                     >
                                        <option value={0}>Pago único</option>
@@ -5036,7 +5088,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              value={program.contract_financing_amount || ''}
                                              onChange={(e) => setFormData({ ...formData, program: { ...formData.program, contract_financing_amount: parseFloat(e.target.value) || 0 } })}
                                              onBlur={() => handleProgramFieldSave('contract_financing_amount', formData.program?.contract_financing_amount)}
-                                             disabled={readOnly}
+                                             disabled={isLocked}
                                              placeholder="732"
                                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 pr-8 disabled:opacity-50"
                                           />

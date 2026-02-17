@@ -11,7 +11,7 @@ export const BUSINESS_CONFIG = {
   name: 'Escuela Cuid-Arte',
   shortName: 'Cuid-Arte',
   description: 'Plataforma de coaching y acompañamiento en salud',
-  owner: 'Dra. Odiel Fernández',
+  owner: 'NEIKO HEALTH, S.L.',
   sector: 'Salud y Bienestar',
 
   // --- Branding ---
@@ -131,6 +131,7 @@ export const BUSINESS_CONFIG = {
     'TikTok',
     'YouTube',
     'WhatsApp',
+    'Libros Odile',
     'Formulario Web',
     'Referido',
     'Otro',

@@ -381,6 +381,11 @@ export const mapRowToClient = (row: any): Client => {
 const mapClientToRow = (client: Partial<Client>): any => {
   const row: any = {};
 
+  // Ensure consistency between duplicated fields before mapping
+  const program_duration = client.program_duration_months !== undefined ? client.program_duration_months : client.program?.durationMonths;
+  const subscription_start = client.start_date !== undefined ? client.start_date : client.program?.startDate;
+  const subscription_end = client.contract_end_date !== undefined ? client.contract_end_date : client.program?.endDate;
+
   // Personal & Contact
   if (client.firstName !== undefined) row.first_name = client.firstName;
   if (client.surname !== undefined) row.surname = client.surname;
@@ -427,9 +432,9 @@ const mapClientToRow = (client: Partial<Client>): any => {
   }
 
   // Contract & Dates
-  if (client.start_date !== undefined) row.subscription_start = client.start_date;
-  if (client.contract_end_date !== undefined) row.subscription_end = client.contract_end_date;
-  if (client.program_duration_months !== undefined) row.program_duration_months = client.program_duration_months;
+  if (subscription_start !== undefined) row.subscription_start = subscription_start;
+  if (subscription_end !== undefined) row.subscription_end = subscription_end;
+  if (program_duration !== undefined) row.program_duration_months = program_duration;
   if (client.next_renewal_date !== undefined) row.next_renewal_date = client.next_renewal_date;
   if (client.next_renewal_accepted !== undefined) row.next_renewal_accepted = client.next_renewal_accepted;
 
@@ -555,11 +560,9 @@ const mapClientToRow = (client: Partial<Client>): any => {
   // Program / Subscription
   if (client.program) {
     if (client.program.subscriptionType !== undefined) row.subscription_type = client.program.subscriptionType;
-    if (client.program.startDate !== undefined) row.subscription_start = client.program.startDate;
-    if (client.program.endDate !== undefined) row.subscription_end = client.program.endDate;
+    // Note: startDate, endDate, and durationMonths are already handled above by subscription_start, subscription_end, and program_duration_months
     if (client.program.amount !== undefined) row.subscription_amount = client.program.amount;
     if (client.program.autoRenewal !== undefined) row.auto_renewal = client.program.autoRenewal;
-    if (client.program.durationMonths !== undefined) row.program_duration_months = client.program.durationMonths;
     if (client.program.contract_signed !== undefined) row.contract_signed = client.program.contract_signed;
     if (client.program.contract_signed_at !== undefined) row.contract_signed_at = client.program.contract_signed_at;
     if (client.program.contract_signature_image !== undefined) row.contract_signature_image = client.program.contract_signature_image;

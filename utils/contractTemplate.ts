@@ -28,237 +28,130 @@ export function getMesesList(): string[] {
   return MESES_ES;
 }
 
-function formatImporteDecimal(amount: number): string {
-  return amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatImporteEntero(amount: number): string {
-  return amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-function buildFinanciacionTexto(plazos: number, importePorPlazo: number): string {
-  if (!plazos || plazos <= 1) {
-    return 'En caso de tener posibilidad de financiaci\u00f3n, se determinar\u00e1n los plazos y la cantidad de cada plazo en la misma llamada de admisi\u00f3n, quedando estos como cumplimiento obligatorio por ambas partes.';
-  }
-  return `El pago se realizar\u00e1 en ${plazos} plazos de ${formatImporteDecimal(importePorPlazo)} euros cada uno, quedando estos como cumplimiento obligatorio por ambas partes.`;
-}
-
 export function generateContractHTML(data: ContractData): string {
   const {
     fechaDia, fechaMes, fechaAno,
     nombreCliente, dniCliente, domicilioCliente,
-    duracionMeses, duracionDias, importe,
-    financiacionPlazos, financiacionImporte
+    importe, financiacionPlazos, financiacionImporte
   } = data;
 
-  const c = BUSINESS_CONFIG.contract;
-  const professional = c.responsibleName;
-  const companyName = c.companyName;
-  const legalId = c.responsibleId || '____________';
-  const address = c.companyAddress || '____________';
-  const collegiateNum = c.collegiateNumber ? `, con n\u00famero de Colegiado ${c.collegiateNumber}` : '';
-  const serviceDesc = c.serviceDescription;
-
-  const importeDecimal = formatImporteDecimal(importe);
-  const importeEntero = formatImporteEntero(importe);
-  const financiacionTexto = buildFinanciacionTexto(financiacionPlazos, financiacionImporte);
-  const durMeses = duracionMeses === 1 ? '1 mes' : `${duracionMeses} meses`;
-
-  // Reusable styles
-  const sectionGap = 'margin-top: 32px; margin-bottom: 16px;';
-  const clauseStyle = 'margin-bottom: 28px; line-height: 1.8;';
-  const clauseTitle = 'font-weight: 800; font-size: 14px; color: #1e293b; margin-bottom: 8px; display: block;';
-  const bodyText = 'color: #334155; font-size: 13px; line-height: 1.8; text-align: justify;';
-  const listStyle = 'margin: 12px 0 12px 24px; padding: 0;';
-  const listItem = 'margin-bottom: 8px; color: #334155; font-size: 13px; line-height: 1.7;';
-  const divider = '<div style="border-top: 1px solid #e2e8f0; margin: 32px 0;"></div>';
+  const headerStyle = "text-align: center; color: #065f46; font-weight: 800; font-size: 1.25rem; margin-bottom: 2rem; text-decoration: underline; text-underline-offset: 8px;";
+  const sectionTitle = "font-weight: 700; color: #1e293b; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;";
+  const bodyText = "font-size: 0.85rem; line-height: 1.6; color: #334155; text-align: justify;";
+  const highlight = "font-weight: 700; color: #0f172a;";
 
   return `
-<!-- T\u00cdTULO -->
-<div style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #10b981;">
-  <h2 style="text-transform: uppercase; font-weight: 900; font-size: 20px; color: #0f172a; letter-spacing: 1px; margin: 0 0 8px 0;">CONTRATO PRESTACI\u00d3N DE SERVICIOS DE SALUD Y BIENESTAR ONLINE</h2>
-</div>
+    <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: white;">
+      <!-- CABECERA -->
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="/logo.png" alt="Escuela Cuidarte" style="width: 120px; height: auto; margin-bottom: 10px;" />
+        <h1 style="${headerStyle}">DOCUMENTO DE ADHESI\u00d3N AL PROGRAMA<br/>ESCUELA CUIDARTE</h1>
+      </div>
 
-<!-- ENCABEZADO -->
-<div style="${bodyText} margin-bottom: 32px;">
-  <p style="margin-bottom: 20px;">En <strong>Espa\u00f1a</strong>, a <strong>${fechaDia}</strong> de <strong>${fechaMes}</strong> de <strong>${fechaAno}</strong></p>
+      <!-- INTRODUCCI\u00d3N -->
+      <div style="${bodyText} margin-bottom: 24px;">
+        <p style="margin-bottom: 16px;">En <strong>Espa\u00f1a</strong>, a <strong>${fechaDia || '____'}</strong> de <strong>${fechaMes || '________'}</strong> de <strong>${fechaAno || '202_'}</strong></p>
 
-  <p style="margin-bottom: 16px;">De una parte: <strong>NEIKO HEALTH, S.L.</strong>, con NIF: <strong>B22928311</strong> y domicilio social en <strong>C/ Princesa 31, 2\u00ba puerta 2, 28008 Madrid</strong>. Entidad mercantil que presta, gestiona y factura los servicios del programa Escuela CUIDARTE (en adelante, <strong>LA EMPRESA</strong>).</p>
+        <p style="${sectionTitle}">REUNIDOS</p>
+        
+        <p style="margin-bottom: 12px;"><strong>De una parte:</strong></p>
+        <p style="margin-bottom: 16px; padding-left: 20px;">
+          <strong style="${highlight}">NEIKO HEALTH, S.L.</strong>, con NIF: <strong style="${highlight}">B22928311</strong> y domicilio social en <strong style="${highlight}">C/ Princesa 31, 2\u00ba puerta 2, 28008 Madrid</strong>.<br/>
+          Entidad mercantil que presta, gestiona y factura los servicios del programa Escuela CUIDARTE (en adelante, <strong style="${highlight}">LA EMPRESA</strong>).
+        </p>
 
-  <p style="margin-bottom: 16px;">Y de otra: <strong>${nombreCliente || '________________________'}</strong> con DNI <strong>${dniCliente || '____________'}</strong> y domicilio en <strong>${domicilioCliente || '__________________________________________'}</strong> (en adelante <strong>\u201cel cliente\u201d</strong>).</p>
+        <p style="margin-bottom: 12px;"><strong>Y de otra parte:</strong></p>
+        <p style="margin-bottom: 16px; padding-left: 20px;">
+          El/la participante, <strong style="${highlight}">${nombreCliente || '________________________'}</strong> con DNI <strong style="${highlight}">${dniCliente || '____________'}</strong> y domicilio en <strong style="${highlight}">${domicilioCliente || '__________________________________________'}</strong> (en adelante <strong style="${highlight}">EL/LA PARTICIPANTE</strong>).
+        </p>
 
-  <p>INTERVIENEN, ambas partes, en su propio nombre y derecho, aseguran tener y se reconocen mutuamente plena capacidad legal para contratar y obligarse, en especial para este acto y de com\u00fan acuerdo,</p>
-</div>
+        <p>Ambas partes, reconoci\u00e9ndose capacidad legal suficiente para contratar, acuerdan suscribir el presente Contrato de Prestaci\u00f3n de Servicios, que se regir\u00e1 por las siguientes:</p>
+      </div>
 
-${divider}
+      <!-- CLAUSULAS -->
+      <div style="${bodyText}">
+        <p style="${sectionTitle}">1. OBJETO DEL CONTRATO</p>
+        <p>El presente contrato tiene por objeto regular la participaci\u00f3n voluntaria del/la participante en el programa Escuela CUIDARTE, consistente en un servicio integral de acompa\u00f1amiento personalizado en nutrici\u00f3n, ejercicio f\u00edsico y bienestar, desarrollado en modalidad online, y prestado y facturado por LA EMPRESA.</p>
 
-<!-- MANIFIESTAN -->
-<div style="${sectionGap}">
-  <h3 style="font-weight: 900; font-size: 16px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 24px;">MANIFIESTAN:</h3>
+        <p style="${sectionTitle}">2. NATURALEZA DEL SERVICIO</p>
+        <p>El/la participante ha sido informado, reconoce y acepta que:</p>
+        <ul style="margin-top: 8px; padding-left: 24px;">
+          <li>La Escuela CUIDARTE es un programa de educaci\u00f3n, formaci\u00f3n, acompa\u00f1amiento y apoyo en h\u00e1bitos de vida saludable.</li>
+          <li>NO constituye un acto m\u00e9dico, psicol\u00f3gico ni terap\u00e9utico.</li>
+          <li>NO realiza ni sustituye diagn\u00f3sticos, tratamientos m\u00e9dicos, quir\u00fargicos o farmacol\u00f3gicos prescritos por profesionales sanitarios.</li>
+          <li>La informaci\u00f3n que se proporciona a trav\u00e9s del programa tiene car\u00e1cter general y orientativo.</li>
+          <li>La participaci\u00f3n en el programa no genera relaci\u00f3n cl\u00ednica ni asistencial con LA EMPRESA.</li>
+        </ul>
 
-  <div style="${clauseStyle}">
-    <p style="${bodyText} margin-bottom: 12px;"><strong>I.</strong> Que, ${professional}, presta un servicio denominado \u201c${companyName.toUpperCase()}\u201d por el cual ofrece los siguientes servicios:</p>
-    <ul style="${listStyle}">
-      <li style="${listItem}">${serviceDesc} de <strong>${duracionDias} d\u00edas</strong> de duraci\u00f3n.</li>
-      <li style="${listItem}">Acceso a la plataforma privada durante la duraci\u00f3n del servicio.</li>
-      <li style="${listItem}">Soporte por chat privado durante la duraci\u00f3n del programa en el horario establecido en la llamada de admisi\u00f3n.</li>
-      <li style="${listItem}">Acceso a plan de acompa\u00f1amiento personalizado junto con control peri\u00f3dico de resultados.</li>
-    </ul>
-  </div>
+        <p style="${sectionTitle}">3. NO SUSTITUCI\u00d3N DEL TRATAMIENTO M\u00c9DICO</p>
+        <p>El/la participante ha sido informado, reconoce y acepta que:</p>
+        <ul style="margin-top: 8px; padding-left: 24px;">
+          <li>El programa NO sustituye en ning\u00fan caso a la atenci\u00f3n m\u00e9dica, quir\u00fargica, farmacol\u00f3gica u oncol\u00f3gica indicada por su equipo sanitario.</li>
+          <li>Debe mantener sus controles m\u00e9dicos habituales durante toda su participaci\u00f3n en el programa.</li>
+          <li>Cualquier decisi\u00f3n relacionada con tratamientos m\u00e9dicos debe ser consultada con su onc\u00f3logo/a o profesional sanitario de referencia.</li>
+        </ul>
 
-  <div style="${clauseStyle}">
-    <p style="${bodyText} margin-bottom: 12px;"><strong>II.</strong> Que quedan expresamente excluidos de dicho programa los siguientes servicios:</p>
-    <ul style="${listStyle}">
-      <li style="${listItem}">Soporte o ayuda v\u00eda chat o acceso a la plataforma o acceso a nuevos planes m\u00e1s all\u00e1 del periodo de tiempo del programa contratado.</li>
-      <li style="${listItem}">Acceso a soporte por otros medios que no sean los acordados en la entrevista inicial o m\u00e9todo de pago inicial.</li>
-    </ul>
-  </div>
+        <p style="${sectionTitle}">4. AUSENCIA DE SERVICIO DE URGENCIAS</p>
+        <p>La Escuela CUIDARTE NO es un servicio de urgencias. No se ofrece atenci\u00f3n inmediata ante situaciones de emergencia. Ante cualquier empeoramiento cl\u00ednico, s\u00edntoma grave o urgencia, deber\u00e1 acudir a los servicios sanitarios correspondientes.</p>
 
-  <div style="${clauseStyle}">
-    <p style="${bodyText}"><strong>III.</strong> Que dicho servicio tiene un coste de <strong>${importeDecimal} euros</strong> (IVA incluido) durante <strong>${durMeses}</strong>. ${financiacionTexto}</p>
-  </div>
+        <p style="${sectionTitle}">5. NO GARANT\u00cdA DE RESULTADOS NI CURACI\u00d3N</p>
+        <p>El programa no garantiza resultados m\u00e9dicos, cl\u00ednicos ni terap\u00e9uticos. No asegura o promete ning\u00fan tipo de curaci\u00f3n, mejor\u00eda cl\u00ednica espec\u00edfica ni evoluci\u00f3n determinada de la enfermedad.</p>
 
-  <div style="${clauseStyle}">
-    <p style="${bodyText}"><strong>IV.</strong> Que el cliente manifiesta que conoce y acepta los servicios incluidos y excluidos de dicho servicio online, los acepta en todas sus condiciones, estando interesado en la realizaci\u00f3n del mismo y en su consecuente contrataci\u00f3n.</p>
-  </div>
+        <p style="${sectionTitle}">6. PARTICIPACI\u00d3N VOLUNTARIA Y AUTORRESPONSABILIDAD</p>
+        <p>El/la participante acepta que su participaci\u00f3n es voluntaria y bajo su propia responsabilidad. La aplicaci\u00f3n de las recomendaciones es una decisi\u00f3n personal.</p>
 
-  <div style="${clauseStyle}">
-    <p style="${bodyText}"><strong>V.</strong> Que, habiendo llegado las partes a un acuerdo satisfactorio sobre el particular, otorgan el presente CONTRATO DE PRESTACI\u00d3N DE SERVICIOS DE SALUD Y BIENESTAR ON-LINE, y a los efectos de establecer las disposiciones y condiciones que unir\u00e1n las partes, tanto ${professional} como el cliente firman el presente contrato, comprometi\u00e9ndose ambas partes a su estricto cumplimiento.</p>
-  </div>
+        <p style="${sectionTitle}">7. DESCRIPCI\u00d3N DEL PROGRAMA Y CONTENIDOS</p>
+        <p>El programa incluye: acompa\u00f1amiento nutricional personalizado, entrenamientos personalizados, formaci\u00f3n en autocuidado y bienestar, y resoluci\u00f3n de dudas.</p>
 
-  <p style="${bodyText}">El mismo se regir\u00e1 de acuerdo y con sujeci\u00f3n a lo siguientes:</p>
-</div>
+        <p style="${sectionTitle}">8. ACCESO AL PROGRAMA</p>
+        <p>El acceso es v\u00eda plataforma online privada. LA EMPRESA facilitar\u00e1 las credenciales personales tras la aceptaci\u00f3n de este contrato.</p>
 
-${divider}
+        <p style="${sectionTitle}">9. OBLIGACIONES DE LA EMPRESA</p>
+        <p>LA EMPRESA se obliga a facilitar los servicios se\u00f1alados y cumplir las obligaciones estipuladas en este contrato.</p>
 
-<!-- T\u00c9RMINOS Y CONDICIONES -->
-<div style="${sectionGap}">
-  <h3 style="font-weight: 900; font-size: 16px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 28px;">T\u00c9RMINOS Y CONDICIONES</h3>
+        <p style="${sectionTitle}">10. PRECIO DEL PROGRAMA</p>
+        <p>El precio pactado es de <strong style="${highlight}">${importe || '500,00'} \u20ac</strong> (IVA no incluido) ${financiacionPlazos > 1 ? `en ${financiacionPlazos} plazos de ${financiacionImporte} \u20ac` : 'en un \u00fanico pago'}. El pago debe realizarse en un m\u00e1ximo de 2 d\u00edas naturales tras la aceptaci\u00f3n.</p>
 
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">PRIMERA - Del objeto del contrato.</span>
-    <p style="${bodyText} margin-bottom: 10px;">${companyName} tiene como objeto principal la prestaci\u00f3n de servicios de coaching y acompa\u00f1amiento personalizado en salud y bienestar, dirigidos a la mejora integral de la calidad de vida del cliente.</p>
-    <p style="${bodyText}">El presente contrato tiene como objeto la prestaci\u00f3n de servicios de acompa\u00f1amiento a distancia, con contenido, duraci\u00f3n y condiciones establecidas en la llamada de acceso previa al programa ya sea con ${professional} o con cualquiera de sus colaboradores.</p>
-  </div>
+        <p style="${sectionTitle}">11. DURACI\u00d3N Y BAJA</p>
+        <p>Duraci\u00f3n m\u00ednima de tres meses. Renovable autom\u00e1ticamente por per\u00edodos iguales. El participante puede abandonar en cualquier momento notific\u00e1ndolo por escrito.</p>
 
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">SEGUNDA - Del registro de clientes.</span>
-    <p style="${bodyText}">Al registrarse el cliente en ${companyName}, en el servicio que este ofrece por el presente instrumento legal, el cliente estar\u00e1 autom\u00e1ticamente adhiri\u00e9ndose y aceptando someterse integralmente a las disposiciones y condiciones del presente contrato.</p>
-  </div>
+        <p style="${sectionTitle}">12. LIMITACI\u00d3N DE RESPONSABILIDAD</p>
+        <p>LA EMPRESA no ser\u00e1 responsable de decisiones personales basadas en los contenidos del programa ni de la evoluci\u00f3n cl\u00ednica del participante.</p>
 
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">TERCERA - De la duraci\u00f3n y vigencia del contrato.</span>
-    <p style="${bodyText} margin-bottom: 10px;">Asimismo, el presente contrato tendr\u00e1 vigencia mientras dure el servicio en cuesti\u00f3n hasta la efectiva finalizaci\u00f3n del mismo o hasta el desistimiento de alguna de las partes con las pertinentes consecuencias que ello conlleva.</p>
-    <p style="${bodyText}">La duraci\u00f3n del programa (y consecuente duraci\u00f3n del contrato), queda indicada en todos sus t\u00e9rminos en la llamada de acceso previa al programa, donde se establece la fecha de iniciaci\u00f3n del mismo, por lo que, las partes se obligan a cumplir con dicha duraci\u00f3n y todas sus condiciones.</p>
-  </div>
+        <p style="${sectionTitle}">13. CONFIDENCIALIDAD Y PROTECCI\u00d3N DE DATOS</p>
+        <p>Tratamiento conforme al RGPD (UE) 2016/679. Los datos se utilizar\u00e1n exclusivamente para la gesti\u00f3n y mejora del programa.</p>
 
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">CUARTA - Del coste.</span>
-    <p style="${bodyText} margin-bottom: 10px;">La retribuci\u00f3n pactada de los servicios, y como ya se ha indicado en el expositivo III del presente, asciende a <strong>${importeEntero}\u20ac</strong> (IVA incluido) en un pago \u00fanico o en los fraccionamientos indicados (en caso de haber fraccionamiento).</p>
-    <p style="${bodyText}">Toda la informaci\u00f3n pertinente del servicio objeto del presente contrato se da por explicada en la llamada efectuada y en el contenido de este contrato, como primera entrevista entre ambas partes, habiendo entendido el cliente todos sus extremos.</p>
-  </div>
+        <p style="${sectionTitle}">14. LEGISLACI\u00d3N Y JURISDICCI\u00d3N</p>
+        <p>El contrato se rige por la legislación española. Ambas partes se someten a los Tribunales de Madrid.</p>
+      </div>
 
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">QUINTA - De las obligaciones del cliente.</span>
-    <p style="${bodyText} margin-bottom: 8px;">El cliente se compromete a seguir los modelos de conducta establecidos y vigentes en el presente contrato y siguiendo los principios de la buena fe, se compromete a:</p>
-    <ul style="${listStyle}">
-      <li style="${listItem}">Cumplir con las indicaciones y planes asignados por el equipo profesional.</li>
-      <li style="${listItem}">Realizar los controles de progreso en los tiempos y modo indicados en la llamada inicial.</li>
-      <li style="${listItem}">Respetar las v\u00edas de soporte y uso del programa indicadas en la llamada inicial.</li>
-      <li style="${listItem}">Completar el programa en el tiempo y forma establecidas en la llamada inicial.</li>
-    </ul>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">SEXTA - Supuestos de exenci\u00f3n de responsabilidad.</span>
-    <p style="${bodyText}">${companyName} no se responsabiliza por los posibles problemas causados por un mal uso del programa por parte del cliente, por problemas eventuales provenientes de la interrupci\u00f3n de los servicios del proveedor de acceso del cliente, ni por la interrupci\u00f3n de los servicios en el caso de falta de energ\u00eda el\u00e9ctrica para el sistema de su proveedor de acceso, fallos en el sistema de transmisi\u00f3n o de navegaci\u00f3n en el acceso a internet, incompatibilidad de los sistemas de los usuarios con los del proveedor de acceso o cualquier acci\u00f3n de terceros que impidan la prestaci\u00f3n del servicio resultante de caso fortuito, imprevisibles o de fuerza mayor.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">S\u00c9PTIMA - De los derechos de propiedad intelectual.</span>
-    <p style="${bodyText} margin-bottom: 10px;">Todos los derechos de propiedad intelectual o industrial sobre el servicio prestado, as\u00ed como su documentaci\u00f3n preparatoria, actualizaciones, documentaci\u00f3n t\u00e9cnica, manuales de uso, son titularidad de ${companyName}, y ello para cualquier idioma y/o lenguaje.</p>
-    <p style="${bodyText} margin-bottom: 10px;">${companyName} se encuentra protegido por la legislaci\u00f3n espa\u00f1ola en materia de Propiedad Intelectual e Industrial (Real Decreto Legislativo 1/1996, de 12 de abril).</p>
-    <p style="${bodyText}">Por lo que, las partes acuerdan y en especial el cliente se compromete a proteger los derechos de propiedad industrial de ${companyName} y a no difundir, replicar, reproducir ni copiar en ninguna de las formas el contenido del material, instrucciones, t\u00e9cnicas, documentaci\u00f3n o material de cualquier \u00edndole otorgado, bajo el apercibimiento de la responsabilidad civil y penal en la que incurrir\u00eda.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">OCTAVA - Responsabilidad del cliente.</span>
-    <p style="${bodyText} margin-bottom: 10px;">El cliente se compromete a hacer un uso responsable de todo el material o indicaciones prestadas por la parte contratada, asegurando hacer un uso del servicio individualizado.</p>
-    <p style="${bodyText}">Ello conlleva que el cliente se compromete a que el contenido o acceso al programa no lo va a compartir, ni transferir ni revender a varios usuarios ni a difundir en ning\u00fan momento ni por ninguna v\u00eda el material contenido en el programa.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">NOVENA - Pol\u00edtica de reembolso.</span>
-    <p style="${bodyText} margin-bottom: 10px;">Este servicio cuenta con una estricta pol\u00edtica de no reembolso tras el periodo estipulado por ley. Al aceptar el contrato el cliente acepta que no existe ninguna posibilidad de reembolso por causas como desistimiento, abandono del programa por razones propias o cualquier causa ajena a ${companyName}.</p>
-    <p style="${bodyText} margin-bottom: 10px;">Asimismo, el cliente tambi\u00e9n se ver\u00e1 obligado a abonar la totalidad del importe del programa si \u00e9l mismo decide abandonar el programa antes de los <strong>${duracionDias} d\u00edas</strong> y no finalizar el programa en cuesti\u00f3n, tanto si hubiera decidido abonar el programa con un pago como a plazos.</p>
-    <p style="${bodyText}">Se acuerda por las partes que el hecho de elegir abonar el programa en diferentes plazos, y antes del devengo de alguno de ellos el cliente decidiera abandonar o desistir del programa quedar\u00e1 igualmente obligado a abonar la totalidad del mismo.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">D\u00c9CIMA - Del pago a plazos.</span>
-    <p style="${bodyText}">En el caso de acordar abonar el importe del programa establecido en diversos plazos, el cliente se compromete a pagar puntualmente los plazos establecidos que se devenguen en cada momento fruto de la presente relaci\u00f3n contractual, consider\u00e1ndose un incumplimiento contractual el retraso de cualquiera de ellos.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">D\u00c9CIMA PRIMERA - Del \u00e9xito del servicio.</span>
-    <p style="${bodyText} margin-bottom: 10px;">${companyName} no se responsabiliza del \u00e9xito del programa, pues la responsabilidad del \u00e9xito dentro del programa es cometido en todos los aspectos del cliente, de su compromiso, dedicaci\u00f3n y trabajo.</p>
-    <p style="${bodyText}">${companyName} ofrece los servicios indicados a lo largo de este contrato y asistencia para ayudar al usuario en el proceso, pero el \u00e9xito final es responsabilidad \u00fanica del cliente, a excepci\u00f3n de que exista incumplimiento por parte de ${companyName} o colaboradores, que incumplan con los servicios acordados.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">D\u00c9CIMA SEGUNDA - De la grabaci\u00f3n de la llamada telef\u00f3nica.</span>
-    <p style="${bodyText}">Se informa al cliente que la entrevista de acceso previa que se realizar\u00e1 o se ha realizado v\u00eda telef\u00f3nica o videollamada, quedar\u00e1 grabada, por lo que, con la firma del presente contrato, el cliente muestra su total conformidad con dicha grabaci\u00f3n, renunciando a la interposici\u00f3n de cualquier acci\u00f3n contra la misma.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">D\u00c9CIMA TERCERA - De la confidencialidad.</span>
-    <p style="${bodyText} margin-bottom: 10px;">Las partes acuerdan tratar confidencialmente todos aquellos datos, documentaci\u00f3n y dem\u00e1s informaci\u00f3n que haya sido suministrada durante la vigencia del presente contrato. Ambas partes se comprometen a no divulgar esta informaci\u00f3n a ninguna persona ni entidad, exceptuando sus propios empleados, a condici\u00f3n de que mantengan tambi\u00e9n la confidencialidad y solo en la medida que sea necesaria para la correcta ejecuci\u00f3n del presente contrato.</p>
-    <p style="${bodyText}">En particular, ser\u00e1 considerado como Informaci\u00f3n Confidencial todo el know how o saber hacer resultante de la ejecuci\u00f3n de los servicios contratados, debiendo el adjudicatario mantener dicha informaci\u00f3n en reserva y secreto.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">D\u00c9CIMA CUARTA - De la autorizaci\u00f3n para compartir datos del cliente.</span>
-    <p style="${bodyText} margin-bottom: 10px;">${companyName} puede hacer uso de los mensajes, fotos y testimonios del cliente en relaci\u00f3n con el servicio, con fines divulgativos, siempre respetando la privacidad del cliente, solamente si el cliente otorga su consentimiento expl\u00edcito para su utilizaci\u00f3n.</p>
-    <p style="${bodyText} margin-bottom: 10px;">Los acuerdos de confidencialidad establecidos en la presente cl\u00e1usula tendr\u00e1n validez permanente y seguir\u00e1n en vigor tras la extinci\u00f3n o finalizaci\u00f3n de la relaci\u00f3n contractual objeto del presente.</p>
-    <p style="${bodyText} margin-bottom: 8px;">Dicha cl\u00e1usula de confidencialidad no ser\u00e1 aplicable en los \u00fanicos supuestos siguientes:</p>
-    <ul style="${listStyle}">
-      <li style="${listItem}">Cualquier informaci\u00f3n que el cliente considere no revelable no se publicar\u00e1.</li>
-      <li style="${listItem}">Cualquier informaci\u00f3n o conocimiento revelado leg\u00edtimamente por terceros.</li>
-      <li style="${listItem}">Cuando la divulgaci\u00f3n sea requerida por la autoridad judicial, por ley o por alguna normativa.</li>
-    </ul>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">DECIMOQUINTA - De la parte que otorga los servicios.</span>
-    <p style="${bodyText}">El cliente se compromete a aceptar que el servicio por el cual est\u00e1 interesado y es objeto de este contrato pueda ser ofrecido por cualquiera de los profesionales o personas que forman o trabajan para ${companyName}.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">DECIMOSEXTA - De la protecci\u00f3n de datos.</span>
-    <p style="${bodyText} margin-bottom: 10px;">En virtud de la Ley Org\u00e1nica 3/2018, de 5 de diciembre, de Protecci\u00f3n de Datos Personales y garant\u00eda de los derechos digitales, ${companyName} informa de que los datos personales del cliente quedar\u00e1n registrados en el fichero de ${companyName}, con la finalidad de llevar el pertinente Registro de Datos de sus clientes.</p>
-    <p style="${bodyText} margin-bottom: 10px;">Con la firma de este contrato, el cliente da su consentimiento expl\u00edcito a que el responsable del tratamiento pueda tratar sus datos personales.</p>
-    <p style="${bodyText}">Por otro lado, conforme los Art.12 a 15 LOPD, el cliente puede ejercer los derechos de acceso, cancelaci\u00f3n, rectificaci\u00f3n u oposici\u00f3n previstos en la ley.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">DECIMOSEPTIMA - Del incumplimiento.</span>
-    <p style="${bodyText} margin-bottom: 10px;">Las partes acuerdan que el incumplimiento de cualquiera de las cl\u00e1usulas del presente contrato conllevar\u00e1 la resoluci\u00f3n del contrato y consecuentemente la relaci\u00f3n contractual entre las mismas, pudiendo la parte que hubiera cumplido las suyas solicitar una indemnizaci\u00f3n de da\u00f1os y perjuicios en virtud del art\u00edculo 1124 del C\u00f3digo Civil.</p>
-    <p style="${bodyText} margin-bottom: 10px;">En especial, ser\u00e1 motivo de resoluci\u00f3n del presente contrato el impago de cualquiera de los pagos fijados, facultando a ${companyName} finalizar e interrumpir con la prestaci\u00f3n de los servicios.</p>
-    <p style="${bodyText}">Asimismo, tambi\u00e9n ser\u00e1 motivo especial de incumplimiento y consecuente resoluci\u00f3n del contrato que el cliente ceda a terceros su usuario y/o contrase\u00f1a.</p>
-  </div>
-
-  <div style="${clauseStyle}">
-    <span style="${clauseTitle}">DECIMOCTAVA - Del compromiso de las partes.</span>
-    <p style="${bodyText}">Las partes aceptan el presente contrato y sus efectos jur\u00eddicos y se comprometen a su cumplimiento de buena fe.</p>
-  </div>
-</div>
-
-${divider}
-
-<!-- CIERRE Y FIRMA -->
-<div style="margin-top: 40px;">
-  <p style="${bodyText}">Y en prueba de conformidad con todo lo pactado y manifestado en el presente contrato, lo firman las partes, extendi\u00e9ndose por duplicado ejemplar y a un solo efecto a fecha <strong>${fechaDia} de ${fechaMes} de ${fechaAno}</strong>.</p>
-</div>`;
+      <!-- FIRMAS -->
+      <div style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 50%; vertical-align: top;">
+              <p style="font-size: 10px; color: #64748b; margin-bottom: 5px;">POR LA EMPRESA:</p>
+              <p style="font-weight: 700; font-size: 12px; color: #0f172a;">NEIKO HEALTH, S.L.</p>
+              <div style="margin-top: 10px;">
+                <img src="/signature_neiko.png" alt="Sello Empresa" style="width: 100px; height: auto; opacity: 0.8;" onerror="this.style.display='none'" />
+              </div>
+            </td>
+            <td style="width: 50%; vertical-align: top; text-align: right;">
+              <p style="font-size: 10px; color: #64748b; margin-bottom: 5px;">EL/LA PARTICIPANTE:</p>
+              <p style="font-weight: 700; font-size: 12px; color: #0f172a;">${nombreCliente || '________________'}</p>
+              <p style="font-size: 10px; color: #64748b;">DNI: ${dniCliente || '________________'}</p>
+              <div style="margin-top: 15px; border: 1px dashed #cbd5e1; height: 60px; display: inline-block; width: 200px; position: relative;">
+                <p style="font-size: 9px; color: #94a3b8; margin-top: 20px; text-align: center;">Firma Digital Registrada</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size: 9px; color: #94a3b8; text-align: center; margin-top: 30px;">
+          Documento generado electr\u00f3nicamente. Fecha de aceptaci\u00f3n registrada en el sistema.
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 export function calculateDaysFromMonths(months: number): number {

@@ -130,6 +130,16 @@ export interface MedicalData {
   lab_glucosa?: number;
   lab_vitamina_d?: number;
   lab_otros_notas?: string;
+
+  // Extensiones de Oncología
+  tumor_type?: string;
+  lymphedema?: string;
+  bone_risk?: string;
+  peripheral_neuropathy?: string;
+  venous_access?: string;
+  symptom_chemo_brain?: number;
+  symptom_dyspnea?: number;
+  significant_weight_loss?: boolean;
 }
 
 export interface NutritionData {
@@ -406,8 +416,12 @@ export interface Client {
 
   created_at: string;
   allow_medical_access?: boolean;
+  allow_endocrine_access?: boolean;
   updated_at: string;
   show_health_tracker?: boolean;
+
+  ageVisual?: string;
+  internal_notes?: string;
 }
 
 export interface MedicalReview {
