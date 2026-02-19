@@ -879,9 +879,11 @@ export interface ProgramDay {
 export interface ProgramActivity {
   id: string;
   day_id: string;
-  type: 'workout' | 'metrics' | 'photo' | 'form' | 'custom';
-  activity_id?: string; // e.g., workout_id
-  title: string;
+  type: 'workout' | 'metrics' | 'photo' | 'form' | 'custom' | 'walking';
+  activity_id?: string; // Generic ID
+  workout_id?: string;
+  workout?: Workout;
+  title?: string;
   description?: string;
   position: number;
   color?: string;

@@ -21,9 +21,10 @@ interface WorkoutEditorProps {
     onSave: (workout: Partial<Workout>) => Promise<void>;
     onClose: () => void;
     availableExercises: Exercise[];
+    onSaveExercise: (exercise: Partial<Exercise>) => Promise<void>;
 }
 
-export function WorkoutEditor({ workout, onSave, onClose, availableExercises }: WorkoutEditorProps) {
+export function WorkoutEditor({ workout, onSave, onClose, availableExercises, onSaveExercise }: WorkoutEditorProps) {
     const [name, setName] = useState(workout?.name || '');
     const [blocks, setBlocks] = useState<WorkoutBlock[]>(workout?.blocks || [
         { id: '1', workout_id: '', name: 'Calentamiento', position: 0, exercises: [] },
@@ -248,8 +249,8 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises }: 
                 <ExerciseEditor
                     exercise={null}
                     onSave={async (ex) => {
-                        console.log('Save new exercise', ex);
-                        // In a real app, this would be a Supabase call and then updating state
+                        await onSaveExercise(ex);
+                        setIsCreatingExercise(false);
                     }}
                     onClose={() => setIsCreatingExercise(false)}
                 />
