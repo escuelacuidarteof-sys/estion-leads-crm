@@ -62,7 +62,10 @@ export function TrainingManagement() {
             await trainingService.saveWorkout(workout);
             await fetchData();
             setSelectedWorkout(null);
-        } catch (error) { console.error('Error saving workout:', error); }
+        } catch (error) {
+            console.error('Error saving workout:', error);
+            throw error; // Re-throw so WorkoutEditor can show the error
+        }
     };
 
     const handleSaveProgram = async (program: Partial<TrainingProgram>) => {

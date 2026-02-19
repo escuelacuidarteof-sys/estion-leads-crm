@@ -61,6 +61,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
     });
     const [isCreatingExercise, setIsCreatingExercise] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState<string>('');
     const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
@@ -172,15 +173,22 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
     };
 
     const handleSave = async () => {
-        if (!name.trim()) return;
+        if (!name.trim()) {
+            setSaveError('Escribe un nombre para el workout');
+            return;
+        }
         try {
             setSaving(true);
-            await onSave({ name, blocks });
-            onClose();
+            setSaveError('');
+            await onSave({
+                ...(workout?.id ? { id: workout.id } : {}),
+                name: name.trim(),
+                blocks
+            });
+            // Parent handles closing via setSelectedWorkout(null)
         } catch (error) {
-            alert('Error al guardar el workout. Por favor intenta de nuevo.');
+            setSaveError('Error al guardar. Intenta de nuevo.');
             console.error('Error saving workout:', error);
-        } finally {
             setSaving(false);
         }
     };
@@ -226,9 +234,12 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {saveError && (
+                            <span className="text-red-300 text-xs font-bold animate-fade-in">{saveError}</span>
+                        )}
                         <button
                             onClick={handleSave}
-                            disabled={saving || !name.trim()}
+                            disabled={saving}
                             className="flex items-center gap-2 px-6 py-2.5 bg-brand-green text-white font-black rounded-xl shadow-lg shadow-brand-green/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
                         >
                             <Save className="w-4 h-4" />
@@ -251,8 +262,8 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                         key={block.id}
                                         onClick={() => setSelectedBlockId(block.id)}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 ${isSelected
-                                                ? 'bg-white text-slate-800 shadow-md ring-1 ring-slate-200'
-                                                : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
+                                            ? 'bg-white text-slate-800 shadow-md ring-1 ring-slate-200'
+                                            : 'text-slate-500 hover:bg-white/60 hover:text-slate-700'
                                             }`}
                                     >
                                         <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${getBlockColor(block.name)} flex items-center justify-center`}>
@@ -531,8 +542,8 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                             key={exercise.id}
                                             onClick={() => !isInCurrentBlock && addExerciseToBlock(exercise)}
                                             className={`group relative flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isInCurrentBlock
-                                                    ? 'border-brand-mint/30 bg-brand-mint/5 cursor-default'
-                                                    : 'border-transparent hover:border-slate-200 hover:bg-white hover:shadow-md cursor-pointer'
+                                                ? 'border-brand-mint/30 bg-brand-mint/5 cursor-default'
+                                                : 'border-transparent hover:border-slate-200 hover:bg-white hover:shadow-md cursor-pointer'
                                                 }`}
                                         >
                                             {/* Thumbnail */}
