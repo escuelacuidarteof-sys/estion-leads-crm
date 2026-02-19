@@ -229,15 +229,111 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, error: externalError
                         </div>
                         <div className="flex-1 relative">
                             <div className="relative bg-brand-dark rounded-[3rem] p-4 shadow-2xl border-8 border-brand-dark/10 overflow-hidden aspect-[9/16] max-w-sm mx-auto">
-                                <div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
-                                    <img src="/logo.png" className="w-24 h-24 rounded-3xl mb-6 shadow-xl" alt="App" />
-                                    <div className="w-full h-2 bg-slate-200 rounded-full mb-3"></div>
-                                    <div className="w-2/3 h-2 bg-slate-200 rounded-full mb-8"></div>
-                                    <div className="grid grid-cols-2 gap-3 w-full">
-                                        <div className="h-20 bg-white rounded-2xl shadow-sm border border-slate-100"></div>
-                                        <div className="h-20 bg-white rounded-2xl shadow-sm border border-slate-100"></div>
-                                        <div className="h-20 bg-white rounded-2xl shadow-sm border border-slate-100"></div>
-                                        <div className="h-20 bg-white rounded-2xl shadow-sm border border-slate-100"></div>
+                                {/* Mini portal replica */}
+                                <div className="absolute inset-0 bg-[#f8faf8] flex flex-col overflow-hidden" style={{fontSize: '9px'}}>
+                                    {/* Status bar */}
+                                    <div className="bg-white px-3 py-1 flex justify-between items-center border-b border-slate-100">
+                                        <span className="font-bold text-slate-500" style={{fontSize: '7px'}}>9:41</span>
+                                        <div className="flex gap-0.5 items-center">
+                                            <div className="w-1 h-1 rounded-full bg-brand-green"></div>
+                                            <div className="w-1 h-1 rounded-full bg-brand-green opacity-70"></div>
+                                            <div className="w-1 h-1 rounded-full bg-brand-green opacity-40"></div>
+                                        </div>
+                                    </div>
+                                    {/* App header */}
+                                    <div className="bg-white px-3 py-2 flex items-center justify-between border-b border-slate-100 shadow-sm">
+                                        <div>
+                                            <p className="text-slate-400" style={{fontSize: '6px'}}>Buenos días,</p>
+                                            <p className="font-black text-brand-dark" style={{fontSize: '10px'}}>María García ✨</p>
+                                        </div>
+                                        <img src="/logo.png" className="w-7 h-7 rounded-xl object-cover" alt="Logo" />
+                                    </div>
+                                    {/* Nav tabs */}
+                                    <div className="bg-white flex border-b border-slate-100">
+                                        {[
+                                            {icon: '🏠', label: 'Inicio', active: true},
+                                            {icon: '🥗', label: 'Nutrición', active: false},
+                                            {icon: '📚', label: 'Clases', active: false},
+                                            {icon: '📋', label: 'Revisiones', active: false},
+                                            {icon: '💬', label: 'Chat', active: false},
+                                        ].map((tab, i) => (
+                                            <div key={i} className={`flex flex-col items-center px-2 py-1.5 flex-1 ${tab.active ? 'border-b-2 border-brand-green' : ''}`}>
+                                                <span style={{fontSize: '11px'}}>{tab.icon}</span>
+                                                <span className={tab.active ? 'text-brand-green font-bold' : 'text-slate-400'} style={{fontSize: '5px'}}>{tab.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Content */}
+                                    <div className="flex-1 overflow-hidden p-1.5 space-y-1.5">
+                                        {/* Metric cards */}
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            <div className="bg-white rounded-xl p-2 border border-slate-100 shadow-sm">
+                                                <p className="text-slate-400 font-bold uppercase" style={{fontSize: '5px'}}>Peso Actual</p>
+                                                <p className="font-black text-brand-dark leading-none mt-0.5" style={{fontSize: '14px'}}>72.4 <span className="text-slate-400 font-medium" style={{fontSize: '7px'}}>kg</span></p>
+                                                <p className="text-brand-green font-bold mt-0.5" style={{fontSize: '5px'}}>▼ −0.8 esta semana</p>
+                                            </div>
+                                            <div className="bg-white rounded-xl p-2 border border-slate-100 shadow-sm">
+                                                <p className="text-slate-400 font-bold uppercase" style={{fontSize: '5px'}}>Objetivo</p>
+                                                <p className="font-black text-brand-dark leading-none mt-0.5" style={{fontSize: '14px'}}>65 <span className="text-slate-400 font-medium" style={{fontSize: '7px'}}>kg</span></p>
+                                                <p className="text-slate-400 mt-0.5" style={{fontSize: '5px'}}>7.4 kg restantes</p>
+                                            </div>
+                                        </div>
+                                        {/* Progress bar */}
+                                        <div className="bg-white rounded-xl p-2 border border-slate-100 shadow-sm">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="text-slate-500 font-bold" style={{fontSize: '6px'}}>Progreso hacia objetivo</p>
+                                                <p className="text-brand-green font-black" style={{fontSize: '7px'}}>68%</p>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-brand-green rounded-full" style={{width: '68%'}}></div>
+                                            </div>
+                                            <p className="text-slate-400 mt-0.5" style={{fontSize: '5px'}}>Semana 8 de 16 · En seguimiento activo</p>
+                                        </div>
+                                        {/* Mini bar chart */}
+                                        <div className="bg-white rounded-xl p-2 border border-slate-100 shadow-sm">
+                                            <p className="text-slate-500 font-bold mb-1" style={{fontSize: '6px'}}>EVOLUCIÓN 4 SEMANAS</p>
+                                            <div className="flex items-end gap-0.5 h-8">
+                                                {[{w: 74.2, l: 'S1'}, {w: 73.6, l: 'S2'}, {w: 73.0, l: 'S3'}, {w: 72.4, l: 'S4'}].map(({w, l}, i) => (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                                                        <div
+                                                            className={`w-full rounded-t-sm ${i === 3 ? 'bg-brand-green' : 'bg-brand-mint'}`}
+                                                            style={{height: `${((w - 70) / 6) * 100}%`}}
+                                                        ></div>
+                                                        <span className="text-slate-300" style={{fontSize: '5px'}}>{l}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* Quick actions */}
+                                        <div className="grid grid-cols-3 gap-1">
+                                            <div className="bg-brand-green text-white rounded-xl p-1.5 text-center">
+                                                <div style={{fontSize: '12px'}}>📝</div>
+                                                <p className="font-black" style={{fontSize: '5px'}}>Check-in</p>
+                                            </div>
+                                            <div className="bg-brand-mint rounded-xl p-1.5 text-center">
+                                                <div style={{fontSize: '12px'}}>🥗</div>
+                                                <p className="font-black text-brand-dark" style={{fontSize: '5px'}}>Mi Plan</p>
+                                            </div>
+                                            <div className="bg-white border border-slate-100 rounded-xl p-1.5 text-center">
+                                                <div style={{fontSize: '12px'}}>📹</div>
+                                                <p className="font-black text-slate-500" style={{fontSize: '5px'}}>Clases</p>
+                                            </div>
+                                        </div>
+                                        {/* Coach card */}
+                                        <div className="bg-white rounded-xl p-2 border border-brand-mint shadow-sm flex items-center gap-1.5">
+                                            <div className="w-6 h-6 rounded-full bg-brand-mint flex items-center justify-center flex-shrink-0" style={{fontSize: '11px'}}>🩺</div>
+                                            <div className="min-w-0">
+                                                <p className="font-black text-brand-dark" style={{fontSize: '6px'}}>Tu coach · Hoy 17:00h</p>
+                                                <p className="text-slate-400" style={{fontSize: '5px'}}>Revisión semanal programada</p>
+                                            </div>
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-green flex-shrink-0"></div>
+                                        </div>
+                                    </div>
+                                    {/* Bottom nav */}
+                                    <div className="bg-white border-t border-slate-100 flex justify-around py-1.5">
+                                        {['🏠', '📊', '💬', '👤'].map((icon, i) => (
+                                            <div key={i} className={i === 0 ? 'opacity-100' : 'opacity-30'} style={{fontSize: '14px'}}>{icon}</div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
