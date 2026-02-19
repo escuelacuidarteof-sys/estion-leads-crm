@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS training_program_activities (
 -- 8. Client Assignments
 CREATE TABLE IF NOT EXISTS client_training_assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    client_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
     program_id UUID REFERENCES training_programs(id),
     start_date DATE NOT NULL,
     assigned_by UUID REFERENCES auth.users(id),
