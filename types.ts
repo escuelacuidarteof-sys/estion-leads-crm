@@ -142,6 +142,10 @@ export interface MedicalData {
   symptom_chemo_brain?: number;
   symptom_dyspnea?: number;
   significant_weight_loss?: boolean;
+
+  // Diabetes
+  insulin_usage?: boolean;
+  insulin_dose?: string;
 }
 
 export interface NutritionData {
@@ -425,6 +429,7 @@ export interface Client {
 
   ageVisual?: string;
   internal_notes?: string;
+  isMockSession?: boolean;
 }
 
 export interface MedicalReview {
@@ -447,10 +452,13 @@ export interface MedicalReview {
   created_at: string;
   client_name?: string;
 
-  // Legacy/compatibility fields
+  // Clinical/Compatibility fields
   diabetes_type?: string;
+  oncology_status?: string;
   active_treatments?: string;
   treatment_details?: string;
+  insulin_usage?: boolean;
+  insulin_dose?: string;
 }
 
 export interface Alert {

@@ -57,7 +57,7 @@ const InitialPatientReport: React.FC<InitialPatientReportProps> = ({ client }) =
         </p>
         <div className="flex flex-wrap gap-4 mt-4 text-xs">
           <span className="bg-white/20 px-3 py-1 rounded-full">Alta: {client.registration_date ? new Date(client.registration_date).toLocaleDateString('es-ES') : 'N/D'}</span>
-          <span className="bg-white/20 px-3 py-1 rounded-full">Coach: {client.property_coach || client.coach_id || 'N/D'}</span>
+          <span className="bg-white/20 px-3 py-1 rounded-full">Coach: {client.coach_name || client.coach_id || 'N/D'}</span>
           {client.email && <span className="bg-white/20 px-3 py-1 rounded-full">{client.email}</span>}
           {client.phone && <span className="bg-white/20 px-3 py-1 rounded-full">{client.phone}</span>}
         </div>
@@ -97,11 +97,14 @@ const InitialPatientReport: React.FC<InitialPatientReportProps> = ({ client }) =
         <SectionHeader title="Historial Médico" icon={<Heart className="w-5 h-5 text-red-500" />} color="bg-red-50" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-          <InfoField label="Diagnóstico" value={m.diagnosis || m.diabetesType} icon={<Droplets className="w-4 h-4" />} />
+          <InfoField label="Diagnóstico" value={m.diagnosis || m.diabetesType || m.diabetes_type} icon={<Droplets className="w-4 h-4" />} />
           <InfoField label="Años diagnosticado" value={m.yearsDiagnosed} />
           <InfoField label="Estado Oncológico" value={m.oncology_status} icon={<Activity className="w-4 h-4" />} />
-          <InfoField label="Tratamiento Actual" value={m.currentTreatment} />
+          <InfoField label="Tratamiento Actual" value={m.currentTreatment || m.active_treatments} />
           <InfoField label="Medicación" value={m.medication} icon={<Pill className="w-4 h-4" />} />
+          {m.insulin_usage && (
+            <InfoField label="Uso de Insulina" value={m.insulin_dose || 'Sí'} icon={<Activity className="w-4 h-4 text-amber-500" />} />
+          )}
         </div>
 
         <div className="mt-5 pt-4 border-t border-slate-100 space-y-4">

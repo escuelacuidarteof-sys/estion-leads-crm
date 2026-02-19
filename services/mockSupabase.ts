@@ -690,7 +690,15 @@ const mapRowToMedicalReview = (row: any): MedicalReview => ({
   reviewed_at: row.reviewed_at,
   reviewed_by: row.reviewed_by,
   created_at: row.created_at,
-  client_name: row.client_name // Virtual field from joined query
+  client_name: row.client_name, // Virtual field from joined query
+
+  // New Clinical Fields
+  oncology_status: row.oncology_status || row.diabetes_type,
+  active_treatments: row.active_treatments || row.treatment,
+  treatment_details: row.treatment_details,
+  insulin_usage: row.insulin_usage,
+  insulin_dose: row.insulin_dose,
+  diabetes_type: row.diabetes_type
 });
 
 const mapMedicalReviewToRow = (review: Partial<MedicalReview>) => {
@@ -706,7 +714,15 @@ const mapMedicalReviewToRow = (review: Partial<MedicalReview>) => {
     doctor_notes: review.doctor_notes,
     doctor_video_url: review.doctor_video_url,
     reviewed_at: review.reviewed_at,
-    reviewed_by: review.reviewed_by
+    reviewed_by: review.reviewed_by,
+
+    // New Clinical Fields
+    oncology_status: review.oncology_status,
+    active_treatments: review.active_treatments,
+    treatment_details: review.treatment_details,
+    insulin_usage: review.insulin_usage,
+    insulin_dose: review.insulin_dose,
+    diabetes_type: review.diabetes_type || review.oncology_status
   };
 
   if (review.file_urls) {

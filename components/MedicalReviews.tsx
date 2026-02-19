@@ -16,11 +16,12 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    // Form State
     const [formData, setFormData] = useState<Partial<MedicalReview>>({
         oncology_status: client.medical?.oncology_status || '',
         treatment_details: client.medical?.currentTreatment || '',
         medication: client.medical?.medication,
+        insulin_usage: client.medical?.insulin_usage || false,
+        insulin_dose: client.medical?.insulin_dose || '',
         comments: '',
         report_type: 'Compartir Analítica',
         file_urls: []
@@ -96,11 +97,12 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
             });
             await loadReviews();
             setShowForm(false);
-            // Reset form but keep some defaults
             setFormData({
                 oncology_status: client.medical?.oncology_status || '',
                 treatment_details: client.medical?.currentTreatment || '',
                 medication: client.medical?.medication,
+                insulin_usage: client.medical?.insulin_usage || false,
+                insulin_dose: client.medical?.insulin_dose || '',
                 comments: '',
                 report_type: 'Compartir Analítica',
                 file_urls: []
@@ -215,6 +217,36 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                         value={formData.medication || ''}
                                         onChange={e => setFormData({ ...formData, medication: e.target.value })}
                                     />
+                                </div>
+
+                                <div className="space-y-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Zap size={16} className="text-amber-500" />
+                                            <span className="text-sm font-bold text-slate-700">¿Utilizas Insulina?</span>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={formData.insulin_usage || false}
+                                                onChange={e => setFormData({ ...formData, insulin_usage: e.target.checked })}
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                        </label>
+                                    </div>
+                                    {formData.insulin_usage && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500">Dosis / Pauta</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ej: 15 UI Basal, 5 UI Rápida..."
+                                                className="w-full p-2 bg-white border border-amber-200 rounded-xl outline-none text-sm"
+                                                value={formData.insulin_dose || ''}
+                                                onChange={e => setFormData({ ...formData, insulin_dose: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -406,7 +438,31 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                         </span>
                                         {getStatusBadge(review.status)}
                                     </div>
-                                    <p className="text-slate-800 font-medium line-clamp-2">"{review.comments}"</p>
+                                    <p className="text-slate-800 font-medium mb-3">"{review.comments}"</p>
+
+                                    {/* DETALLES CLÍNICOS */}
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-slate-500 border-t border-slate-50 pt-3 mt-1">
+                                        {review.oncology_status && (
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-slate-700">Estado:</span> {review.oncology_status}
+                                            </div>
+                                        )}
+                                        {(review.active_treatments || review.treatment_details) && (
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-slate-700">Tratamiento:</span> {review.active_treatments || review.treatment_details}
+                                            </div>
+                                        )}
+                                        {review.medication && (
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-slate-700">Medicación:</span> {review.medication}
+                                            </div>
+                                        )}
+                                        {review.insulin_usage && (
+                                            <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">
+                                                <Zap size={10} /> <span className="font-bold">Insulina:</span> {review.insulin_dose || 'SÍ'}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

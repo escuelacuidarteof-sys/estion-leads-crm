@@ -62,6 +62,9 @@ export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPrevi
                         onChange={(e) => setSelectedMuscle(e.target.value || null)}
                     >
                         <option value="">Todos</option>
+                        {[...new Set(exercises.map(e => e.muscle_main).filter(Boolean))].sort().map(m => (
+                            <option key={m} value={m}>{m}</option>
+                        ))}
                     </select>
                 </div>
 

@@ -14,7 +14,7 @@ import {
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
-    Moon, Shield
+    Moon, Shield, Sparkles
 } from 'lucide-react';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -689,11 +689,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         note: cAny.next_appointment_note || '',
         videoUrl: cAny.next_appointment_video_url || '',
     } : null;
-    const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0,0,0,0)) / 86400000) : null;
+    const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
 
     // Banner prioritario
-    const needsCheckin = client.last_checkin_status !== 'pending' && (!client.last_checkin_date || new Date().getTime() - new Date(client.last_checkin_date).getTime() > 7 * 86400000);
+    const needsCheckin = client.last_checkin_status !== 'pending_review' && (!client.last_checkin_submitted || new Date().getTime() - new Date(client.last_checkin_submitted).getTime() > 7 * 86400000);
     const hasNewReviews = unreadReviewsCount > 0;
     const hasRenewal = cAny.renewal_status === 'pending';
 
@@ -711,136 +711,214 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     // --- TAB CONTENT ---
 
     const HomeTab = () => (
-        <div className="space-y-4 pb-2">
-            {/* Priority Banner */}
-            {hasRenewal && (
-                <div className="bg-gradient-to-r from-amber-400 to-yellow-500 rounded-2xl p-4 flex items-center gap-3 shadow-md">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Award className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-white font-black text-sm">Renovación disponible</p>
-                        <p className="text-white/80 text-xs">Continúa tu transformación</p>
-                    </div>
-                    <button onClick={() => setActiveTab('profile')} className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Ver</button>
-                </div>
-            )}
-            {!hasRenewal && hasNewReviews && (
-                <div className="bg-gradient-to-r from-brand-green to-brand-green-dark rounded-2xl p-4 flex items-center gap-3 shadow-md">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <CheckCircle2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-white font-black text-sm">{unreadReviewsCount} revisión{unreadReviewsCount > 1 ? 'es' : ''} nueva{unreadReviewsCount > 1 ? 's' : ''}</p>
-                        <p className="text-white/80 text-xs">Tu coach te ha respondido</p>
-                    </div>
-                    <button onClick={() => setActiveView('reviews')} className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Ver</button>
-                </div>
-            )}
-            {!hasRenewal && !hasNewReviews && needsCheckin && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-amber-900 font-black text-sm">Check-in semanal pendiente</p>
-                        <p className="text-amber-700 text-xs">¿Cómo te has sentido esta semana?</p>
-                    </div>
-                    <button onClick={() => setActiveView('checkin')} className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Hacer</button>
-                </div>
-            )}
+        <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Hero Card */}
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 blur-[100px] -mr-32 -mt-32 rounded-full" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-mint/10 blur-[100px] -ml-32 -mb-32 rounded-full" />
 
-            {/* Bienestar Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="bg-brand-dark px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-brand-mint" />
-                        <span className="text-white font-black text-sm">Tu Bienestar</span>
-                    </div>
-                    {oncologyStatus && (
-                        <span className="text-[10px] bg-brand-green/30 text-brand-mint px-2 py-0.5 rounded-full font-bold">{oncologyStatus}</span>
-                    )}
-                </div>
-                <div className="p-4">
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                        {[
-                            { label: 'Energía', val: energyVal, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
-                            { label: 'Sueño', val: sleepVal, icon: Moon, color: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-500' },
-                            { label: 'Fatiga', val: fatigueVal !== null ? 10 - fatigueVal : null, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
-                        ].map(({ label, val, icon: Icon, color, bg, bar }) => (
-                            <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
-                                <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
-                                <p className={`text-lg font-black ${color}`}>{val !== null ? val : '—'}<span className="text-xs font-medium opacity-60">/10</span></p>
-                                <p className="text-[10px] text-slate-500 font-bold">{label}</p>
-                                {val !== null && (
-                                    <div className="h-1 bg-white/60 rounded-full mt-1.5 overflow-hidden">
-                                        <div className={`h-full ${bar} rounded-full`} style={{ width: `${val * 10}%` }} />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    {programWeekCurrent > 0 && (
-                        <div className="mb-4">
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="text-slate-500 font-medium">Progreso del programa</span>
-                                <span className="text-brand-green font-black">Semana {programWeekCurrent} de {programWeekTotal}</span>
-                            </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${programProgress}%` }} />
-                            </div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 mb-2">
+                            <Sparkles className="w-3.5 h-3.5 text-brand-mint" />
+                            <span className="text-[10px] text-white font-black uppercase tracking-widest">{oncologyStatus || 'Programa Activo'}</span>
                         </div>
-                    )}
-                    <button
-                        onClick={() => setActiveView('checkin')}
-                        className="w-full py-3 bg-gradient-to-r from-brand-green to-brand-green-dark text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98]"
-                    >
-                        <Activity className="w-4 h-4" /> Registrar cómo me siento hoy
-                    </button>
+                        <h2 className="text-3xl font-heading font-black text-white leading-tight">
+                            Tu transformación <br /><span className="text-brand-mint">está en marcha.</span>
+                        </h2>
+                        {programWeekCurrent > 0 && (
+                            <p className="text-slate-400 text-sm font-medium">Semana {programWeekCurrent} de {programWeekTotal} · 24 días restantes</p>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/10 min-w-[180px]">
+                        <p className="text-white/60 text-xs font-black uppercase tracking-widest mb-1">Tu Energía</p>
+                        <div className="relative w-24 h-24 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 * (1 - (energyVal || 0) / 10)} className="text-brand-mint transition-all duration-1000" strokeLinecap="round" />
+                            </svg>
+                            <span className="absolute text-2xl font-black text-white">{energyVal || '—'}</span>
+                        </div>
+                        <p className="text-brand-mint text-[10px] font-bold mt-2">Nivel Óptimo</p>
+                    </div>
                 </div>
             </div>
 
-            {/* Próxima Cita */}
-            {nextAppt && apptLabel && (
-                <div className="bg-white rounded-2xl shadow-sm border-l-4 border-brand-gold p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-5 h-5 text-brand-gold" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                            <p className="font-black text-brand-dark text-sm">Próxima sesión</p>
-                            <span className="text-[10px] bg-brand-mint text-brand-green font-black px-2 py-0.5 rounded-full">{apptLabel}</span>
+            {/* Priority Actions Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Priority Banners */}
+                {hasRenewal && (
+                    <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl p-5 flex flex-col justify-between shadow-xl shadow-amber-500/20 group hover:scale-[1.02] transition-all">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                                <Award className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-white font-black text-base italic">Nueva Etapa</p>
+                                <p className="text-white/80 text-xs">Renovación ya disponible</p>
+                            </div>
                         </div>
-                        <p className="text-slate-600 text-xs">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}{nextAppt.time ? ` · ${nextAppt.time}` : ''}</p>
-                        {nextAppt.note && <p className="text-slate-400 text-xs mt-1 italic">"{nextAppt.note}"</p>}
-                        {nextAppt.videoUrl && (
-                            <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-mint/40 px-3 py-1.5 rounded-lg hover:bg-brand-mint transition-colors">
-                                <Video className="w-3.5 h-3.5" /> Unirme a videollamada
-                            </a>
-                        )}
+                        <button onClick={() => setActiveTab('profile')} className="w-full bg-white text-amber-600 font-black py-3 rounded-2xl shadow-lg ring-4 ring-white/20 hover:ring-white/40 transition-all">Continuar Progreso</button>
+                    </div>
+                )}
+
+                {hasNewReviews && (
+                    <div className="bg-gradient-to-br from-brand-green to-brand-green-dark rounded-3xl p-5 flex flex-col justify-between shadow-xl shadow-brand-green/20 group hover:scale-[1.02] transition-all">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                                <MessageCircle className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-white font-black text-base italic">Nueva Revisión</p>
+                                <p className="text-white/80 text-xs">Feedback personalizado listo</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActiveView('reviews')} className="w-full bg-white text-brand-green-dark font-black py-3 rounded-2xl shadow-lg ring-4 ring-white/20 hover:ring-white/40 transition-all">Ver Respuesta</button>
+                    </div>
+                )}
+
+                {!hasRenewal && !hasNewReviews && needsCheckin && (
+                    <div className="bg-white rounded-3xl p-5 border-2 border-brand-mint flex flex-col justify-between shadow-xl shadow-slate-100 group hover:scale-[1.02] transition-all">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center">
+                                <Calendar className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-brand-dark font-black text-base italic">Check-in Semanal</p>
+                                <p className="text-slate-500 text-xs">Cuéntanos cómo vas</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActiveView('checkin')} className="w-full bg-brand-green text-white font-black py-3 rounded-2xl shadow-lg hover:shadow-brand-green/30 transition-all">Completar ahora</button>
+                    </div>
+                )}
+            </div>
+
+            {/* Dashboard Grid 2nd Level */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Stats & Progress */}
+                <div className="space-y-6">
+                    {/* Bienestar Card */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-brand-mint/40 rounded-xl">
+                                    <Heart className="w-5 h-5 text-brand-green" />
+                                </div>
+                                <h3 className="text-lg font-black text-brand-dark">Tus Métricas</h3>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Estado Actual</span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            {[
+                                { label: 'Sueño', val: sleepVal, icon: Moon, color: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-500' },
+                                { label: 'Fatiga', val: fatigueVal !== null ? 10 - fatigueVal : null, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
+                                { label: 'Ánimo', val: energyVal, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
+                            ].map(({ label, val, icon: Icon, color, bg, bar }) => (
+                                <div key={label} className={`${bg} rounded-3xl p-4 text-center border border-transparent hover:border-white transition-all`}>
+                                    <div className={`w-8 h-8 ${bg} brightness-95 rounded-xl flex items-center justify-center mx-auto mb-2`}>
+                                        <Icon className={`w-4 h-4 ${color}`} />
+                                    </div>
+                                    <p className={`text-xl font-black ${color}`}>{val !== null ? val : '—'}<span className="text-[10px] opacity-40">/10</span></p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-1">{label}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Weight Brief */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-brand-mint/20 rounded-3xl flex items-center justify-center">
+                                <Scale className="w-7 h-7 text-brand-green" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Peso más reciente</p>
+                                <p className="text-2xl font-black text-brand-dark">{latestWeight || '--'} <span className="text-sm font-medium text-slate-400">kg</span></p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActiveTab('health')} className="p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors group">
+                            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-brand-green transition-colors" />
+                        </button>
+                    </div>
+
+                    {/* Próxima Cita Premium */}
+                    {nextAppt && apptLabel && (
+                        <div className="bg-gradient-to-br from-slate-50 to-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 rotate-12 opacity-[0.03] group-hover:rotate-0 transition-transform duration-700">
+                                <Calendar className="w-32 h-32 text-brand-dark" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-gold/20">
+                                        Próxima Sesión
+                                    </div>
+                                    <span className="text-xs font-black text-brand-gold">{apptLabel}</span>
+                                </div>
+                                <h4 className="text-xl font-black text-brand-dark mb-1">Consulta Médica</h4>
+                                <p className="text-slate-500 text-sm mb-4">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} {nextAppt.time && `· ${nextAppt.time}`}</p>
+                                {nextAppt.videoUrl && (
+                                    <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-dark text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg shadow-black/10">
+                                        <Video className="w-4 h-4" /> Unirme a la videollamada
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Feed & Coach */}
+                <div className="space-y-6">
+                    {/* Coach Card */}
+                    {coachData && (
+                        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-brand-green" />
+                            <div className="relative mb-6 inline-block">
+                                <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white shadow-xl relative z-10">
+                                    {coachData.photo_url ? (
+                                        <img src={coachData.photo_url} className="w-full h-full object-cover" alt={coachData.name} />
+                                    ) : (
+                                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300 font-heading text-3xl">{(coachData.name || '?')[0]}</div>
+                                    )}
+                                </div>
+                                <div className="absolute -bottom-2 -right-2 bg-brand-gold p-2 rounded-xl shadow-lg border-2 border-white z-20">
+                                    <Check className="w-3.5 h-3.5 text-white" />
+                                </div>
+                            </div>
+                            <h4 className="text-xl font-black text-brand-dark leading-tight">{coachData.name}</h4>
+                            <p className="text-brand-green text-xs font-bold uppercase tracking-widest mt-1 mb-4">{coachData.specialty || 'Tu Mentor Principal'}</p>
+
+                            {cAny.weeklyCoachMessage && (
+                                <div className="bg-slate-50 italic rounded-3xl p-5 text-slate-600 text-sm leading-relaxed relative">
+                                    <div className="absolute top-2 left-4 text-4xl text-slate-200 serif opacity-50 select-none">“</div>
+                                    <p className="relative z-10">"{cAny.weeklyCoachMessage}"</p>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-center gap-3 mt-6">
+                                {coachData.calendar_url && (
+                                    <a href={coachData.calendar_url} target="_blank" rel="noopener noreferrer" className="flex-1 bg-brand-dark text-white py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider hover:bg-black transition-all">Reservar Sesión</a>
+                                )}
+                                {coachData.instagram && (
+                                    <a href={`https://instagram.com/${coachData.instagram}`} target="_blank" rel="noopener noreferrer" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-pink-50 text-pink-600 border border-pink-100"><Instagram className="w-5 h-5" /></a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Announcements */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                            <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
+                            <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+                        </div>
+                        <div className="p-2">
+                            <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
+                        </div>
                     </div>
                 </div>
-            )}
-
-            {/* Mensaje del Coach */}
-            {coachData?.bio && cAny.weeklyCoachMessage && (
-                <div className="bg-brand-mint/20 border border-brand-mint rounded-2xl p-4 relative overflow-hidden">
-                    <div className="absolute -top-3 -left-1 text-5xl text-brand-gold/20 font-serif leading-none select-none">"</div>
-                    <p className="text-brand-dark text-sm leading-relaxed italic relative z-10 mt-2">"{cAny.weeklyCoachMessage}"</p>
-                    <div className="flex items-center gap-2 mt-3">
-                        {coachData.photo_url ? (
-                            <img src={coachData.photo_url} className="w-6 h-6 rounded-full object-cover" alt={coachData.name} />
-                        ) : (
-                            <div className="w-6 h-6 rounded-full bg-brand-green flex items-center justify-center text-white text-[10px] font-black">{coachData.name?.[0]}</div>
-                        )}
-                        <span className="text-xs font-bold text-brand-green">{coachData.name}</span>
-                        <span className="text-xs text-slate-400">· Tu Coach</span>
-                    </div>
-                </div>
-            )}
-
-            {/* Anuncios */}
-            <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
+            </div>
         </div>
     );
 
@@ -1065,7 +1143,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <div className="w-20 h-20 bg-brand-green rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                         <span className="text-white font-heading font-black text-2xl">{(client.firstName || '?')[0].toUpperCase()}</span>
                     </div>
-                    <h2 className="font-heading font-black text-brand-dark text-lg">{client.firstName} {client.lastName || ''}</h2>
+                    <h2 className="font-heading font-black text-brand-dark text-lg">{client.firstName} {client.surname || ''}</h2>
                     {cAny.program?.name && <span className="text-xs bg-brand-gold/20 text-amber-800 font-bold px-3 py-1 rounded-full border border-brand-gold/30 mt-1 inline-block">{cAny.program.name}</span>}
                 </div>
 
@@ -1074,7 +1152,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     {[
                         { icon: Mail, label: 'Email', value: client.email },
                         { icon: Phone, label: 'Teléfono', value: client.phone },
-                        { icon: MapPin, label: 'País', value: client.country },
+                        { icon: MapPin, label: 'Ciudad', value: client.city || client.province },
                     ].filter(d => d.value).map(({ icon: Icon, label, value }) => (
                         <div key={label} className="flex items-center gap-3 px-4 py-3">
                             <Icon className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1151,115 +1229,124 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- MAIN RENDER ---
     return (
-        <div className="min-h-screen bg-[#f8faf8] flex flex-col" style={{ maxWidth: 480, margin: '0 auto' }}>
-            {/* Header fijo */}
-            <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-                <div>
-                    <p className="text-[10px] text-slate-400 font-medium">Bienvenida,</p>
-                    <p className="font-heading font-black text-brand-dark text-base leading-none">{client.firstName} {client.lastName || ''}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {coachData && (
-                        <div className="flex items-center gap-1.5">
-                            <div className="relative">
-                                {coachData.photo_url ? (
-                                    <img src={coachData.photo_url} className="w-8 h-8 rounded-full object-cover" alt={coachData.name} />
-                                ) : (
-                                    <div className="w-8 h-8 rounded-full bg-brand-green flex items-center justify-center text-white text-xs font-black">{coachData.name?.[0]}</div>
-                                )}
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
-                            </div>
-                            <div className="hidden sm:block">
-                                <p className="text-[9px] text-slate-400">Tu Coach</p>
-                                <p className="text-[11px] font-bold text-brand-dark leading-none">{coachData.name?.split(' ')[0]}</p>
-                            </div>
+        <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center">
+            <div className="w-full max-w-6xl mx-auto flex flex-col min-h-screen relative">
+                {/* Header fijo */}
+                <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-brand-green to-brand-green-dark rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
+                            <span className="text-white font-heading font-black text-xl">{(client.firstName || '?')[0].toUpperCase()}</span>
                         </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Contenido scrollable */}
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
-                {activeTab === 'home' && <HomeTab />}
-                {activeTab === 'health' && <HealthTab />}
-                {activeTab === 'program' && <ProgramTab />}
-                {activeTab === 'consultas' && <ConsultasTab />}
-                {activeTab === 'profile' && <ProfileTab />}
-            </div>
-
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-30 pb-safe" style={{ maxWidth: 480 }}>
-                <div className="flex items-center justify-around px-2 py-2">
-                    {tabs.map(({ id, label, icon: Icon, badge }) => {
-                        const isActive = activeTab === id;
-                        return (
-                            <button
-                                key={id}
-                                onClick={() => setActiveTab(id)}
-                                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                            >
-                                <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${isActive ? 'bg-brand-mint' : ''} relative`}>
-                                    <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`} />
-                                    {badge !== undefined && badge > 0 && (
-                                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
+                        <div>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bienvenida</p>
+                            <p className="font-heading font-black text-brand-dark text-lg leading-none">{client.firstName} {client.surname || ''}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {coachData && (
+                            <div className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-100 pr-3">
+                                <div className="relative">
+                                    {coachData.photo_url ? (
+                                        <img src={coachData.photo_url} className="w-9 h-9 rounded-full object-cover shadow-sm" alt={coachData.name} />
+                                    ) : (
+                                        <div className="w-9 h-9 rounded-full bg-brand-green flex items-center justify-center text-white text-xs font-black">{coachData.name?.[0]}</div>
                                     )}
+                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
                                 </div>
-                                <span className={`text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
-                            </button>
-                        );
-                    })}
+                                <div className="hidden md:block text-left">
+                                    <p className="text-[9px] text-slate-400 font-bold uppercase">Tu Coach</p>
+                                    <p className="text-[11px] font-black text-brand-dark leading-none">{coachData.name?.split(' ')[0]}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </nav>
 
-            {/* Modal Registrar Peso */}
-            {isWeightModalOpen && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setIsWeightModalOpen(false)}>
-                    <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
-                        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-                        <h3 className="font-heading font-black text-brand-dark text-lg mb-4 flex items-center gap-2"><Scale className="w-5 h-5 text-brand-green" /> Registrar Peso</h3>
-                        <form onSubmit={handleWeightSubmit} className="space-y-4">
-                            <input
-                                type="number"
-                                step="0.1"
-                                placeholder="Ej: 72.4"
-                                value={newWeight}
-                                onChange={e => setNewWeight(e.target.value)}
-                                className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
-                                autoFocus
-                            />
-                            <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                {/* Contenido scrollable */}
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-6 pb-32">
+                    <div className="max-w-5xl mx-auto w-full">
+                        {activeTab === 'home' && <HomeTab />}
+                        {activeTab === 'health' && <HealthTab />}
+                        {activeTab === 'program' && <ProgramTab />}
+                        {activeTab === 'consultas' && <ConsultasTab />}
+                        {activeTab === 'profile' && <ProfileTab />}
+                    </div>
+                </div>
+
+                {/* Bottom Navigation */}
+                <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl z-40 p-2 rounded-3xl flex items-center justify-around">
+                    <div className="flex items-center justify-around px-2 py-2">
+                        {tabs.map(({ id, label, icon: Icon, badge }) => {
+                            const isActive = activeTab === id;
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => setActiveTab(id)}
+                                    className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                                >
+                                    <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${isActive ? 'bg-brand-mint' : ''} relative`}>
+                                        <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`} />
+                                        {badge !== undefined && badge > 0 && (
+                                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
+                                        )}
+                                    </div>
+                                    <span className={`text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </nav>
+
+                {/* Modal Registrar Peso */}
+                {isWeightModalOpen && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setIsWeightModalOpen(false)}>
+                        <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
+                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+                            <h3 className="font-heading font-black text-brand-dark text-lg mb-4 flex items-center gap-2"><Scale className="w-5 h-5 text-brand-green" /> Registrar Peso</h3>
+                            <form onSubmit={handleWeightSubmit} className="space-y-4">
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="Ej: 72.4"
+                                    value={newWeight}
+                                    onChange={e => setNewWeight(e.target.value)}
+                                    className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
+                                    autoFocus
+                                />
+                                <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                <div className="flex gap-3">
+                                    <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
+                                    <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Pago */}
+                {isPaymentModalOpen && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => { if (!isUploadingPayment) setIsPaymentModalOpen(false); }}>
+                        <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
+                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+                            <h3 className="font-heading font-black text-brand-dark text-lg mb-1">Comprobante de Pago</h3>
+                            <p className="text-slate-500 text-sm mb-4">Sube una foto o PDF de tu transferencia</p>
+                            <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center mb-4 relative">
+                                <input type="file" accept="image/*,application/pdf" onChange={e => setPaymentFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                <p className="text-sm text-slate-500 font-medium">{paymentFile ? paymentFile.name : 'Toca para seleccionar archivo'}</p>
+                            </div>
                             <div className="flex gap-3">
-                                <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
-                                <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+                                <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
+                                <button onClick={() => handlePaymentUpload()} disabled={!paymentFile || isUploadingPayment} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {isUploadingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar'}
                                 </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal Pago */}
-            {isPaymentModalOpen && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => { if (!isUploadingPayment) setIsPaymentModalOpen(false); }}>
-                    <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
-                        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-                        <h3 className="font-heading font-black text-brand-dark text-lg mb-1">Comprobante de Pago</h3>
-                        <p className="text-slate-500 text-sm mb-4">Sube una foto o PDF de tu transferencia</p>
-                        <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center mb-4 relative">
-                            <input type="file" accept="image/*,application/pdf" onChange={e => setPaymentFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                            <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                            <p className="text-sm text-slate-500 font-medium">{paymentFile ? paymentFile.name : 'Toca para seleccionar archivo'}</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
-                            <button onClick={() => handlePaymentUpload()} disabled={!paymentFile || isUploadingPayment} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                                {isUploadingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar'}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

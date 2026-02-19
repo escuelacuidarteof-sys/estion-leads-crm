@@ -222,7 +222,11 @@ const AppContent: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await mockDb.getClients(currentUser);
-      setClients(data);
+      const enhancedData = data.map(c => ({
+        ...c,
+        isMockSession: currentUser.isMockSession
+      }));
+      setClients(enhancedData);
       if (currentUser.role === UserRole.CLIENT && data.length > 0) {
         setSelectedClient(data[0]);
         setActiveView('client-portal');
