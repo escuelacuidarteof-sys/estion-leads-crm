@@ -9,7 +9,7 @@ import Dashboard from './components/Dashboard';
 import ClientList from './components/ClientList';
 import ClientDetail from './components/ClientDetail';
 import UserProfile from './components/UserProfile';
-import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import { ToastProvider, useToast } from './components/ToastProvider';
 import { syncRolePermissions } from './utils/permissions';
 import { normalizeRole } from './utils/roleUtils';
@@ -478,7 +478,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <Login onLogin={handleLogin} error={loginError} onRegisterClick={() => { }} />;
+    return <LandingPage onLogin={handleLogin} error={loginError} />;
   }
 
   // --- CLIENT RENDER LOGIC ---
