@@ -1537,12 +1537,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                         <ChevronRight className="w-5 h-5 text-slate-300" />
                                     </div>
                                 )}
-                                {client.allow_endocrine_access && (
-                                    <div onClick={() => setActiveView('medical')} className="group cursor-pointer bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                        <div className="w-12 h-12 rounded-xl bg-white text-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><Stethoscope className="w-6 h-6" /></div>
-                                        <div className="flex-1"><h4 className="font-bold text-emerald-900 text-sm">Mi Salud</h4><p className="text-xs text-emerald-700">Consultas y seguimiento</p></div><ChevronRight className="w-5 h-5 text-emerald-400" />
-                                    </div>
-                                )}
+                                <div onClick={() => setActiveView('medical')} className="group cursor-pointer bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
+                                    <div className="w-12 h-12 rounded-xl bg-white text-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><Stethoscope className="w-6 h-6" /></div>
+                                    <div className="flex-1"><h4 className="font-bold text-emerald-900 text-sm">Consultas Dra. Odile</h4><p className="text-xs text-emerald-700">Envía tus dudas y analíticas</p></div><ChevronRight className="w-5 h-5 text-emerald-400" />
+                                </div>
                                 {client.hormonal_status && ['mujer', 'femenino', 'female'].includes(client.gender?.toLowerCase() || '') && (
                                     <div onClick={() => setActiveView('cycle')} className="group cursor-pointer bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 shadow-sm border border-pink-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
                                         <div className="w-12 h-12 rounded-xl bg-white text-pink-600 flex items-center justify-center shrink-0 shadow-sm"><Heart className="w-6 h-6" /></div>
