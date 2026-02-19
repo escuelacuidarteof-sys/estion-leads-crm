@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ExerciseMediaUtils } from '../../utils/exerciseMedia';
 import {
     X,
     Plus,
@@ -26,12 +27,18 @@ interface WorkoutEditorProps {
 
 export function WorkoutEditor({ workout, onSave, onClose, availableExercises, onSaveExercise }: WorkoutEditorProps) {
     const [name, setName] = useState(workout?.name || '');
-    const [blocks, setBlocks] = useState<WorkoutBlock[]>(workout?.blocks || [
-        { id: '1', workout_id: '', name: 'Calentamiento', position: 0, exercises: [] },
-        { id: '2', workout_id: '', name: 'Parte Principal', position: 1, exercises: [] },
-        { id: '3', workout_id: '', name: 'Finisher', position: 2, exercises: [] }
-    ]);
-    const [selectedBlockId, setSelectedBlockId] = useState<string>('2');
+    const [blocks, setBlocks] = useState<WorkoutBlock[]>(() => {
+        if (workout?.blocks && workout.blocks.length > 0) return workout.blocks;
+        return [
+            { id: '1', workout_id: '', name: 'Calentamiento', position: 0, exercises: [] },
+            { id: '2', workout_id: '', name: 'Parte Principal', position: 1, exercises: [] },
+            { id: '3', workout_id: '', name: 'Finisher', position: 2, exercises: [] }
+        ];
+    });
+    const [selectedBlockId, setSelectedBlockId] = useState<string>(() => {
+        if (workout?.blocks && workout.blocks.length > 0) return workout.blocks[0].id;
+        return '2'; // Default to Parte Principal
+    });
     const [isCreatingExercise, setIsCreatingExercise] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -85,6 +92,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
             await onSave({ name, blocks });
             onClose();
         } catch (error) {
+            alert('Error al guardar el workout. Por favor intenta de nuevo.');
             console.error('Error saving workout:', error);
         } finally {
             setSaving(false);
@@ -101,12 +109,12 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                             <X className="w-5 h-5 text-slate-500" />
                         </button>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1">
                             <input
                                 type="text"
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                placeholder="Nombre del Workout (ej: Full Body Kettlebell)"
+                                placeholder="Nombre del Workout..."
                                 className="bg-transparent border-none text-lg font-black text-slate-800 placeholder:text-slate-300 focus:ring-0 p-0"
                             />
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editor de Workout • Normal</span>
@@ -130,6 +138,19 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
 
                 {/* Builder Area */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                    {blocks.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                <Activity className="w-10 h-10 text-slate-300" />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800">No hay bloques</h3>
+                            <p className="text-slate-500 mb-6">Añade un bloque para empezar a añadir ejercicios.</p>
+                            <button
+                                onClick={() => setBlocks([{ id: Math.random().toString(), workout_id: '', name: 'Nuevo Bloque', position: 0, exercises: [] }])}
+                                className="px-6 py-2 bg-slate-800 text-white font-bold rounded-xl"
+                            >Añadir Bloque</button>
+                        </div>
+                    )}
                     {blocks.map(block => (
                         <div
                             key={block.id}
@@ -173,8 +194,12 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                             >
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 overflow-hidden">
-                                                        {item.exercise?.media_url ? (
-                                                            <img src={item.exercise.media_url} alt="" className="w-full h-full object-cover" />
+                                                        {ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '') ? (
+                                                            <img
+                                                                src={ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '')!}
+                                                                alt=""
+                                                                className="w-full h-full object-cover"
+                                                            />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center"><Activity className="w-4 h-4 text-white/20" /></div>
                                                         )}

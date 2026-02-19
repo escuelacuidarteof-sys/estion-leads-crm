@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS training_exercises (
     mechanics TEXT CHECK (mechanics IN ('compound', 'isolation')),
     articulation TEXT CHECK (articulation IN ('single', 'multi')),
     tags TEXT[],
-    created_by UUID REFERENCES auth.users(id),
+    created_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS training_workouts (
     description TEXT,
     goal TEXT,
     notes TEXT,
-    created_by UUID REFERENCES auth.users(id),
+    created_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS training_programs (
     name TEXT NOT NULL,
     description TEXT,
     weeks_count INTEGER DEFAULT 4,
-    created_by UUID REFERENCES auth.users(id),
+    created_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS client_training_assignments (
     client_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
     program_id UUID REFERENCES training_programs(id),
     start_date DATE NOT NULL,
-    assigned_by UUID REFERENCES auth.users(id),
+    assigned_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -108,11 +108,45 @@ ALTER TABLE training_program_days ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_program_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE client_training_assignments ENABLE ROW LEVEL SECURITY;
 
--- Simple RLS: All authenticated users can read, creators can edit
-CREATE POLICY "Authenticated users can view training" ON training_exercises FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Creators can manage their exercises" ON training_exercises FOR ALL TO authenticated USING (auth.uid() = created_by);
+-- 1. Exercises Policies
+DROP POLICY IF EXISTS "Authenticated users can view training" ON training_exercises;
+DROP POLICY IF EXISTS "Creators can manage their exercises" ON training_exercises;
+CREATE POLICY "Public read training" ON training_exercises FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can insert training" ON training_exercises FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Creators can update their exercises" ON training_exercises FOR UPDATE TO authenticated USING (auth.uid() = created_by);
+CREATE POLICY "Creators can delete their exercises" ON training_exercises FOR DELETE TO authenticated USING (auth.uid() = created_by);
 
-CREATE POLICY "Authenticated users can view workouts" ON training_workouts FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Creators can manage their workouts" ON training_workouts FOR ALL TO authenticated USING (auth.uid() = created_by);
+-- 2. Workouts Policies
+DROP POLICY IF EXISTS "Authenticated users can view workouts" ON training_workouts;
+DROP POLICY IF EXISTS "Creators can manage their workouts" ON training_workouts;
+CREATE POLICY "Public read workouts" ON training_workouts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can insert workouts" ON training_workouts FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Creators can update their workouts" ON training_workouts FOR UPDATE TO authenticated USING (auth.uid() = created_by);
+CREATE POLICY "Creators can delete their workouts" ON training_workouts FOR DELETE TO authenticated USING (auth.uid() = created_by);
 
--- ... Repeat for others or simplify based on existing CRM patterns
+-- 3. Blocks Policies
+CREATE POLICY "Public read blocks" ON training_workout_blocks FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can managed blocks" ON training_workout_blocks FOR ALL TO authenticated USING (true);
+
+-- 4. Workout Exercises Policies
+CREATE POLICY "Public read workout exercises" ON training_workout_exercises FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can managed workout exercises" ON training_workout_exercises FOR ALL TO authenticated USING (true);
+
+-- 5. Programs Policies
+CREATE POLICY "Public read programs" ON training_programs FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can insert programs" ON training_programs FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Creators can update their programs" ON training_programs FOR UPDATE TO authenticated USING (auth.uid() = created_by);
+CREATE POLICY "Creators can delete their programs" ON training_programs FOR DELETE TO authenticated USING (auth.uid() = created_by);
+
+-- 6. Program Days Policies
+CREATE POLICY "Public read program days" ON training_program_days FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can managed program days" ON training_program_days FOR ALL TO authenticated USING (true);
+
+-- 7. Activities Policies
+CREATE POLICY "Public read program activities" ON training_program_activities FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can managed program activities" ON training_program_activities FOR ALL TO authenticated USING (true);
+
+-- 8. Assignments Policies
+CREATE POLICY "Public read assignments" ON client_training_assignments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Creators can manage their assignments" ON client_training_assignments FOR ALL TO authenticated USING (auth.uid() = assigned_by);
+

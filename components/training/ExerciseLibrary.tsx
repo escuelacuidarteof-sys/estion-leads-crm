@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, Play, Info } from 'lucide-react';
+import { Search, Plus, Filter, Play, Info, X } from 'lucide-react';
 import { Exercise } from '../../types';
+import { ExerciseMediaUtils } from '../../utils/exerciseMedia';
 
 interface ExerciseLibraryProps {
     exercises: Exercise[];
@@ -12,6 +13,7 @@ interface ExerciseLibraryProps {
 export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPreview }: ExerciseLibraryProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+    const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
 
     const filteredExercises = exercises.filter(ex => {
         const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -20,7 +22,7 @@ export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPrevi
     });
 
     return (
-        <div className="flex flex-col h-full bg-white border-l border-slate-100 w-80 shadow-2xl animate-fade-in">
+        <div className="flex flex-col h-full bg-white border-l border-slate-100 w-80 shadow-2xl animate-fade-in relative">
             {/* Header */}
             <div className="p-4 border-b border-slate-100 bg-slate-50/30">
                 <div className="flex items-center justify-between mb-4">
@@ -60,7 +62,6 @@ export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPrevi
                         onChange={(e) => setSelectedMuscle(e.target.value || null)}
                     >
                         <option value="">Todos</option>
-                        {/* Unique muscles could go here */}
                     </select>
                 </div>
 
@@ -72,8 +73,12 @@ export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPrevi
                     >
                         {/* Thumbnail */}
                         <div className="w-16 h-20 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 relative">
-                            {exercise.media_url ? (
-                                <img src={exercise.media_url} alt="" className="w-full h-full object-cover" />
+                            {ExerciseMediaUtils.getThumbnail(exercise.media_url || '', exercise.media_type || '') ? (
+                                <img
+                                    src={ExerciseMediaUtils.getThumbnail(exercise.media_url || '', exercise.media_type || '')!}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <Play className="w-5 h-5 text-slate-300" />
@@ -96,18 +101,52 @@ export function ExerciseLibrary({ exercises, onAddExercise, onCreateNew, onPrevi
                             </div>
                         </div>
 
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onPreview(exercise);
-                            }}
-                            className="p-1.5 text-slate-300 hover:text-brand-green transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                            <Info className="w-4 h-4" />
-                        </button>
+                        {exercise.media_url && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewExercise(exercise);
+                                    onPreview(exercise);
+                                }}
+                                className="p-1.5 text-slate-300 hover:text-brand-green transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                                <Play className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 ))}
             </div>
+
+            {/* Mini Video Preview Overlay */}
+            {previewExercise && (
+                <div className="absolute bottom-4 left-4 right-4 bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 z-50 animate-scale-in">
+                    <div className="relative aspect-video bg-black">
+                        {ExerciseMediaUtils.getEmbedUrl(previewExercise.media_url || '', previewExercise.media_type || '') ? (
+                            <iframe
+                                src={ExerciseMediaUtils.getEmbedUrl(previewExercise.media_url || '', previewExercise.media_type || '')!}
+                                className="w-full h-full border-0"
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen
+                            />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-white/40 p-6 text-center">
+                                <Play className="w-10 h-10 mb-2 opacity-20" />
+                                <p className="text-xs">No hay video disponible para este ejercicio</p>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setPreviewExercise(null)}
+                            className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="p-3">
+                        <h4 className="text-white font-bold text-xs truncate">{previewExercise.name}</h4>
+                        <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">{previewExercise.muscle_main}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

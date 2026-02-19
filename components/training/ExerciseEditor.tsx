@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ExerciseMediaUtils } from '../../utils/exerciseMedia';
 import {
     X,
     Save,
@@ -131,8 +132,8 @@ export function ExerciseEditor({ exercise, onSave, onClose }: ExerciseEditorProp
                                     key={type.id}
                                     onClick={() => setMediaType(type.id as ExerciseMediaType)}
                                     className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${mediaType === type.id
-                                            ? 'border-brand-mint bg-brand-mint/5 text-brand-green'
-                                            : 'border-slate-100 hover:border-slate-200 text-slate-500'
+                                        ? 'border-brand-mint bg-brand-mint/5 text-brand-green'
+                                        : 'border-slate-100 hover:border-slate-200 text-slate-500'
                                         }`}
                                 >
                                     <type.icon className="w-5 h-5" />
@@ -155,9 +156,20 @@ export function ExerciseEditor({ exercise, onSave, onClose }: ExerciseEditorProp
                                 <div className="mt-4 aspect-video bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-200 relative overflow-hidden group">
                                     {mediaUrl ? (
                                         mediaType === 'youtube' ? (
-                                            <div className="text-center p-6">
-                                                <Video className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                                                <p className="text-xs text-slate-400">Vista previa disponible al guardar</p>
+                                            <div className="w-full h-full">
+                                                {ExerciseMediaUtils.getEmbedUrl(mediaUrl, mediaType) ? (
+                                                    <iframe
+                                                        src={ExerciseMediaUtils.getEmbedUrl(mediaUrl, mediaType)!}
+                                                        className="w-full h-full border-0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    />
+                                                ) : (
+                                                    <div className="text-center p-6">
+                                                        <Video className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                                                        <p className="text-xs text-slate-400">URL de vídeo no reconocida</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -206,8 +218,8 @@ export function ExerciseEditor({ exercise, onSave, onClose }: ExerciseEditorProp
                                             onClick={() => handleMuscleToggle(muscle)}
                                             type="button"
                                             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${muscleMain === muscle
-                                                    ? 'bg-brand-green border-brand-green text-white shadow-lg scale-105'
-                                                    : 'bg-white border-slate-200 text-slate-500 hover:border-brand-mint'
+                                                ? 'bg-brand-green border-brand-green text-white shadow-lg scale-105'
+                                                : 'bg-white border-slate-200 text-slate-500 hover:border-brand-mint'
                                                 }`}
                                         >
                                             {muscle}
@@ -235,8 +247,8 @@ export function ExerciseEditor({ exercise, onSave, onClose }: ExerciseEditorProp
                                             onClick={() => handleEquipmentToggle(item)}
                                             type="button"
                                             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${equipment.includes(item)
-                                                    ? 'bg-brand-mint border-brand-mint text-brand-green shadow-sm'
-                                                    : 'bg-white border-slate-200 text-slate-500 hover:border-brand-mint'
+                                                ? 'bg-brand-mint border-brand-mint text-brand-green shadow-sm'
+                                                : 'bg-white border-slate-200 text-slate-500 hover:border-brand-mint'
                                                 }`}
                                         >
                                             {item}
