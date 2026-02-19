@@ -73,7 +73,10 @@ export function TrainingManagement() {
             await trainingService.saveProgram(program);
             await fetchData();
             setSelectedProgram(null);
-        } catch (error) { console.error('Error saving program:', error); }
+        } catch (error) {
+            console.error('Error saving program:', error);
+            throw error; // Propagate error
+        }
     };
 
     const handleDelete = async () => {
