@@ -43,7 +43,8 @@ import {
   Building2,
   FolderOpen,
   CheckSquare,
-  ClipboardList
+  ClipboardList,
+  Dumbbell
 } from 'lucide-react';
 import { StaffAnnouncements } from './StaffAnnouncements';
 import { supabase } from '../services/supabaseClient';
@@ -139,6 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       'contracts': 'ventas',
       'food-plans': 'programa',
       'nutrition-management': 'programa',
+      'training-management': 'programa',
       'materials-library': 'programa',
       'classes': 'programa',
       'medical-reviews': 'programa',
@@ -461,6 +463,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     {checkPermission(user, PERMISSIONS.ACCESS_NUTRITION) && (
                       <NavItem view="nutrition-management" icon={Apple} label="Planes Nutricionales" />
                     )}
+                    <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>
@@ -729,6 +732,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     {checkPermission(user, PERMISSIONS.ACCESS_NUTRITION) && (
                       <NavItem view="nutrition-management" icon={Apple} label="Planes Nutricionales" />
                     )}
+                    <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>

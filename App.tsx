@@ -64,6 +64,7 @@ const NutritionManagement = lazy(() => import('./components/NutritionManagement'
 const DireccionDashboard = lazy(() => import('./components/DireccionDashboard'));
 const CRMMEDashboard = lazy(() => import('./components/CRMMEDashboard'));
 const CRMMEClientsView = lazy(() => import('./components/CRMMEClientsView'));
+const TrainingManagement = lazy(() => import('./components/training/TrainingManagement').then(m => ({ default: m.TrainingManagement })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -84,7 +85,7 @@ const AppContent: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<User[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<{ id: string; name: string; platform_fee_percentage: number }[]>([]);
-  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'nutrition-management' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard' | 'doctor-dashboard' | 'doctor-initial-reports' | 'create-medical-report' | 'doctor-medical-reports' | 'doctor-invoices' | 'mass-communication' | 'analytics-ado' | 'analytics-me' | 'coach-agenda' | 'me-dashboard' | 'me-clients' | 'me-closer-performance' | 'me-setter-performance'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'nutrition-management' | 'training-management' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard' | 'doctor-dashboard' | 'doctor-initial-reports' | 'create-medical-report' | 'doctor-medical-reports' | 'doctor-invoices' | 'mass-communication' | 'analytics-ado' | 'analytics-me' | 'coach-agenda' | 'me-dashboard' | 'me-clients' | 'me-closer-performance' | 'me-setter-performance'>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [previousView, setPreviousView] = useState<string | null>(null);
   const [clientsFilter, setClientsFilter] = useState<string | null>(null);
@@ -611,6 +612,8 @@ const AppContent: React.FC = () => {
           <MaterialsLibrary currentUser={user} />
         ) : activeView === 'nutrition-management' ? (
           <NutritionManagement currentUser={user} />
+        ) : activeView === 'training-management' ? (
+          <TrainingManagement />
         ) : activeView === 'invoices' ? (
           <InvoicesManagement currentUser={user} />
         ) : activeView === 'testimonials' ? (

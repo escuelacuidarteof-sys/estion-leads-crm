@@ -800,3 +800,98 @@ export interface ClientMaterial {
   updated_at: string;
   creator_name?: string;
 }
+
+// --- MODULE: TRAINING ---
+
+export type ExerciseMediaType = 'youtube' | 'vimeo' | 'image' | 'none';
+
+export interface Exercise {
+  id: string;
+  name: string;
+  media_type: ExerciseMediaType;
+  media_url?: string;
+  instructions?: string;
+  muscle_main: string;
+  muscle_secondary?: string[];
+  equipment?: string[];
+  movement_pattern?: string;
+  level?: 'beginner' | 'intermediate' | 'advanced';
+  mechanics?: 'compound' | 'isolation';
+  articulation?: 'single' | 'multi';
+  tags?: string[];
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  description?: string;
+  goal?: string;
+  notes?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  blocks: WorkoutBlock[];
+}
+
+export interface WorkoutBlock {
+  id: string;
+  workout_id: string;
+  name: string; // e.g., "Calentamiento", "Parte Principal", "Finisher"
+  description?: string;
+  position: number;
+  exercises: WorkoutExercise[];
+}
+
+export interface WorkoutExercise {
+  id: string;
+  block_id: string;
+  exercise_id: string;
+  exercise?: Exercise; // Loaded via join
+  sets: number;
+  reps: string;
+  rest_seconds: number;
+  notes?: string;
+  position: number;
+}
+
+export interface TrainingProgram {
+  id: string;
+  name: string;
+  description?: string;
+  weeks_count: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  days: ProgramDay[];
+}
+
+export interface ProgramDay {
+  id: string;
+  program_id: string;
+  week_number: number;
+  day_number: number; // 1-7
+  activities: ProgramActivity[];
+}
+
+export interface ProgramActivity {
+  id: string;
+  day_id: string;
+  type: 'workout' | 'metrics' | 'photo' | 'form' | 'custom';
+  activity_id?: string; // e.g., workout_id
+  title: string;
+  description?: string;
+  position: number;
+  color?: string;
+}
+
+export interface ClientTrainingAssignment {
+  id: string;
+  client_id: string;
+  program_id: string;
+  start_date: string;
+  assigned_by?: string;
+  assigned_at?: string;
+}
