@@ -142,7 +142,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                         <Zap className={`w-4 h-4 ${isCheckingBucket ? 'animate-pulse text-amber-500' : ''}`} />
                         {isCheckingBucket ? 'Verificando...' : 'Verificar Conexión'}
                     </button>
-                    {!showForm && currentUserRole !== UserRole.COACH && (
+                    {!showForm && (
                         <button
                             onClick={() => setShowForm(true)}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-200 flex items-center gap-2 transition-transform hover:scale-105"

@@ -14,7 +14,7 @@ import {
    Quote, Zap, Award, Flame, ChevronRight, Droplets, Droplet, Moon, Video, PlayCircle, Lock,
    FileText, ExternalLink, Trophy, Stethoscope, CreditCard, Image as ImageIcon,
    Loader2, Upload, History, Play, UserPlus, FileCheck, FileX, Rocket, MessageSquare,
-   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2
+   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2, MessageCircle
 } from 'lucide-react';
 import { pauseService } from '../services/pauseService';
 import { normalizePhone, isValidPhone, PHONE_HELP_TEXT, PHONE_PLACEHOLDER } from '../utils/phoneUtils';
@@ -3027,6 +3027,15 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <CalendarCheck className="w-5 h-5" />
                            </button>
                         )}
+
+                        {/* Consultas Dra. Odile */}
+                        <button
+                           onClick={() => { setActiveTab('health'); setHealthSubTab('medical'); }}
+                           className="p-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
+                           title="Consultas a la Dra. Odile"
+                        >
+                           <MessageCircle className="w-5 h-5" />
+                        </button>
                      </div>
 
                      {/* ===== MENSAJE PARA EL CLIENTE ===== */}
