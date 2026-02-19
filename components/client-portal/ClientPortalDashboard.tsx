@@ -55,6 +55,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
     const [newWeight, setNewWeight] = useState('');
@@ -524,8 +525,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const goals = localGoals;
 
     // --- PAYMENT UPLOAD HANDLER ---
-    const handlePaymentUpload = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handlePaymentUpload = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!paymentFile) return;
 
         setIsUploadingPayment(true);
@@ -624,1067 +625,613 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     const chartW = 500; // viewbox units
     const chartH = 150;
-    const chartData = generateChartPath(chartW, chartH);
+    const chartDataSvg = generateChartPath(chartW, chartH);
 
+    // --- SUB-VIEWS (pantalla completa, sin bottom nav) ---
+    const SubViewWrapper = ({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) => (
+        <div className="min-h-screen bg-[#f8faf8] flex flex-col">
+            <div className="bg-white border-b border-slate-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+                <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+                    <ChevronRight className="w-5 h-5 rotate-180 text-slate-600" />
+                </button>
+                <span className="font-heading font-black text-brand-dark">{title}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-6">{children}</div>
+        </div>
+    );
 
-    // --- VIEWS ---
     if (activeView === 'classes') return <ClassesView onBack={() => setActiveView('dashboard')} />;
     if (activeView === 'reviews') return <ReviewsView clientId={client.id} onBack={() => setActiveView('dashboard')} currentWeeklyComments={client.weeklyReviewComments} />;
-    if (activeView === 'checkin') return <CheckinView client={client} onBack={async () => {
-        if (onRefresh) await onRefresh();
-        setActiveView('dashboard');
-    }} />;
+    if (activeView === 'checkin') return <CheckinView client={client} onBack={async () => { if (onRefresh) await onRefresh(); setActiveView('dashboard'); }} />;
     if (activeView === 'nutrition') return <NutritionView client={client} onBack={() => setActiveView('dashboard')} />;
     if (activeView === 'medical') return (
-        <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4">
-            <button onClick={() => setActiveView('dashboard')} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold group">
-                <ChevronRight className="w-5 h-5 rotate-180 group-hover:-translate-x-1 transition-transform" /> Volver al Dashboard
-            </button>
+        <SubViewWrapper title="Consultas Dra. Odile" onBack={() => setActiveView('dashboard')}>
             <MedicalReviews client={client} />
-        </div>
+        </SubViewWrapper>
     );
-
     if (activeView === 'materials') return (
-        <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4">
-            <button onClick={() => setActiveView('dashboard')} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold group">
-                <ChevronRight className="w-5 h-5 rotate-180 group-hover:-translate-x-1 transition-transform" /> Volver al Dashboard
-            </button>
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-violet-50 text-violet-600 rounded-xl">
-                        <FileHeart className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900">Materiales y Recursos</h2>
-                        <p className="text-slate-500 text-sm">Documentos y enlaces compartidos por tu coach</p>
-                    </div>
-                </div>
-                <ClientMaterials clientId={client.id} currentUser={{ role: 'client', id: client.id, name: client.firstName, email: client.email || '' } as any} readOnly={true} />
-            </div>
-        </div>
+        <SubViewWrapper title="Materiales" onBack={() => setActiveView('dashboard')}>
+            <ClientMaterials clientId={client.id} currentUser={{ role: 'client', id: client.id, name: client.firstName, email: client.email || '' } as any} readOnly={true} />
+        </SubViewWrapper>
     );
-
     if (activeView === 'contract') return (
         <ContractView client={client} onBack={() => setActiveView('dashboard')} onRefresh={onRefresh} />
     );
-
     if (activeView === 'reports') return (
         <MedicalReportsView
             clientId={client.id}
-            clientName={`${client.firstName || ''} ${client.surname || ''}`.trim()}
+            clientName={`${client.firstName || ''} ${(client as any).surname || ''}`.trim()}
             onBack={() => setActiveView('dashboard')}
         />
     );
-
     if (activeView === 'cycle') return (
         <CycleTrackingView client={client} onBack={() => setActiveView('dashboard')} />
     );
 
-    return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 animate-fade-in">
-            {/* --- HEADER --- */}
-            <header className="bg-white sticky top-0 z-40 border-b border-slate-100/80 backdrop-blur-md bg-white/80">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-lg">
-                            {client.firstName.charAt(0)}
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                Hola, {client.firstName} <span className="text-xl animate-bounce">👋</span>
-                            </h1>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
-                        {coachData && (
-                            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                                <img
-                                    src={coachData.photo_url || `https://ui-avatars.com/api/?name=${coachData.name}`}
-                                    alt="Coach"
-                                    className="w-8 h-8 rounded-full object-cover"
-                                />
-                                <div className="pr-1">
-                                    <p className="text-[10px] text-slate-400 font-medium leading-none">Tu Coach</p>
-                                    <p className="text-sm font-bold text-slate-700 leading-tight">{coachData.name}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
+    // --- HELPERS ---
+    const energyVal = client.energy_level ?? null;
+    const fatigueVal = (medical as any).symptom_fatigue ?? null;
+    const sleepVal = (medical as any).symptom_sleep_quality ?? null;
+    const oncologyStatus = (medical as any).oncology_status || '';
 
-            {!hasMigratedSecurity && (
-                <div className="max-w-7xl mx-auto px-4 mt-6">
-                    <SecurityMigrationBanner clientName={client.firstName} onMigrate={handleSecurityMigration} />
+    const displayTargetWeight = localTargetWeight ?? client.target_weight;
+    const latestWeight = weightHistory.length > 0 ? weightHistory[0].weight : null;
+    const prevWeight = weightHistory.length > 1 ? weightHistory[1].weight : null;
+    const weightDelta = latestWeight && prevWeight ? (latestWeight - prevWeight) : null;
+    const weightProgressPct = latestWeight && displayTargetWeight && client.initial_weight
+        ? Math.min(100, Math.max(0, Math.round(((client.initial_weight - latestWeight) / (client.initial_weight - displayTargetWeight)) * 100)))
+        : null;
+
+    // Calcular próxima cita
+    const nextAppt = cAny.next_appointment_date ? {
+        date: new Date(cAny.next_appointment_date),
+        time: cAny.next_appointment_time || '',
+        note: cAny.next_appointment_note || '',
+        videoUrl: cAny.next_appointment_video_url || '',
+    } : null;
+    const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0,0,0,0)) / 86400000) : null;
+    const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
+
+    // Banner prioritario
+    const needsCheckin = client.last_checkin_status !== 'pending' && (!client.last_checkin_date || new Date().getTime() - new Date(client.last_checkin_date).getTime() > 7 * 86400000);
+    const hasNewReviews = unreadReviewsCount > 0;
+    const hasRenewal = cAny.renewal_status === 'pending';
+
+    // Program progress
+    const programWeekCurrent = cAny.program_week_current || (programWeek ? programWeek.current : 0);
+    const programWeekTotal = cAny.program_week_total || (programWeek ? programWeek.total : 12);
+    const programProgress = programWeekTotal > 0 ? Math.round((programWeekCurrent / programWeekTotal) * 100) : 0;
+
+    // Chart data for Recharts
+    const chartData = [...weightHistory].reverse().map(e => ({
+        date: new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+        peso: e.weight,
+    }));
+
+    // --- TAB CONTENT ---
+
+    const HomeTab = () => (
+        <div className="space-y-4 pb-2">
+            {/* Priority Banner */}
+            {hasRenewal && (
+                <div className="bg-gradient-to-r from-amber-400 to-yellow-500 rounded-2xl p-4 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Award className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-white font-black text-sm">Renovación disponible</p>
+                        <p className="text-white/80 text-xs">Continúa tu transformación</p>
+                    </div>
+                    <button onClick={() => setActiveTab('profile')} className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Ver</button>
+                </div>
+            )}
+            {!hasRenewal && hasNewReviews && (
+                <div className="bg-gradient-to-r from-brand-green to-brand-green-dark rounded-2xl p-4 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-white font-black text-sm">{unreadReviewsCount} revisión{unreadReviewsCount > 1 ? 'es' : ''} nueva{unreadReviewsCount > 1 ? 's' : ''}</p>
+                        <p className="text-white/80 text-xs">Tu coach te ha respondido</p>
+                    </div>
+                    <button onClick={() => setActiveView('reviews')} className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Ver</button>
+                </div>
+            )}
+            {!hasRenewal && !hasNewReviews && needsCheckin && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-amber-900 font-black text-sm">Check-in semanal pendiente</p>
+                        <p className="text-amber-700 text-xs">¿Cómo te has sentido esta semana?</p>
+                    </div>
+                    <button onClick={() => setActiveView('checkin')} className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">Hacer</button>
                 </div>
             )}
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-                {/* --- RENEWAL PAYMENT BANNER (NEW) --- */}
-                {client.renewal_payment_link && client.renewal_payment_status === 'pending' && (
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 mb-2 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden animate-in slide-in-from-top-4">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-
-                        <div className="flex items-center gap-4 relative z-10 w-full md:w-auto">
-                            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shrink-0">
-                                <CreditCard className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold flex items-center gap-2">
-                                    Renovación Disponible <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-normal">Pendiente de Pago</span>
-                                </h2>
-                                <p className="text-indigo-100 text-sm max-w-xl leading-relaxed mt-1">
-                                    Tu plan para la fase <strong>{client.renewal_phase || 'siguiente'}</strong> está listo.
-                                    Realiza el pago para asegurar tu plaza y continuar tu progreso sin interrupciones.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto relative z-10 shrink-0">
-                            <a
-                                href={client.renewal_payment_link}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
-                            >
-                                Pagar Ahora <ExternalLink className="w-4 h-4" />
-                            </a>
-                            <button
-                                onClick={() => setIsPaymentModalOpen(true)}
-                                className="px-6 py-3 bg-indigo-800/40 text-white font-bold rounded-xl border border-indigo-400/30 hover:bg-indigo-800/60 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
-                            >
-                                <Upload className="w-4 h-4" /> Subir Comprobante
-                            </button>
-                        </div>
+            {/* Bienestar Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="bg-brand-dark px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-brand-mint" />
+                        <span className="text-white font-black text-sm">Tu Bienestar</span>
                     </div>
-                )}
-
-                {/* --- PENDING VERIFICATION BANNER --- */}
-                {(client.renewal_payment_status === 'uploaded' || (client as any).renewal_payment_status === 'uploaded') && (
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-4 flex items-center gap-4 animate-in fade-in mb-6">
-                        <div className="bg-emerald-100 p-2 rounded-full text-emerald-600">
-                            <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-emerald-900 text-sm">Comprobante enviado</p>
-                            <p className="text-emerald-700 text-xs">Tu coach revisará el pago en breve y activará tu nueva fase.</p>
-                        </div>
+                    {oncologyStatus && (
+                        <span className="text-[10px] bg-brand-green/30 text-brand-mint px-2 py-0.5 rounded-full font-bold">{oncologyStatus}</span>
+                    )}
+                </div>
+                <div className="p-4">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        {[
+                            { label: 'Energía', val: energyVal, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
+                            { label: 'Sueño', val: sleepVal, icon: Moon, color: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-500' },
+                            { label: 'Fatiga', val: fatigueVal !== null ? 10 - fatigueVal : null, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
+                        ].map(({ label, val, icon: Icon, color, bg, bar }) => (
+                            <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
+                                <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
+                                <p className={`text-lg font-black ${color}`}>{val !== null ? val : '—'}<span className="text-xs font-medium opacity-60">/10</span></p>
+                                <p className="text-[10px] text-slate-500 font-bold">{label}</p>
+                                {val !== null && (
+                                    <div className="h-1 bg-white/60 rounded-full mt-1.5 overflow-hidden">
+                                        <div className={`h-full ${bar} rounded-full`} style={{ width: `${val * 10}%` }} />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                )}
-
-                {/* --- PENDING CONTRACT SIGNATURE BANNER --- */}
-                {client.program?.contract_visible_to_client && !client.program?.contract_signed && (
-                    <div
-                        onClick={() => setActiveView('contract')}
-                        className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-5 text-white shadow-xl shadow-emerald-200 mb-2 flex items-center justify-between gap-4 cursor-pointer hover:shadow-2xl hover:scale-[1.01] transition-all animate-in slide-in-from-top-4"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shrink-0">
-                                <FileText className="w-7 h-7 text-white" />
+                    {programWeekCurrent > 0 && (
+                        <div className="mb-4">
+                            <div className="flex justify-between text-xs mb-1">
+                                <span className="text-slate-500 font-medium">Progreso del programa</span>
+                                <span className="text-brand-green font-black">Semana {programWeekCurrent} de {programWeekTotal}</span>
                             </div>
-                            <div>
-                                <h2 className="text-lg font-bold">Contrato Pendiente de Firma</h2>
-                                <p className="text-emerald-100 text-sm">Tu contrato está listo para ser revisado y firmado digitalmente.</p>
-                            </div>
-                        </div>
-                        <ChevronRight className="w-6 h-6 text-white/60 shrink-0" />
-                    </div>
-                )}
-
-                {/* --- WEEKLY CHECK-IN REMINDER BANNER --- */}
-                {shouldShowCheckinReminder && (
-                    <div
-                        onClick={() => setActiveView('checkin')}
-                        className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-5 text-white shadow-xl shadow-amber-200 mb-2 flex items-center justify-between gap-4 cursor-pointer hover:shadow-2xl hover:scale-[1.01] transition-all animate-in slide-in-from-top-4"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shrink-0">
-                                <CheckCircle2 className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold flex items-center gap-2">
-                                    ¡Es hora de tu Check-in Semanal!
-                                </h2>
-                                <p className="text-amber-100 text-sm mt-0.5">
-                                    Cuéntale a tu coach cómo ha ido tu semana. Solo te llevará 2 minutos.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-xl font-bold text-sm shrink-0">
-                            Rellenar ahora <ChevronRight className="w-4 h-4" />
-                        </div>
-                    </div>
-                )}
-
-                {/* --- NEW MEDICAL CONTENT BANNER --- */}
-                {(unreadReportsCount > 0 || unreadReviewsCount > 0) && (
-                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl p-5 text-white shadow-xl shadow-purple-200 mb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-4">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm shrink-0">
-                                <Stethoscope className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold">Tienes novedades de tu equipo de salud</h2>
-                                <p className="text-purple-100 text-sm mt-0.5">
-                                    {[
-                                        unreadReportsCount > 0 && `${unreadReportsCount} informe${unreadReportsCount > 1 ? 's' : ''} nuevo${unreadReportsCount > 1 ? 's' : ''}`,
-                                        unreadReviewsCount > 0 && `${unreadReviewsCount} revisi${unreadReviewsCount > 1 ? 'ones' : 'ón'} nueva${unreadReviewsCount > 1 ? 's' : ''}`
-                                    ].filter(Boolean).join(' y ')}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                            {unreadReviewsCount > 0 && (
-                                <button
-                                    onClick={() => setActiveView('reviews')}
-                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl text-sm transition-colors flex items-center gap-2"
-                                >
-                                    Ver Revisiones <ChevronRight className="w-4 h-4" />
-                                </button>
-                            )}
-                            {unreadReportsCount > 0 && (
-                                <button
-                                    onClick={() => setActiveView('reports')}
-                                    className="px-4 py-2 bg-white text-purple-600 font-bold rounded-xl text-sm hover:bg-purple-50 transition-colors flex items-center gap-2"
-                                >
-                                    Ver Informes <ChevronRight className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* --- RENEWAL SUCCESS BANNER (Show for 7 days) --- */}
-                {client.renewal_payment_status === 'verified' && (() => {
-                    if (!client.renewal_verified_at) return true;
-                    const verifiedDate = new Date(client.renewal_verified_at);
-                    const now = new Date();
-                    const diffTime = Math.abs(now.getTime() - verifiedDate.getTime());
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    return diffDays <= 7;
-                })() && (
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl p-6 text-white shadow-xl shadow-emerald-100 mb-2 flex items-center justify-between gap-6 relative overflow-hidden animate-in zoom-in-95 duration-500">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
-                                    <Award className="w-8 h-8 text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold">¡Renovación Confirmada! 🚀</h2>
-                                    <p className="text-emerald-50 opacity-90 text-sm mt-1">
-                                        Tu pago ha sido verificado con éxito. ¡Ya tienes acceso completo a tu nueva fase de programa!
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="shrink-0 hidden sm:block">
-                                <CheckCircle2 className="w-12 h-12 text-white/50" />
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${programProgress}%` }} />
                             </div>
                         </div>
                     )}
+                    <button
+                        onClick={() => setActiveView('checkin')}
+                        className="w-full py-3 bg-gradient-to-r from-brand-green to-brand-green-dark text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98]"
+                    >
+                        <Activity className="w-4 h-4" /> Registrar cómo me siento hoy
+                    </button>
+                </div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-
-                    {/* --- LEFT COLUMN --- */}
-                    <div className="lg:col-span-8 space-y-6">
-
-                        {/* 0. CONTRACT STATUS */}
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                            <div className={`absolute top-0 left-0 w-1 h-full ${isUrgent ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-
-                            <div className="flex items-center gap-4 w-full sm:w-auto">
-                                <div className={`p-3 rounded-2xl ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                    <Clock className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Tu Plan Actual</p>
-                                    <h3 className="text-lg font-bold text-slate-900">
-                                        {activeContract.duration ? `Programa ${activeContract.duration} Meses` : 'Seguimiento Activo'}
-                                    </h3>
-                                    <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-                                        {activeContract.phase || 'Fase General'}
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">VIGENTE</span>
-                                        {activeContract.endDate && <span className="text-slate-300">•</span>}
-                                        {activeContract.endDate && `Hasta el ${new Date(activeContract.endDate).toLocaleDateString()}`}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="w-full sm:w-auto bg-slate-50 rounded-2xl p-4 flex items-center justify-between sm:justify-center gap-6 min-w-[200px]">
-                                <div className="text-center">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Inicio</p>
-                                    <p className="font-semibold text-slate-700 text-sm">
-                                        {activeContract.startDate ? new Date(activeContract.startDate).toLocaleDateString() : '-'}
-                                    </p>
-                                </div>
-                                <div className="h-8 w-px bg-slate-200"></div>
-                                <div className="text-center">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Fin</p>
-                                    <p className={`font-semibold text-sm ${isUrgent ? 'text-red-600' : 'text-slate-700'}`}>
-                                        {activeContract.endDate ? new Date(activeContract.endDate).toLocaleDateString() : '-'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 1. BIENESTAR CARD — oncológico */}
-                        {(() => {
-                            const oncologyStatus = (medical as any).oncology_status || '';
-                            const statusLabel: Record<string, { label: string; color: string }> = {
-                                en_tratamiento: { label: 'En tratamiento activo', color: 'bg-amber-100 text-amber-800 border-amber-200' },
-                                seguimiento_oncologico: { label: 'Seguimiento oncológico', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-                                superviviente: { label: 'Superviviente', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-                                recidiva: { label: 'Recidiva / Recaída', color: 'bg-red-100 text-red-800 border-red-200' },
-                                paliativo: { label: 'Cuidados paliativos', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-                            };
-                            const badge = statusLabel[oncologyStatus];
-
-                            const fatigueVal = (medical as any).symptom_fatigue ?? null;
-                            const energyVal = client.energy_level ?? null;
-                            const sleepVal = (medical as any).symptom_sleep_quality ?? null;
-
-                            const scoreColor = (val: number | null, invert = false) => {
-                                if (val === null) return 'text-slate-300';
-                                const good = invert ? val <= 3 : val >= 7;
-                                const mid = invert ? val <= 6 : val >= 4;
-                                return good ? 'text-emerald-400' : mid ? 'text-amber-400' : 'text-red-400';
-                            };
-
-                            return (
-                                <div className="relative rounded-3xl overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950" />
-                                    <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-full blur-3xl -mr-24 -mt-24" />
-                                    <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-emerald-600/10 to-cyan-500/10 rounded-full blur-3xl -ml-12 -mb-12" />
-
-                                    <div className="relative z-10 p-6 sm:p-8">
-                                        {/* Header */}
-                                        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-xl shadow-emerald-500/30 ring-4 ring-white/10">
-                                                    <Heart className="w-7 h-7" />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Tu Bienestar</h2>
-                                                    <p className="text-emerald-200/80 text-sm">
-                                                        {programWeek ? `Semana ${programWeek.current} de ${programWeek.total}` : 'Programa activo'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {badge && (
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${badge.color}`}>
-                                                    <Shield className="w-3 h-3" />
-                                                    {badge.label}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Indicators */}
-                                        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
-                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-                                                <Zap className="w-5 h-5 mx-auto mb-1 text-amber-400" />
-                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Fatiga</p>
-                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(fatigueVal, true)}`}>
-                                                    {fatigueVal !== null ? fatigueVal : '--'}
-                                                    {fatigueVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
-                                                </p>
-                                            </div>
-                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-                                                <Activity className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
-                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Energía</p>
-                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(energyVal)}`}>
-                                                    {energyVal !== null ? energyVal : '--'}
-                                                    {energyVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
-                                                </p>
-                                            </div>
-                                            <div className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-                                                <Moon className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Sueño</p>
-                                                <p className={`text-2xl sm:text-3xl font-bold ${scoreColor(sleepVal)}`}>
-                                                    {sleepVal !== null ? sleepVal : '--'}
-                                                    {sleepVal !== null && <span className="text-xs font-normal text-slate-500">/10</span>}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* CTA */}
-                                        <button
-                                            onClick={() => setActiveView('checkin')}
-                                            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:from-emerald-400 hover:to-teal-400 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <CheckCircle2 className="w-5 h-5" />
-                                            Registrar cómo me siento hoy
-                                        </button>
-
-                                        {lastCheckinDate && (
-                                            <p className="text-center text-xs text-emerald-200/50 mt-3">
-                                                Último check-in: {lastCheckinDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
-                        {/* 2. MEDICAL & PERSONAL DATA GRID */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Health Card */}
-                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
-                                    <div className="bg-red-50 p-2 rounded-xl text-red-500"><Heart className="w-5 h-5" /></div>
-                                    <h3 className="font-bold text-slate-900">Ficha de Salud</h3>
-                                </div>
-                                <div className="space-y-4 text-sm">
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Estado oncológico</p>
-                                        <p className="font-medium text-slate-900 flex items-center gap-2">
-                                            {medical.oncology_status || medical.diagnosis || 'No especificado'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Tratamiento actual</p>
-                                        <p className="font-medium text-slate-900">{medical.currentTreatment || '--'}</p>
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs text-slate-400 font-bold uppercase">Medicación</p>
-                                            {!isEditingMedication && (
-                                                <button
-                                                    onClick={() => {
-                                                        setMedicationValue(medical.medication || '');
-                                                        setIsEditingMedication(true);
-                                                    }}
-                                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                                                >
-                                                    Editar
-                                                </button>
-                                            )}
-                                        </div>
-                                        {isEditingMedication ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={medicationValue}
-                                                    onChange={(e) => setMedicationValue(e.target.value)}
-                                                    className="w-full p-3 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                    rows={4}
-                                                    placeholder="Escribe tu medicación actual..."
-                                                />
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={handleMedicationSave}
-                                                        disabled={isSavingMedication}
-                                                        className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                    >
-                                                        {isSavingMedication ? (
-                                                            <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-                                                        ) : (
-                                                            <><Check className="w-4 h-4" /> Guardar</>
-                                                        )}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsEditingMedication(false)}
-                                                        className="px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="font-medium text-slate-600 bg-slate-50 p-3 rounded-lg leading-relaxed">
-                                                {medical.medication || 'Sin medicación registrada'}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Activity Summary Card */}
-                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
-                                    <div className="bg-indigo-50 p-2 rounded-xl text-indigo-500"><Calendar className="w-5 h-5" /></div>
-                                    <h3 className="font-bold text-slate-900">Tu Actividad</h3>
-                                </div>
-                                <div className="space-y-4 text-sm">
-                                    {/* Program Week */}
-                                    {programWeek && (
-                                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
-                                            <p className="text-xs text-indigo-600 font-bold uppercase mb-1">Semana del Programa</p>
-                                            <div className="flex items-center justify-between">
-                                                <p className="font-bold text-indigo-900 text-2xl">
-                                                    {programWeek.current} <span className="text-sm font-medium text-indigo-400">de {programWeek.total}</span>
-                                                </p>
-                                                <div className="w-16 h-16 relative">
-                                                    <svg className="w-16 h-16 transform -rotate-90">
-                                                        <circle cx="32" cy="32" r="28" stroke="#e0e7ff" strokeWidth="6" fill="none" />
-                                                        <circle
-                                                            cx="32" cy="32" r="28"
-                                                            stroke="#6366f1"
-                                                            strokeWidth="6"
-                                                            fill="none"
-                                                            strokeDasharray={`${(programWeek.current / programWeek.total) * 176} 176`}
-                                                            strokeLinecap="round"
-                                                        />
-                                                    </svg>
-                                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-indigo-600">
-                                                        {Math.round((programWeek.current / programWeek.total) * 100)}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* Last Check-in */}
-                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${lastCheckinDate ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'}`}>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-400 font-bold uppercase">Último Check-in</p>
-                                                <p className="font-medium text-slate-700">
-                                                    {lastCheckinDate ? lastCheckinDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Sin registros'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {lastCheckinDate && (
-                                            <span className="text-xs text-slate-400">
-                                                hace {Math.floor((new Date().getTime() - lastCheckinDate.getTime()) / (1000 * 60 * 60 * 24))} días
-                                            </span>
-                                        )}
-                                    </div>
-                                    {/* Last Body Measurements */}
-                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${(client as any).arm_perimeter ? 'bg-teal-100 text-teal-600' : 'bg-slate-200 text-slate-400'}`}>
-                                                <Activity className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-400 font-bold uppercase">Masa Muscular</p>
-                                                <p className="font-medium text-slate-700">
-                                                    {(client as any).arm_perimeter
-                                                        ? `Brazo: ${(client as any).arm_perimeter} cm`
-                                                        : 'Sin registros'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Next Appointment */}
-                                    {(client as any).next_appointment_date && (
-                                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 rounded-lg bg-amber-100 text-amber-600">
-                                                        <Clock className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-amber-600 font-bold uppercase">Próxima Cita</p>
-                                                        <p className="font-medium text-amber-900">
-                                                            {new Date((client as any).next_appointment_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
-                                                            {(client as any).next_appointment_time && (
-                                                                <span className="font-bold"> - {(client as any).next_appointment_time}h</span>
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-lg">
-                                                    {(() => {
-                                                        const days = Math.ceil((new Date((client as any).next_appointment_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                                        return days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `En ${days} días`;
-                                                    })()}
-                                                </span>
-                                            </div>
-                                            {(client as any).next_appointment_note && (
-                                                <p className="text-sm text-amber-700 mt-2 pl-12 italic">
-                                                    "{(client as any).next_appointment_note}"
-                                                </p>
-                                            )}
-                                            {(client as any).next_appointment_link && (
-                                                <div className="mt-3 pl-12">
-                                                    <a
-                                                        href={(client as any).next_appointment_link}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl hover:from-amber-600 hover:to-orange-600 shadow-sm transition-all"
-                                                    >
-                                                        <Video className="w-4 h-4" />
-                                                        Unirse a la reunión
-                                                        <ExternalLink className="w-3.5 h-3.5" />
-                                                    </a>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 3. COACH MESSAGE */}
-                        {(client as any).coach_message && (
-                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-3xl p-6 shadow-sm border border-amber-100 relative overflow-hidden">
-                                <div className="absolute top-4 right-4 opacity-10">
-                                    <MessageCircle className="w-16 h-16 text-amber-500" />
-                                </div>
-                                <div className="flex items-start gap-4 relative z-10">
-                                    <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 shrink-0">
-                                        <MessageCircle className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-amber-600 font-bold uppercase mb-2">Mensaje de tu Coach</p>
-                                        <p className="text-amber-900 font-medium leading-relaxed italic">
-                                            "{(client as any).coach_message}"
-                                        </p>
-                                        {coachData?.name && (
-                                            <p className="text-amber-600 text-sm mt-3 font-bold">— {coachData.name}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 4. OBJECTIVES CARD (Dynamic) */}
-                        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <Award className="w-5 h-5 text-emerald-500" /> Tus Objetivos
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex gap-3">
-                                    <div className="mt-0.5"><Target className="w-4 h-4 text-emerald-600" /></div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-emerald-800 text-xs font-bold uppercase">3 Meses</p>
-                                            <div className="flex items-center gap-2">
-                                                {goals.goal_3_months_status && (
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${goals.goal_3_months_status === 'achieved' ? 'bg-emerald-200 text-emerald-700' :
-                                                        goals.goal_3_months_status === 'failed' ? 'bg-red-100 text-red-600' :
-                                                            'bg-white/50 text-emerald-600'
-                                                        }`}>
-                                                        {goals.goal_3_months_status === 'achieved' ? 'Conseguido' : goals.goal_3_months_status === 'failed' ? 'No Conseguido' : 'Pendiente'}
-                                                    </span>
-                                                )}
-                                                {!isEditingGoal3 && (
-                                                    <button onClick={() => { setTempGoal3(goals.goal_3_months || ''); setIsEditingGoal3(true); }} className="flex items-center gap-1 px-2 py-0.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors">
-                                                        <Pencil className="w-3 h-3" />
-                                                        <span className="text-[10px] font-bold">Editar</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {isEditingGoal3 ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={tempGoal3}
-                                                    onChange={(e) => setTempGoal3(e.target.value)}
-                                                    className="w-full p-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
-                                                    rows={2}
-                                                    autoFocus
-                                                />
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleGoalSave('3m')}
-                                                        disabled={isSavingGoal3}
-                                                        className="px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-                                                    >
-                                                        {isSavingGoal3 ? '...' : 'Guardar'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsEditingGoal3(false);
-                                                            setTempGoal3(goals.goal_3_months || '');
-                                                        }}
-                                                        className="px-3 py-1 bg-white text-emerald-600 border border-emerald-200 text-xs font-bold rounded-lg hover:bg-emerald-50"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div onClick={() => { setTempGoal3(goals.goal_3_months || ''); setIsEditingGoal3(true); }} className="cursor-pointer group/goal">
-                                                {goals.goal_3_months ? (
-                                                    <p className="text-emerald-900 font-medium text-sm group-hover/goal:text-emerald-600 transition-colors">{goals.goal_3_months}</p>
-                                                ) : (
-                                                    <p className="text-emerald-400 italic text-sm">Toca para definir tu objetivo</p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3">
-                                    <div className="mt-0.5"><Target className="w-4 h-4 text-blue-600" /></div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-blue-800 text-xs font-bold uppercase">6 Meses</p>
-                                            <div className="flex items-center gap-2">
-                                                {goals.goal_6_months_status && (
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${goals.goal_6_months_status === 'achieved' ? 'bg-blue-200 text-blue-700' :
-                                                        goals.goal_6_months_status === 'failed' ? 'bg-red-100 text-red-600' :
-                                                            'bg-white/50 text-blue-600'
-                                                        }`}>
-                                                        {goals.goal_6_months_status === 'achieved' ? 'Conseguido' : goals.goal_6_months_status === 'failed' ? 'No Conseguido' : 'Pendiente'}
-                                                    </span>
-                                                )}
-                                                {!isEditingGoal6 && (
-                                                    <button onClick={() => { setTempGoal6(goals.goal_6_months || ''); setIsEditingGoal6(true); }} className="flex items-center gap-1 px-2 py-0.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors">
-                                                        <Pencil className="w-3 h-3" />
-                                                        <span className="text-[10px] font-bold">Editar</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {isEditingGoal6 ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={tempGoal6}
-                                                    onChange={(e) => setTempGoal6(e.target.value)}
-                                                    className="w-full p-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                                    rows={2}
-                                                    autoFocus
-                                                />
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleGoalSave('6m')}
-                                                        disabled={isSavingGoal6}
-                                                        className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                                                    >
-                                                        {isSavingGoal6 ? '...' : 'Guardar'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsEditingGoal6(false);
-                                                            setTempGoal6(goals.goal_6_months || '');
-                                                        }}
-                                                        className="px-3 py-1 bg-white text-blue-600 border border-blue-200 text-xs font-bold rounded-lg hover:bg-blue-50"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div onClick={() => { setTempGoal6(goals.goal_6_months || ''); setIsEditingGoal6(true); }} className="cursor-pointer group/goal">
-                                                {goals.goal_6_months ? (
-                                                    <p className="text-blue-900 font-medium text-sm group-hover/goal:text-blue-600 transition-colors">{goals.goal_6_months}</p>
-                                                ) : (
-                                                    <p className="text-blue-400 italic text-sm">Toca para definir tu objetivo</p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex gap-3">
-                                    <div className="mt-0.5"><Target className="w-4 h-4 text-purple-600" /></div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-purple-800 text-xs font-bold uppercase">1 Año</p>
-                                            <div className="flex items-center gap-2">
-                                                {goals.goal_1_year_status && (
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${goals.goal_1_year_status === 'achieved' ? 'bg-purple-200 text-purple-700' :
-                                                        goals.goal_1_year_status === 'failed' ? 'bg-red-100 text-red-600' :
-                                                            'bg-white/50 text-purple-600'
-                                                        }`}>
-                                                        {goals.goal_1_year_status === 'achieved' ? 'Conseguido' : goals.goal_1_year_status === 'failed' ? 'No Conseguido' : 'Pendiente'}
-                                                    </span>
-                                                )}
-                                                {!isEditingGoal1 && (
-                                                    <button onClick={() => { setTempGoal1(goals.goal_1_year || ''); setIsEditingGoal1(true); }} className="flex items-center gap-1 px-2 py-0.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors">
-                                                        <Pencil className="w-3 h-3" />
-                                                        <span className="text-[10px] font-bold">Editar</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {isEditingGoal1 ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={tempGoal1}
-                                                    onChange={(e) => setTempGoal1(e.target.value)}
-                                                    className="w-full p-2 text-sm border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
-                                                    rows={2}
-                                                    autoFocus
-                                                />
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleGoalSave('1y')}
-                                                        disabled={isSavingGoal1}
-                                                        className="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                                                    >
-                                                        {isSavingGoal1 ? '...' : 'Guardar'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsEditingGoal1(false);
-                                                            setTempGoal1(goals.goal_1_year || '');
-                                                        }}
-                                                        className="px-3 py-1 bg-white text-purple-600 border border-purple-200 text-xs font-bold rounded-lg hover:bg-purple-50"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div onClick={() => { setTempGoal1(goals.goal_1_year || ''); setIsEditingGoal1(true); }} className="cursor-pointer group/goal">
-                                                {goals.goal_1_year ? (
-                                                    <p className="text-purple-900 font-medium text-sm group-hover/goal:text-purple-600 transition-colors">{goals.goal_1_year}</p>
-                                                ) : (
-                                                    <p className="text-purple-400 italic text-sm">Toca para definir tu objetivo</p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* ASSIGNED GOALS (Interaction) */}
-                                <div className="pt-6 mt-2 border-t border-slate-100">
-                                    <CoachGoalsManager clientId={client.id} isCoach={false} />
-                                </div>
-                            </div>
-                        </div>
-
-
-                        {/* 5. SYMPTOM TRACKER & MEASUREMENTS CARDS */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <SymptomTrackerCard medical={client.medical} energyLevel={client.energy_level} recoveryCapacity={client.recovery_capacity} />
-                            <BodyMeasurementsCard
-                                clientId={client.id}
-                                initialAbdominal={client.abdominal_perimeter}
-                                initialArm={client.arm_perimeter}
-                                initialThigh={client.thigh_perimeter}
-                            />
-                        </div>
-
-                        {/* 6. NEW: WELLNESS & ACHIEVEMENTS */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <WellnessCard clientId={client.id} />
-                            <AchievementsCard clientId={client.id} />
-                        </div>
-
-                        {/* 7. STEPS TRACKING */}
-                        <StepsCard clientId={client.id} isClientView={true} />
-
+            {/* Próxima Cita */}
+            {nextAppt && apptLabel && (
+                <div className="bg-white rounded-2xl shadow-sm border-l-4 border-brand-gold p-4 flex items-start gap-3">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-brand-gold" />
                     </div>
-
-                    {/* --- RIGHT COLUMN --- */}
-                    <div className="lg:col-span-4 space-y-6 lg:space-y-8">
-                        {/* QUICK ACTIONS & RESOURCES (Same as before) */}
-                        <div className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 lg:sticky lg:top-24">
-                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-amber-500 fill-amber-500" /> Acciones Rápidas
-                            </h3>
-                            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-                                <button
-                                    onClick={() => setActiveView('checkin')}
-                                    className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-200 hover:shadow-xl transition-all group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-white/20 p-2 rounded-xl"><CheckCircle2 className="w-5 h-5" /></div>
-                                        <div className="text-left">
-                                            <p className="font-bold text-sm">Check-in Semanal</p>
-                                            <p className="text-xs text-white/70">¿Cómo te has sentido?</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                <button
-                                    onClick={() => setIsWeightModalOpen(true)}
-                                    className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-slate-100 p-2 rounded-xl"><Scale className="w-4 h-4" /></div>
-                                        <p className="font-medium text-sm">Registrar Peso</p>
-                                    </div>
-                                    <ChevronRight className="w-4 h-4 opacity-40 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <p className="font-black text-brand-dark text-sm">Próxima sesión</p>
+                            <span className="text-[10px] bg-brand-mint text-brand-green font-black px-2 py-0.5 rounded-full">{apptLabel}</span>
                         </div>
-
-                        <div className="bg-slate-50/50 p-1 md:p-0 rounded-3xl">
-                            <h3 className="text-lg font-bold text-slate-900 mb-4 px-4 flex items-center gap-2">
-                                <BookOpen className="w-5 h-5 text-slate-600" /> Tus Recursos
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                <div onClick={() => setActiveView('classes')} className="group cursor-pointer bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                    <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0"><Video className="w-6 h-6" /></div>
-                                    <div className="flex-1"><h4 className="font-bold text-slate-900 text-sm">Escuela Cuid-Arte</h4><p className="text-xs text-slate-500">Clases semanales</p></div><ChevronRight className="w-5 h-5 text-slate-300" />
-                                </div>
-                                <div onClick={() => setActiveView('reviews')} className="group cursor-pointer bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 relative">
-                                        <Play className="w-6 h-6" />
-                                        {unreadReviewsCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                                                {unreadReviewsCount}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-slate-900 text-sm">Mis Revisiones</h4>
-                                        <p className="text-xs text-slate-500">{unreadReviewsCount > 0 ? `${unreadReviewsCount} nueva${unreadReviewsCount > 1 ? 's' : ''} disponible${unreadReviewsCount > 1 ? 's' : ''}` : 'Feedback semanal'}</p>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-slate-300" />
-                                </div>
-                                <div onClick={() => setActiveView('nutrition')} className="group cursor-pointer bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                    <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0"><Utensils className="w-6 h-6" /></div>
-                                    <div className="flex-1"><h4 className="font-bold text-slate-900 text-sm">Plan Nutricional</h4><p className="text-xs text-slate-500">Tu menú</p></div><ChevronRight className="w-5 h-5 text-slate-300" />
-                                </div>
-                                <div onClick={() => setActiveView('materials')} className="group cursor-pointer bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                    <div className="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0"><FileHeart className="w-6 h-6" /></div>
-                                    <div className="flex-1"><h4 className="font-bold text-slate-900 text-sm">Materiales</h4><p className="text-xs text-slate-500">Recursos extra</p></div><ChevronRight className="w-5 h-5 text-slate-300" />
-                                </div>
-                                {client.program?.contract_visible_to_client && (
-                                    <div onClick={() => setActiveView('contract')} className="group cursor-pointer bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                        <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><FileText className="w-6 h-6" /></div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-slate-900 text-sm">Mi Contrato</h4>
-                                            <p className="text-xs text-slate-500">{client.program?.contract_signed ? 'Firmado' : 'Pendiente de firma'}</p>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-slate-300" />
-                                    </div>
-                                )}
-                                <div onClick={() => setActiveView('medical')} className="group cursor-pointer bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                    <div className="w-12 h-12 rounded-xl bg-white text-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><Stethoscope className="w-6 h-6" /></div>
-                                    <div className="flex-1"><h4 className="font-bold text-emerald-900 text-sm">Consultas Dra. Odile</h4><p className="text-xs text-emerald-700">Envía tus dudas y analíticas</p></div><ChevronRight className="w-5 h-5 text-emerald-400" />
-                                </div>
-                                {client.hormonal_status && ['mujer', 'femenino', 'female'].includes(client.gender?.toLowerCase() || '') && (
-                                    <div onClick={() => setActiveView('cycle')} className="group cursor-pointer bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 shadow-sm border border-pink-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
-                                        <div className="w-12 h-12 rounded-xl bg-white text-pink-600 flex items-center justify-center shrink-0 shadow-sm"><Heart className="w-6 h-6" /></div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-pink-900 text-sm">Mi Ciclo</h4>
-                                            <p className="text-xs text-pink-700">
-                                                {client.hormonal_status === 'pre_menopausica' ? 'Seguimiento menstrual' :
-                                                    client.hormonal_status === 'perimenopausica' ? 'Seguimiento perimenopáusico' :
-                                                        'Seguimiento menopáusico'}
-                                            </p>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-pink-400" />
-                                    </div>
-                                )}
-                                <div onClick={() => setActiveView('reports')} className="group cursor-pointer bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-4 shadow-sm border border-purple-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98] relative">
-                                    <div className="w-12 h-12 rounded-xl bg-white text-purple-600 flex items-center justify-center shrink-0 shadow-sm relative">
-                                        <FileText className="w-6 h-6" />
-                                        {unreadReportsCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                                                {unreadReportsCount}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-purple-900 text-sm">Mis Informes</h4>
-                                        <p className="text-xs text-purple-700">{unreadReportsCount > 0 ? `${unreadReportsCount} nuevo${unreadReportsCount > 1 ? 's' : ''} disponible${unreadReportsCount > 1 ? 's' : ''}` : 'Informes médicos descargables'}</p>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-purple-400" />
-                                </div>
-                            </div>
-                        </div>
-
+                        <p className="text-slate-600 text-xs">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}{nextAppt.time ? ` · ${nextAppt.time}` : ''}</p>
+                        {nextAppt.note && <p className="text-slate-400 text-xs mt-1 italic">"{nextAppt.note}"</p>}
+                        {nextAppt.videoUrl && (
+                            <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-mint/40 px-3 py-1.5 rounded-lg hover:bg-brand-mint transition-colors">
+                                <Video className="w-3.5 h-3.5" /> Unirme a videollamada
+                            </a>
+                        )}
                     </div>
                 </div>
+            )}
 
-                {/* --- FOOTER: HISTORY AREA CHART (Recharts) --- */}
-                {weightHistory.length > 0 && (
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900">Evolución en el Tiempo</h3>
-                                <p className="text-slate-500 text-sm">Tu histórico de peso visualizado</p>
+            {/* Mensaje del Coach */}
+            {coachData?.bio && cAny.weeklyCoachMessage && (
+                <div className="bg-brand-mint/20 border border-brand-mint rounded-2xl p-4 relative overflow-hidden">
+                    <div className="absolute -top-3 -left-1 text-5xl text-brand-gold/20 font-serif leading-none select-none">"</div>
+                    <p className="text-brand-dark text-sm leading-relaxed italic relative z-10 mt-2">"{cAny.weeklyCoachMessage}"</p>
+                    <div className="flex items-center gap-2 mt-3">
+                        {coachData.photo_url ? (
+                            <img src={coachData.photo_url} className="w-6 h-6 rounded-full object-cover" alt={coachData.name} />
+                        ) : (
+                            <div className="w-6 h-6 rounded-full bg-brand-green flex items-center justify-center text-white text-[10px] font-black">{coachData.name?.[0]}</div>
+                        )}
+                        <span className="text-xs font-bold text-brand-green">{coachData.name}</span>
+                        <span className="text-xs text-slate-400">· Tu Coach</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Anuncios */}
+            <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
+        </div>
+    );
+
+    const HealthTab = () => (
+        <div className="space-y-4 pb-2">
+            {/* Peso Hero */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                <div className="flex items-start justify-between mb-3">
+                    <div>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Peso Actual</p>
+                        <div className="flex items-end gap-2 mt-0.5">
+                            <span className="text-4xl font-heading font-black text-brand-dark">{latestWeight ?? '—'}</span>
+                            <span className="text-slate-400 font-medium mb-1">kg</span>
+                            {weightDelta !== null && (
+                                <span className={`text-sm font-black mb-1 flex items-center gap-0.5 ${weightDelta < 0 ? 'text-brand-green' : 'text-red-500'}`}>
+                                    {weightDelta < 0 ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                                    {Math.abs(weightDelta).toFixed(1)}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsWeightModalOpen(true)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-mint/40 px-3 py-2 rounded-xl hover:bg-brand-mint transition-colors"
+                    >
+                        <Scale className="w-3.5 h-3.5" /> Registrar
+                    </button>
+                </div>
+                {displayTargetWeight && latestWeight && (
+                    <div>
+                        <div className="flex justify-between text-xs mb-1.5">
+                            <span className="text-slate-500">Objetivo: <strong className="text-brand-dark">{displayTargetWeight} kg</strong></span>
+                            {weightProgressPct !== null && <span className="text-brand-green font-black">{weightProgressPct}% completado</span>}
+                        </div>
+                        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${weightProgressPct ?? 0}%` }} />
+                        </div>
+                        {latestWeight && displayTargetWeight && latestWeight > displayTargetWeight && (
+                            <p className="text-xs text-slate-400 mt-1">{(latestWeight - displayTargetWeight).toFixed(1)} kg hasta tu objetivo</p>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Gráfico */}
+            {chartData.length > 1 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                    <p className="text-sm font-black text-brand-dark mb-3">Evolución del peso</p>
+                    <ResponsiveContainer width="100%" height={140}>
+                        <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                            <defs>
+                                <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6BA06B" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="#6BA06B" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                            <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={['dataMin - 1', 'dataMax + 1']} />
+                            <Tooltip contentStyle={{ background: '#1a2e1a', border: 'none', borderRadius: 12, color: '#fff', fontSize: 12 }} />
+                            {displayTargetWeight && <ReferenceLine y={displayTargetWeight} stroke="#D4AF37" strokeDasharray="4 4" label={{ value: `Meta ${displayTargetWeight}kg`, fontSize: 9, fill: '#D4AF37', position: 'insideTopRight' }} />}
+                            <Area type="monotone" dataKey="peso" stroke="#6BA06B" strokeWidth={2.5} fill="url(#wGrad)" dot={false} activeDot={{ r: 4, fill: '#6BA06B' }} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
+
+            {/* Medidas */}
+            <BodyMeasurementsCard clientId={client.id} initialAbdominal={client.abdominal_perimeter} initialArm={client.arm_perimeter} initialThigh={client.thigh_perimeter} />
+            <SymptomTrackerCard medical={client.medical} energyLevel={client.energy_level} recoveryCapacity={client.recovery_capacity} />
+            <WellnessCard clientId={client.id} />
+
+            {/* Objetivos */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-brand-green" /> Mis Objetivos</p>
+                <div className="space-y-3">
+                    {[
+                        { key: '3m', label: '3 Meses', goal: client.goals?.goal_3_months, color: 'border-brand-green', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700', isEditing: isEditingGoal3, setEditing: setIsEditingGoal3, temp: tempGoal3, setTemp: setTempGoal3, saving: isSavingGoal3, onSave: () => handleGoalSave('3m') },
+                        { key: '6m', label: '6 Meses', goal: client.goals?.goal_6_months, color: 'border-brand-gold', badgeBg: 'bg-amber-50', badgeText: 'text-amber-700', isEditing: isEditingGoal6, setEditing: setIsEditingGoal6, temp: tempGoal6, setTemp: setTempGoal6, saving: isSavingGoal6, onSave: () => handleGoalSave('6m') },
+                        { key: '1y', label: '1 Año', goal: client.goals?.goal_1_year, color: 'border-purple-400', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700', isEditing: isEditingGoal1, setEditing: setIsEditingGoal1, temp: tempGoal1, setTemp: setTempGoal1, saving: isSavingGoal1, onSave: () => handleGoalSave('1y') },
+                    ].map(({ key, label, goal, color, badgeBg, badgeText, isEditing, setEditing, temp, setTemp, saving, onSave }) => (
+                        <div key={key} className={`border-l-4 ${color} bg-slate-50/50 rounded-xl p-3`}>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeBg} ${badgeText}`}>{label}</span>
+                                {!isEditing && (
+                                    <button onClick={() => setEditing(true)} className="text-slate-300 hover:text-slate-500 transition-colors">
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                            {isEditing ? (
+                                <div className="space-y-2 mt-2">
+                                    <textarea
+                                        className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-green/20 resize-none"
+                                        rows={2}
+                                        value={temp}
+                                        onChange={e => setTemp(e.target.value)}
+                                    />
+                                    <div className="flex gap-2">
+                                        <button onClick={onSave} disabled={saving} className="flex-1 py-1.5 bg-brand-green text-white text-xs font-bold rounded-lg disabled:opacity-50">
+                                            {saving ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Guardar'}
+                                        </button>
+                                        <button onClick={() => setEditing(false)} className="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg">Cancelar</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-600 leading-relaxed">{goal || <span className="text-slate-300 italic">Sin objetivo definido</span>}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <AchievementsCard clientId={client.id} />
+            <StepsCard clientId={client.id} isClientView={true} />
+        </div>
+    );
+
+    const ProgramTab = () => (
+        <div className="space-y-4 pb-2">
+            {/* Estado del programa */}
+            {(cAny.program?.name || cAny.program_phase) && (
+                <div className="bg-brand-dark rounded-2xl p-4 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="font-black">{cAny.program?.name || 'Tu Programa'}</p>
+                        <span className="text-[10px] bg-brand-green/30 text-brand-mint px-2 py-1 rounded-full font-bold uppercase">VIGENTE</span>
+                    </div>
+                    {cAny.program_phase && <p className="text-brand-mint/70 text-xs mb-3">{cAny.program_phase}</p>}
+                    {programWeekTotal > 0 && (
+                        <>
+                            <div className="flex justify-between text-xs mb-1">
+                                <span className="text-white/60">Progreso</span>
+                                <span className="text-brand-mint font-bold">Semana {programWeekCurrent} / {programWeekTotal}</span>
+                            </div>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-brand-green rounded-full" style={{ width: `${programProgress}%` }} />
+                            </div>
+                        </>
+                    )}
+                    <div className="flex gap-4 mt-3 text-xs text-white/50">
+                        {cAny.program?.start_date && <span>Inicio: {new Date(cAny.program.start_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>}
+                        {cAny.program?.end_date && <span>Fin: {new Date(cAny.program.end_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>}
+                    </div>
+                </div>
+            )}
+
+            {/* Grid de recursos 2x2 */}
+            <div className="grid grid-cols-2 gap-3">
+                {[
+                    { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'bg-violet-50', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
+                    { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'bg-orange-50', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
+                    { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'bg-indigo-50', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
+                    { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'bg-sky-50', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
+                ].map(({ label, desc, icon: Icon, bg, color, border, action, badge }) => (
+                    <button key={label} onClick={action} className={`bg-white rounded-2xl p-4 border ${border} shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left`}>
+                        <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center relative`}>
+                            <Icon className={`w-6 h-6 ${color}`} />
+                            {badge && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{badge}</span>}
+                        </div>
+                        <div>
+                            <p className="font-black text-brand-dark text-sm">{label}</p>
+                            <p className="text-xs text-slate-400">{desc}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            {/* Ciclo hormonal si aplica */}
+            {client.hormonal_status && ['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
+                <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 border border-pink-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                        <Heart className="w-6 h-6 text-pink-500" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-black text-pink-900 text-sm">Mi Ciclo</p>
+                        <p className="text-xs text-pink-600">{client.hormonal_status === 'pre_menopausica' ? 'Seguimiento menstrual' : client.hormonal_status === 'perimenopausica' ? 'Seguimiento perimenopáusico' : 'Seguimiento menopáusico'}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0" />
+                </button>
+            )}
+        </div>
+    );
+
+    const ConsultasTab = () => (
+        <div className="space-y-4 pb-2">
+            <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-full bg-brand-mint flex items-center justify-center flex-shrink-0">
+                    <Stethoscope className="w-5 h-5 text-brand-green" />
+                </div>
+                <div>
+                    <p className="font-black text-brand-dark text-sm">Consultas a la Dra. Odile</p>
+                    <p className="text-xs text-slate-400">Respuesta en 24-48 horas</p>
+                </div>
+            </div>
+            <MedicalReviews client={client} />
+            <div className="border-t border-slate-100 pt-4 mt-2">
+                <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-purple-500" /> Mis Informes Médicos
+                    {unreadReportsCount > 0 && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-black">{unreadReportsCount} nuevo{unreadReportsCount > 1 ? 's' : ''}</span>}
+                </p>
+                <button onClick={() => setActiveView('reports')} className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-4 border border-purple-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 relative">
+                        <FileText className="w-5 h-5 text-purple-600" />
+                        {unreadReportsCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{unreadReportsCount}</span>}
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-black text-purple-900 text-sm">Ver informes descargables</p>
+                        <p className="text-xs text-purple-600">{unreadReportsCount > 0 ? `${unreadReportsCount} nuevo${unreadReportsCount > 1 ? 's' : ''} disponible${unreadReportsCount > 1 ? 's' : ''}` : 'Informes médicos en PDF'}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-purple-300 flex-shrink-0" />
+                </button>
+            </div>
+        </div>
+    );
+
+    const ProfileTab = () => {
+        const paymentStatus = cAny.renewal_payment_status;
+        return (
+            <div className="space-y-4 pb-2">
+                {/* Hero */}
+                <div className="bg-gradient-to-br from-brand-mint/40 to-brand-mint/10 rounded-2xl p-5 text-center border border-brand-mint">
+                    <div className="w-20 h-20 bg-brand-green rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                        <span className="text-white font-heading font-black text-2xl">{(client.firstName || '?')[0].toUpperCase()}</span>
+                    </div>
+                    <h2 className="font-heading font-black text-brand-dark text-lg">{client.firstName} {client.lastName || ''}</h2>
+                    {cAny.program?.name && <span className="text-xs bg-brand-gold/20 text-amber-800 font-bold px-3 py-1 rounded-full border border-brand-gold/30 mt-1 inline-block">{cAny.program.name}</span>}
+                </div>
+
+                {/* Datos personales */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-50">
+                    {[
+                        { icon: Mail, label: 'Email', value: client.email },
+                        { icon: Phone, label: 'Teléfono', value: client.phone },
+                        { icon: MapPin, label: 'País', value: client.country },
+                    ].filter(d => d.value).map(({ icon: Icon, label, value }) => (
+                        <div key={label} className="flex items-center gap-3 px-4 py-3">
+                            <Icon className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase">{label}</p>
+                                <p className="text-sm text-brand-dark font-medium truncate">{value}</p>
                             </div>
                         </div>
+                    ))}
+                </div>
 
-                        <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart
-                                    data={[...weightHistory].reverse().map(w => ({
-                                        date: new Date(w.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
-                                        fullDate: w.date,
-                                        weight: w.weight
-                                    }))}
-                                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                                >
-                                    <defs>
-                                        <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis
-                                        dataKey="date"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        domain={['dataMin - 1', 'dataMax + 1']}
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                    />
-                                    {targetWeight && targetWeight !== startWeight && (
-                                        <ReferenceLine
-                                            y={targetWeight}
-                                            stroke="#10b981"
-                                            strokeDasharray="8 4"
-                                            strokeWidth={2}
-                                            label={{
-                                                value: `Meta: ${targetWeight} kg`,
-                                                position: 'right',
-                                                fill: '#10b981',
-                                                fontSize: 11,
-                                                fontWeight: 600
-                                            }}
-                                        />
-                                    )}
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: '#1e293b',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: '#fff',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                                        }}
-                                        itemStyle={{ color: '#fff' }}
-                                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                        cursor={{ stroke: '#4f46e5', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="weight"
-                                        stroke="#4f46e5"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorWeight)"
-                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#fff', stroke: '#4f46e5' }}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                {/* Contrato */}
+                <button onClick={() => setActiveView('contract')} className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-brand-gold" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-black text-brand-dark text-sm">Mi Contrato</p>
+                        <p className={`text-xs font-bold ${cAny.program?.contract_signed ? 'text-brand-green' : 'text-amber-600'}`}>
+                            {cAny.program?.contract_signed ? '✓ Firmado' : '⏳ Pendiente de firma'}
+                        </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                </button>
+
+                {/* Pago / Renovación */}
+                {hasRenewal && (
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border-2 border-amber-200 p-4">
+                        <p className="font-black text-amber-900 text-sm mb-1 flex items-center gap-2"><Award className="w-4 h-4" /> Renovación disponible</p>
+                        <p className="text-xs text-amber-700 mb-3">Continúa tu transformación con el programa {cAny.renewal_phase_name || 'siguiente'}.</p>
+                        {paymentStatus === 'uploaded' ? (
+                            <div className="flex items-center gap-2 bg-emerald-50 rounded-xl p-3 border border-emerald-200">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <p className="text-xs text-emerald-700 font-bold">Comprobante enviado — en verificación</p>
+                            </div>
+                        ) : (
+                            <button onClick={() => setIsPaymentModalOpen(true)} className="w-full py-3 bg-brand-gold text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                                <Upload className="w-4 h-4" /> Subir comprobante de pago
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Coach info */}
+                {coachData && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                        {coachData.photo_url ? (
+                            <img src={coachData.photo_url} className="w-12 h-12 rounded-full object-cover flex-shrink-0" alt={coachData.name} />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full bg-brand-green flex items-center justify-center text-white font-black flex-shrink-0">{coachData.name?.[0]}</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className="font-black text-brand-dark text-sm">{coachData.name}</p>
+                            <p className="text-xs text-slate-400">{coachData.specialty || 'Tu Coach'}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            {coachData.instagram && <a href={`https://instagram.com/${coachData.instagram}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Instagram className="w-4 h-4 text-pink-600" /></a>}
+                            {coachData.calendar_url && <a href={coachData.calendar_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-brand-mint/40 rounded-lg flex items-center justify-center"><Calendar className="w-4 h-4 text-brand-green" /></a>}
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
+        );
+    };
 
-            {/* WEIGHT MODAL */}
-            {isWeightModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm sm:p-4 animate-in fade-in">
-                    <div className="bg-white rounded-t-3xl sm:rounded-3xl p-8 w-full max-w-sm shadow-2xl scale-100 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
-                        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
-                        <h3 className="text-2xl font-bold mb-2 text-slate-900 text-center">Registrar Peso</h3>
-                        <p className="text-slate-500 text-center mb-6 text-sm">Introduce tu peso actual para actualizar tu progreso.</p>
-                        <form onSubmit={handleWeightSubmit}>
-                            <div className="relative mb-6">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="00.0"
-                                    className="w-full py-4 text-center text-4xl font-bold text-slate-900 border-b-2 border-slate-200 focus:border-purple-600 outline-none bg-transparent placeholder:text-slate-200 transition-colors"
-                                    value={newWeight}
-                                    onChange={e => setNewWeight(e.target.value)}
-                                    autoFocus
-                                />
-                                <span className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 font-bold">kg</span>
+    // --- BOTTOM NAV TABS CONFIG ---
+    const tabs = [
+        { id: 'home' as const, label: 'Inicio', icon: Activity },
+        { id: 'health' as const, label: 'Mi Salud', icon: Heart },
+        { id: 'program' as const, label: 'Programa', icon: BookOpen },
+        { id: 'consultas' as const, label: 'Consultas', icon: MessageCircle, badge: unreadReviewsCount + (unreadReportsCount > 0 ? 1 : 0) },
+        { id: 'profile' as const, label: 'Perfil', icon: User },
+    ];
+
+    // --- MAIN RENDER ---
+    return (
+        <div className="min-h-screen bg-[#f8faf8] flex flex-col" style={{ maxWidth: 480, margin: '0 auto' }}>
+            {/* Header fijo */}
+            <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+                <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Bienvenida,</p>
+                    <p className="font-heading font-black text-brand-dark text-base leading-none">{client.firstName} {client.lastName || ''}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    {coachData && (
+                        <div className="flex items-center gap-1.5">
+                            <div className="relative">
+                                {coachData.photo_url ? (
+                                    <img src={coachData.photo_url} className="w-8 h-8 rounded-full object-cover" alt={coachData.name} />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full bg-brand-green flex items-center justify-center text-white text-xs font-black">{coachData.name?.[0]}</div>
+                                )}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
                             </div>
-                            <div className="space-y-3">
-                                <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 disabled:opacity-50 transition-all active:scale-95">
-                                    {isSubmitting ? 'Guardando...' : 'Guardar Peso'}
-                                </button>
-                                <button type="button" onClick={() => setIsWeightModalOpen(false)} className="w-full py-4 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-colors">
-                                    Cancelar
+                            <div className="hidden sm:block">
+                                <p className="text-[9px] text-slate-400">Tu Coach</p>
+                                <p className="text-[11px] font-bold text-brand-dark leading-none">{coachData.name?.split(' ')[0]}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Contenido scrollable */}
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+                {activeTab === 'home' && <HomeTab />}
+                {activeTab === 'health' && <HealthTab />}
+                {activeTab === 'program' && <ProgramTab />}
+                {activeTab === 'consultas' && <ConsultasTab />}
+                {activeTab === 'profile' && <ProfileTab />}
+            </div>
+
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-30 pb-safe" style={{ maxWidth: 480 }}>
+                <div className="flex items-center justify-around px-2 py-2">
+                    {tabs.map(({ id, label, icon: Icon, badge }) => {
+                        const isActive = activeTab === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={() => setActiveTab(id)}
+                                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                            >
+                                <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${isActive ? 'bg-brand-mint' : ''} relative`}>
+                                    <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`} />
+                                    {badge !== undefined && badge > 0 && (
+                                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
+                                    )}
+                                </div>
+                                <span className={`text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
+
+            {/* Modal Registrar Peso */}
+            {isWeightModalOpen && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setIsWeightModalOpen(false)}>
+                    <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
+                        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+                        <h3 className="font-heading font-black text-brand-dark text-lg mb-4 flex items-center gap-2"><Scale className="w-5 h-5 text-brand-green" /> Registrar Peso</h3>
+                        <form onSubmit={handleWeightSubmit} className="space-y-4">
+                            <input
+                                type="number"
+                                step="0.1"
+                                placeholder="Ej: 72.4"
+                                value={newWeight}
+                                onChange={e => setNewWeight(e.target.value)}
+                                className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
+                                autoFocus
+                            />
+                            <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
+                                <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
                                 </button>
                             </div>
                         </form>
@@ -1692,80 +1239,24 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
             )}
 
-            {/* PAYMENT UPLOAD MODAL */}
+            {/* Modal Pago */}
             {isPaymentModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <ImageIcon className="w-8 h-8" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900">Subir Comprobante</h3>
-                            <p className="text-slate-500 text-sm mt-2">Sube una captura de pantalla o foto del recibo de pago para que tu coach pueda validarlo.</p>
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => { if (!isUploadingPayment) setIsPaymentModalOpen(false); }}>
+                    <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
+                        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+                        <h3 className="font-heading font-black text-brand-dark text-lg mb-1">Comprobante de Pago</h3>
+                        <p className="text-slate-500 text-sm mb-4">Sube una foto o PDF de tu transferencia</p>
+                        <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center mb-4 relative">
+                            <input type="file" accept="image/*,application/pdf" onChange={e => setPaymentFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                            <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500 font-medium">{paymentFile ? paymentFile.name : 'Toca para seleccionar archivo'}</p>
                         </div>
-
-                        <form onSubmit={handlePaymentUpload}>
-                            <div className="mb-6">
-                                <label
-                                    htmlFor="receipt-upload"
-                                    className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${paymentFile ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'}`}
-                                >
-                                    {paymentFile ? (
-                                        <>
-                                            <CheckCircle2 className="w-10 h-10 text-indigo-600 mb-2" />
-                                            <p className="font-bold text-indigo-900 text-sm">{paymentFile.name}</p>
-                                            <p className="text-indigo-500 text-xs mt-1">Click para cambiar</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="w-10 h-10 text-slate-300 mb-2" />
-                                            <p className="font-bold text-slate-600 text-sm">Click para seleccionar</p>
-                                            <p className="text-slate-400 text-xs mt-1">JPG, PNG, PDF</p>
-                                        </>
-                                    )}
-                                    <input
-                                        type="file"
-                                        id="receipt-upload"
-                                        className="hidden"
-                                        accept="image/*,application/pdf"
-                                        capture="environment"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            if (file.size > 10 * 1024 * 1024) {
-                                                toast.error('El archivo es demasiado grande. Máximo 10MB.');
-                                                e.target.value = '';
-                                                return;
-                                            }
-                                            setPaymentFile(file);
-                                        }}
-                                    />
-                                </label>
-                            </div>
-
-                            <div className="space-y-3">
-                                <button
-                                    type="submit"
-                                    disabled={!paymentFile || isUploadingPayment}
-                                    className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
-                                >
-                                    {isUploadingPayment ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" /> Subiendo...
-                                        </>
-                                    ) : (
-                                        'Enviar Comprobante'
-                                    )}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsPaymentModalOpen(false)}
-                                    className="w-full py-4 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
+                        <div className="flex gap-3">
+                            <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
+                            <button onClick={() => handlePaymentUpload()} disabled={!paymentFile || isUploadingPayment} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                                {isUploadingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
