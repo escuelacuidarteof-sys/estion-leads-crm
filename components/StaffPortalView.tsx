@@ -19,8 +19,9 @@ export function StaffPortalView({ user, clients }: StaffAreaViewProps) {
                 return 'Área del Coach';
             case UserRole.CLOSER:
                 return 'Área del Closer';
+            case UserRole.DOCTOR:
             case UserRole.ENDOCRINO:
-                return 'Área de Endocrinología';
+                return 'Área Médica';
             case UserRole.PSICOLOGO:
                 return 'Área de Psicología';
             case UserRole.CONTABILIDAD:

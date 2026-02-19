@@ -9,7 +9,7 @@ import { MedicalReview } from '../../types';
 interface UnifiedReview {
     id: string;
     date: string;
-    type: 'coach' | 'endocrino';
+    type: 'coach' | 'doctor';
     notes: string;
     video_url?: string;
     original?: any;
@@ -34,7 +34,7 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
             // Load coach reviews
             const coachReviews = await mockDb.getClientReviews(clientId);
 
-            // Load medical reviews (endocrino)
+            // Load medical reviews
             const medicalReviews: MedicalReview[] = await mockDb.medical.getByClient(clientId);
 
             // Convert coach reviews to unified format
@@ -53,7 +53,7 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                 .map(r => ({
                     id: r.id,
                     date: r.reviewed_at || r.submission_date,
-                    type: 'endocrino' as const,
+                    type: 'doctor' as const,
                     notes: r.doctor_notes || '',
                     video_url: r.doctor_video_url,
                     original: r
@@ -89,7 +89,7 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold">Historial de Revisiones</h1>
-                                <p className="text-pink-100">Feedback de tu coach y respuestas del endocrino</p>
+                                <p className="text-pink-100">Feedback de tu coach y respuestas de tu equipo médico</p>
                             </div>
                         </div>
                     </div>
@@ -107,7 +107,7 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-700 mb-2">Aún no tienes revisiones</h3>
                                 <p className="text-slate-500 max-w-sm mx-auto">
-                                    Aquí aparecerán las revisiones de tu coach y las respuestas del endocrino. ¡Mantente atento!
+                                    Aquí aparecerán las revisiones de tu coach y las respuestas de tu equipo médico. ¡Mantente atento!
                                 </p>
                             </div>
                         ) : (
@@ -115,18 +115,18 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                                 {/* LISTA DE REVISIONES */}
                                 {reviews.map((review, idx) => {
                                     const isLatest = idx === 0;
-                                    const isEndocrino = review.type === 'endocrino';
-                                    const isInitialAssessment = isEndocrino && review.original?.report_type === 'Valoración Inicial';
+                                    const isDoctor = review.type === 'doctor';
+                                    const isInitialAssessment = isDoctor && review.original?.report_type === 'Valoración Inicial';
                                     // For coach reviews, use currentWeeklyComments as fallback for latest
-                                    const notes = review.notes || (isLatest && !isEndocrino && currentWeeklyComments) || "Sin notas adicionales.";
+                                    const notes = review.notes || (isLatest && !isDoctor && currentWeeklyComments) || "Sin notas adicionales.";
                                     const hasUrl = !!review.video_url;
 
                                     // Colors based on review type
                                     const accentColor = isInitialAssessment
                                         ? { border: 'border-indigo-200', shadow: 'shadow-indigo-50', ring: 'ring-indigo-100', gradient: 'from-indigo-500 to-purple-500' }
-                                        : isEndocrino
-                                        ? { border: 'border-teal-200', shadow: 'shadow-teal-50', ring: 'ring-teal-100', gradient: 'from-teal-500 to-emerald-500' }
-                                        : { border: 'border-pink-200', shadow: 'shadow-pink-50', ring: 'ring-pink-100', gradient: 'from-pink-500 to-rose-500' };
+                                        : isDoctor
+                                            ? { border: 'border-teal-200', shadow: 'shadow-teal-50', ring: 'ring-teal-100', gradient: 'from-teal-500 to-emerald-500' }
+                                            : { border: 'border-pink-200', shadow: 'shadow-pink-50', ring: 'ring-pink-100', gradient: 'from-pink-500 to-rose-500' };
 
                                     return (
                                         <div key={review.id || idx} className={`group relative bg-white rounded-2xl border transition-all duration-300 ${isLatest ? `${accentColor.border} shadow-lg ${accentColor.shadow} ring-1 ${accentColor.ring}` : 'border-slate-200 hover:shadow-md'}`}>
@@ -137,9 +137,9 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                                             )}
 
                                             {/* Type badge */}
-                                            <div className={`absolute -top-3 right-6 px-3 py-1 ${isInitialAssessment ? 'bg-indigo-100 text-indigo-700' : isEndocrino ? 'bg-teal-100 text-teal-700' : 'bg-pink-100 text-pink-700'} text-xs font-bold uppercase tracking-wide rounded-full flex items-center gap-1`}>
-                                                {isEndocrino ? <Stethoscope className="w-3 h-3" /> : <Video className="w-3 h-3" />}
-                                                {isInitialAssessment ? 'Valoración Inicial' : isEndocrino ? 'Endocrino' : 'Coach'}
+                                            <div className={`absolute -top-3 right-6 px-3 py-1 ${isInitialAssessment ? 'bg-indigo-100 text-indigo-700' : isDoctor ? 'bg-teal-100 text-teal-700' : 'bg-pink-100 text-pink-700'} text-xs font-bold uppercase tracking-wide rounded-full flex items-center gap-1`}>
+                                                {isDoctor ? <Stethoscope className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                                {isInitialAssessment ? 'Valoración Inicial' : isDoctor ? 'Equipo Médico' : 'Coach'}
                                             </div>
 
                                             <div className="p-6 pt-8 flex flex-col sm:flex-row gap-6">
@@ -157,14 +157,14 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                                                 {/* Middle: Notes */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start gap-3 mb-2">
-                                                        {isEndocrino ? (
+                                                        {isDoctor ? (
                                                             <Stethoscope className="w-5 h-5 text-teal-500 mt-0.5 shrink-0" />
                                                         ) : (
                                                             <MessageSquare className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
                                                         )}
                                                         <div>
                                                             <h4 className="font-bold text-slate-800 text-sm uppercase mb-1">
-                                                                {isInitialAssessment ? 'Valoración Inicial del Endocrino' : isEndocrino ? 'Respuesta del Endocrino' : 'Feedback del Coach'}
+                                                                {isInitialAssessment ? 'Valoración Inicial Médica' : isDoctor ? 'Respuesta de tu Equipo Médico' : 'Feedback del Coach'}
                                                             </h4>
                                                             <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
                                                                 {notes}
@@ -180,7 +180,7 @@ export function ReviewsView({ clientId, onBack, currentWeeklyComments }: Reviews
                                                             href={review.video_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 ${isInitialAssessment ? 'bg-indigo-600 hover:bg-indigo-700' : isEndocrino ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-900 hover:bg-slate-800'} text-white rounded-xl font-bold transition-transform transform active:scale-95 shadow-lg shadow-slate-200`}
+                                                            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 ${isInitialAssessment ? 'bg-indigo-600 hover:bg-indigo-700' : isDoctor ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-900 hover:bg-slate-800'} text-white rounded-xl font-bold transition-transform transform active:scale-95 shadow-lg shadow-slate-200`}
                                                         >
                                                             <PlayCircle className="w-5 h-5" />
                                                             <span>Ver Video</span>

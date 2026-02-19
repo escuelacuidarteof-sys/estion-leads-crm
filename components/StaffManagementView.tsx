@@ -23,7 +23,7 @@ const ROLE_DETAILS: Record<string, { icon: any, color: string, description: stri
     [UserRole.CLOSER]: { icon: Target, color: 'bg-emerald-600', description: 'Ventas y registro de altas' },
     [UserRole.SETTER]: { icon: Share2, color: 'bg-amber-600', description: 'Prospección y leads' },
     [UserRole.CONTABILIDAD]: { icon: Calculator, color: 'bg-rose-600', description: 'Gestión de cobros y facturas' },
-    [UserRole.ENDOCRINO]: { icon: Stethoscope, color: 'bg-cyan-600', description: 'Revisiones médicas especializadas' },
+    [UserRole.DOCTOR]: { icon: Stethoscope, color: 'bg-cyan-600', description: 'Consulta de Salud y acompañamiento médico' },
     [UserRole.PSICOLOGO]: { icon: Brain, color: 'bg-purple-600', description: 'Apoyo psicológico a alumnos' },
     [UserRole.RRSS]: { icon: Bell, color: 'bg-pink-600', description: 'Gestión de anuncios y comunidad' },
     [UserRole.DIRECCION]: { icon: Building2, color: 'bg-slate-800', description: 'Visión ejecutiva y control de negocio' }

@@ -66,7 +66,7 @@ export function MedicalReportsView({ clientId, clientName, onBack }: MedicalRepo
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold">Mis Informes Médicos</h1>
-                                <p className="text-purple-200">Informes del endocrino disponibles para descarga</p>
+                                <p className="text-purple-200">Informes médicos disponibles para descarga</p>
                             </div>
                         </div>
                     </div>
@@ -84,7 +84,7 @@ export function MedicalReportsView({ clientId, clientName, onBack }: MedicalRepo
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-700 mb-2">Sin informes médicos</h3>
                                 <p className="text-slate-500 max-w-sm mx-auto">
-                                    Aquí aparecerán los informes que tu endocrino elabore para ti. Podrás descargarlos en formato PDF.
+                                    Aquí aparecerán los informes que tu equipo médico elabore para ti. Podrás descargarlos en formato PDF.
                                 </p>
                             </div>
                         ) : (

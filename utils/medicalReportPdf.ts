@@ -61,7 +61,7 @@ export function parseSections(doctorNotes: string): { title: string; content: st
 
 /**
  * Generates and downloads a medical report PDF.
- * Works for both endocrino view (from stored data) and create view (from form data).
+ * Works for both medical view (from stored data) and create view (from form data).
  */
 export function generateMedicalReportPdf(report: MedicalReportData, options: PdfOptions) {
   const parsed = parseDoctorInfo(report.comments);

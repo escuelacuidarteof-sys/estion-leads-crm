@@ -4,7 +4,9 @@ import { ShieldAlert, X } from 'lucide-react';
 import { UserRole } from '../../types';
 
 interface SecurityMigrationBannerProps {
-    clientId: string;
+    clientId?: string;
+    clientName?: string;
+    onMigrate?: (email: string, password: string) => Promise<void>;
 }
 
 export const SecurityMigrationBanner: React.FC<SecurityMigrationBannerProps> = ({ clientId }) => {

@@ -53,7 +53,7 @@ let ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     [UserRole.CONTABILIDAD]: [
         PERMISSIONS.VIEW_FINANCE
     ],
-    [UserRole.ENDOCRINO]: [
+    [UserRole.DOCTOR]: [
         PERMISSIONS.VIEW_MEDICAL,
         PERMISSIONS.MANAGE_MEDICAL,
         PERMISSIONS.VIEW_CLIENTS
@@ -72,6 +72,8 @@ let ROLE_PERMISSIONS: Record<UserRole, string[]> = {
         PERMISSIONS.VIEW_FINANCE,
         PERMISSIONS.MANAGE_TEAM
     ],
+    [UserRole.DIETITIAN]: [],
+    [UserRole.SUPER_ADMIN]: Object.values(PERMISSIONS),
     [UserRole.CLIENT]: []
 };
 

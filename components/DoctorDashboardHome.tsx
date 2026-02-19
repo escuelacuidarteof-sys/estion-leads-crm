@@ -3,14 +3,14 @@ import { User, MedicalReview } from '../types';
 import { mockDb } from '../services/mockSupabase';
 import { Stethoscope, ClipboardCheck, CalendarClock, DollarSign, ArrowRight, Activity, AlertTriangle, ClipboardList, FileText, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
 
-interface EndocrinoDashboardHomeProps {
+interface DoctorDashboardHomeProps {
     currentUser: User;
     onNavigate: (view: string) => void;
 }
 
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ currentUser, onNavigate }) => {
+const DoctorDashboardHome: React.FC<DoctorDashboardHomeProps> = ({ currentUser, onNavigate }) => {
     const [loading, setLoading] = useState(true);
     const [allReviews, setAllReviews] = useState<MedicalReview[]>([]);
     const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -112,7 +112,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                     </div>
                     Hola, Dr/a. {currentUser.name.split(' ')[0]}
                 </h1>
-                <p className="text-slate-500 mt-2 text-lg">Bienvenido a tu panel de control médico.</p>
+                <p className="text-slate-500 mt-2 text-lg">Bienvenida a tu panel de acompañamiento.</p>
             </div>
 
             {/* Pending Items Alert Banner */}
@@ -129,7 +129,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                             <p className="text-amber-100 text-sm mt-0.5">
                                 {[
                                     globalPendingInitial > 0 && `${globalPendingInitial} valoraci${globalPendingInitial > 1 ? 'ones' : 'ón'} inicial${globalPendingInitial > 1 ? 'es' : ''}`,
-                                    globalPendingReviews > 0 && `${globalPendingReviews} revisi${globalPendingReviews > 1 ? 'ones' : 'ón'} médica${globalPendingReviews > 1 ? 's' : ''}`
+                                    globalPendingReviews > 0 && `${globalPendingReviews} consulta${globalPendingReviews > 1 ? 's' : ''} de alumnos`
                                 ].filter(Boolean).join(' y ')}
                             </p>
                         </div>
@@ -137,7 +137,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                     <div className="flex gap-2 shrink-0">
                         {globalPendingInitial > 0 && (
                             <button
-                                onClick={() => onNavigate('endocrino-initial-reports')}
+                                onClick={() => onNavigate('doctor-initial-reports')}
                                 className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl text-sm transition-colors flex items-center gap-2"
                             >
                                 Valoraciones <ArrowRight className="w-4 h-4" />
@@ -197,7 +197,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                         </div>
                         <p className="text-4xl font-black text-indigo-700 mt-2">{loading ? '-' : stats.initialAssessments}</p>
                         <button
-                            onClick={() => onNavigate('endocrino-initial-reports')}
+                            onClick={() => onNavigate('doctor-initial-reports')}
                             className="mt-4 text-indigo-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
                         >
                             Ver informes <ArrowRight className="w-4 h-4" />
@@ -213,7 +213,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                                 <AlertTriangle className="w-5 h-5" />
                             </div>
-                            <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider">Revisiones Recibidas</h3>
+                            <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider">Consultas Recibidas</h3>
                         </div>
                         <p className="text-4xl font-black text-slate-800 mt-2">{loading ? '-' : stats.revisionsReceived}</p>
                         <button
@@ -233,7 +233,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                                 <ClipboardCheck className="w-5 h-5" />
                             </div>
-                            <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider">Revisiones Realizadas</h3>
+                            <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider">Consultas Respondidas</h3>
                         </div>
                         <p className="text-4xl font-black text-slate-800 mt-2">{loading ? '-' : stats.revisionsDone}</p>
                     </div>
@@ -251,7 +251,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                         </div>
                         <p className="text-4xl font-black text-purple-700 mt-2">{loading ? '-' : stats.medicalReports}</p>
                         <button
-                            onClick={() => onNavigate('endocrino-medical-reports')}
+                            onClick={() => onNavigate('doctor-medical-reports')}
                             className="mt-4 text-purple-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
                         >
                             Ver informes <ArrowRight className="w-4 h-4" />
@@ -271,7 +271,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                         {pendingInitialReviews.map(review => (
                             <div
                                 key={review.id}
-                                onClick={() => onNavigate('endocrino-initial-reports')}
+                                onClick={() => onNavigate('doctor-initial-reports')}
                                 className="bg-white p-5 rounded-2xl border border-indigo-100 hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all group"
                             >
                                 <div className="flex items-center gap-4">
@@ -307,8 +307,8 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                     <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 mb-3 group-hover:scale-110 transition-transform">
                         <Stethoscope className="w-6 h-6" />
                     </div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-emerald-700">Revisiones Médicas</h3>
-                    <p className="text-xs text-slate-500 mt-1">Gestionar y responder consultas</p>
+                    <h3 className="font-bold text-slate-900 group-hover:text-emerald-700">Consultas de Alumnos</h3>
+                    <p className="text-xs text-slate-500 mt-1">Ver y responder preguntas de alumnos</p>
                 </button>
 
                 <button
@@ -323,7 +323,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                 </button>
 
                 <button
-                    onClick={() => onNavigate('endocrino-medical-reports')}
+                    onClick={() => onNavigate('doctor-medical-reports')}
                     className="bg-white p-4 rounded-xl border border-slate-200 hover:border-purple-500 hover:shadow-purple-100 hover:shadow-lg transition-all text-left group"
                 >
                     <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 mb-3 group-hover:scale-110 transition-transform">
@@ -345,7 +345,7 @@ const EndocrinoDashboardHome: React.FC<EndocrinoDashboardHomeProps> = ({ current
                 </button>
 
                 <button
-                    onClick={() => onNavigate('endocrino-invoices')}
+                    onClick={() => onNavigate('doctor-invoices')}
                     className="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-500 hover:shadow-amber-100 hover:shadow-lg transition-all text-left group"
                 >
                     <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 mb-3 group-hover:scale-110 transition-transform">
@@ -395,4 +395,4 @@ function LayoutDashboardIcon(props: any) {
     )
 }
 
-export default EndocrinoDashboardHome;
+export default DoctorDashboardHome;

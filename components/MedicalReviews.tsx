@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, MedicalReview, UserRole } from '../types';
 import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
-import { Stethoscope, FileText, Send, Clock, CheckCircle2, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { MessageCircle, FileText, Send, Clock, CheckCircle2, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
 interface MedicalReviewsProps {
     client: Client;
@@ -22,7 +22,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
         treatment_details: client.medical?.currentTreatment || '',
         medication: client.medical?.medication,
         comments: '',
-        report_type: 'Analítica',
+        report_type: 'Compartir Analítica',
         file_urls: []
     });
 
@@ -102,7 +102,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 treatment_details: client.medical?.currentTreatment || '',
                 medication: client.medical?.medication,
                 comments: '',
-                report_type: 'Analítica',
+                report_type: 'Compartir Analítica',
                 file_urls: []
             });
         } catch (err) {
@@ -124,12 +124,12 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 <div>
                     <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                         <div className="bg-purple-100 p-2 rounded-xl text-purple-600">
-                            <Stethoscope className="w-6 h-6" />
+                            <MessageCircle className="w-6 h-6" />
                         </div>
-                        Revisiones Médicas (Endocrino)
+                        Preguntas a la Dra Odile
                     </h2>
                     <p className="text-slate-500 mt-2 max-w-xl">
-                        Espacio privado para compartir tus analíticas y consultas médicas con nuestro equipo de endocrinología.
+                        Espacio privado para enviar tus dudas, analíticas o información relevante a la Dra Odile. Ella revisará y te responderá.
                     </p>
                 </div>
 
@@ -147,7 +147,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                             onClick={() => setShowForm(true)}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-200 flex items-center gap-2 transition-transform hover:scale-105"
                         >
-                            <Plus className="w-5 h-5" /> Nueva Solicitud
+                            <Plus className="w-5 h-5" /> Nueva Consulta
                         </button>
                     )}
                 </div>
@@ -158,7 +158,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 <div className="bg-white rounded-3xl shadow-lg border border-purple-100 overflow-hidden relative">
                     <div className="bg-purple-50 p-6 border-b border-purple-100 flex justify-between items-center">
                         <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                            <FileText className="w-5 h-5" /> Nueva Solicitud de Revisión
+                            <FileText className="w-5 h-5" /> Nueva Consulta a la Dra Odile
                         </h3>
                         <button onClick={() => setShowForm(false)} className="text-purple-400 hover:text-purple-700 transition-colors">
                             <X className="w-6 h-6" />
@@ -170,16 +170,16 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                             {/* COL 1 */}
                             <div className="space-y-5">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Tipo de Informe</label>
+                                    <label className="text-sm font-bold text-slate-700">Tipo de Consulta</label>
                                     <select
                                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 outline-none transition-all font-medium"
                                         value={formData.report_type}
                                         onChange={e => setFormData({ ...formData, report_type: e.target.value })}
                                     >
-                                        <option value="Analítica">Analítica</option>
-                                        <option value="Revisión General">Revisión General</option>
+                                        <option value="Compartir Analítica">Compartir Analítica</option>
+                                        <option value="Duda General">Duda General</option>
                                         <option value="Consulta Específica">Consulta Específica</option>
-                                        <option value="Urgencia">Urgencia</option>
+                                        <option value="Tema Urgente">Tema Urgente</option>
                                     </select>
                                 </div>
 
@@ -345,10 +345,10 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
 
                             {/* FULL WIDTH */}
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Comentarios / Dudas para el Endocrino</label>
+                                <label className="text-sm font-bold text-slate-700">Tu mensaje para la Dra Odile</label>
                                 <textarea
                                     className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none min-h-[120px] focus:ring-2 focus:ring-purple-500/20"
-                                    placeholder="Explica qué tal duermes, niveles de energía, dolores, o preguntas específicas..."
+                                    placeholder="Cuéntale lo que necesites: cómo te encuentras, dudas sobre alimentación, resultados de pruebas..."
                                     value={formData.comments}
                                     onChange={e => setFormData({ ...formData, comments: e.target.value })}
                                     required
@@ -370,7 +370,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                 className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-purple-200 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {submitting ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" /> : <Send className="w-5 h-5" />}
-                                Enviar Solicitud
+                                Enviar Consulta
                             </button>
                         </div>
                     </form>
@@ -386,9 +386,9 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                         <div className="bg-white p-4 rounded-full shadow-sm w-16 h-16 flex items-center justify-center mx-auto mb-4">
                             <FileText className="w-8 h-8 text-slate-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-700 mb-1">Sin Revisiones</h3>
+                        <h3 className="text-lg font-bold text-slate-700 mb-1">Sin Consultas</h3>
                         <p className="text-slate-500 max-w-sm mx-auto">
-                            No has enviado ninguna solicitud todavía. Usa el botón "Nueva Solicitud" cuando necesites revisión.
+                            Aún no has enviado ninguna consulta. Usa el botón "Nueva Consulta" cuando necesites hablar con la Dra Odile.
                         </p>
                     </div>
                 ) : (
@@ -432,7 +432,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                             {review.status === 'reviewed' && (
                                 <div className="mt-4 bg-emerald-50/50 rounded-xl p-5 border border-emerald-100 animate-in fade-in">
                                     <h4 className="font-bold text-emerald-900 flex items-center gap-2 mb-3">
-                                        <Stethoscope className="w-4 h-4" /> Respuesta del Endocrino
+                                        <MessageCircle className="w-4 h-4" /> Respuesta de la Dra Odile
                                     </h4>
 
                                     {review.doctor_video_url && (

@@ -2246,7 +2246,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            <Stethoscope className={`w-4 h-4 ${formData.allow_endocrine_access ? 'text-emerald-500' : 'text-slate-400'}`} />
                         </div>
                         <div className="text-left flex-1">
-                           <div className="font-medium">{formData.allow_endocrine_access ? 'Desactivar Endocrino' : 'Activar Endocrino'}</div>
+                           <div className="font-medium">{formData.allow_endocrine_access ? 'Desactivar Consulta Médica' : 'Activar Consulta Médica'}</div>
                            <div className="text-xs text-slate-400">{formData.allow_endocrine_access ? 'Acceso activo' : 'Sin acceso'}</div>
                         </div>
                         {formData.allow_endocrine_access && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
@@ -2411,7 +2411,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            </span>
                            {client.allow_endocrine_access && (
                               <span className="flex items-center gap-1.5 bg-emerald-500/30 px-2.5 py-1 rounded-lg font-medium">
-                                 <Stethoscope className="w-3.5 h-3.5" /> Endocrino
+                                 <Stethoscope className="w-3.5 h-3.5" /> Consulta Médica
                               </span>
                            )}
                            {/* Account Status Indicator */}

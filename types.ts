@@ -11,6 +11,7 @@ export enum UserRole {
   DIRECCION = 'direccion',
   DIETITIAN = 'dietitian',
   DOCTOR = 'doctor',
+  ENDOCRINO = 'doctor',
   SUPER_ADMIN = 'super_admin'
 }
 
@@ -95,6 +96,7 @@ export interface MedicalData {
   medicalNotes?: string;       // Notas médicas generales
   medicalReviews?: string;
   otherConditions?: string;
+  diabetesType?: string;
 
   // --- Oncología ---
   oncology_status?: string;              // Estado oncológico (ej: "En remisión - hormonoterapia activa")
@@ -308,6 +310,7 @@ export interface Client {
   ltv?: number;
   payments_status?: string;
   high_ticket?: boolean;
+  renewal_phase?: string;
 
   // CRM Tracking
   last_contact_date?: string;
@@ -443,6 +446,11 @@ export interface MedicalReview {
   reviewed_by?: string;
   created_at: string;
   client_name?: string;
+
+  // Legacy/compatibility fields
+  diabetes_type?: string;
+  active_treatments?: string;
+  treatment_details?: string;
 }
 
 export interface Alert {

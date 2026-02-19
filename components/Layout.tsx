@@ -357,7 +357,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
               >
                 <NavItem view="doctor-dashboard" icon={LayoutDashboard} label="Mi Dashboard" />
                 <NavItem view="doctor-initial-reports" icon={ClipboardList} label="Informes Iniciales" />
-                <NavItem view="medical-reviews" icon={ClipboardCheck} label="Revisiones Médicas" />
+                <NavItem view="medical-reviews" icon={ClipboardCheck} label="Consultas Alumnos" />
                 <NavItem view="create-medical-report" icon={FileText} label="Crear Informe" />
                 <NavItem view="doctor-medical-reports" icon={FileText} label="Mis Informes" />
                 <NavItem view="coach-agenda" icon={CalendarClock} label="Mi Agenda" />
@@ -466,7 +466,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   </>
                 )}
                 {checkPermission(user, PERMISSIONS.VIEW_MEDICAL) && (
-                  <NavItem view="medical-reviews" icon={Stethoscope} label="Área Médica" />
+                  <NavItem view="medical-reviews" icon={MessageCircle} label="Preguntas Dra Odile" />
                 )}
                 <NavItem view="testimonials" icon={Star} label="Testimonios" />
                 {(checkPermission(user, PERMISSIONS.MANAGE_SETTINGS) && !isRRSS) && (
@@ -627,7 +627,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
               >
                 <NavItem view="doctor-dashboard" icon={LayoutDashboard} label="Mi Dashboard" />
                 <NavItem view="doctor-initial-reports" icon={ClipboardList} label="Informes Iniciales" />
-                <NavItem view="medical-reviews" icon={ClipboardCheck} label="Revisiones Médicas" />
+                <NavItem view="medical-reviews" icon={ClipboardCheck} label="Consultas Alumnos" />
                 <NavItem view="create-medical-report" icon={FileText} label="Crear Informe" />
                 <NavItem view="doctor-medical-reports" icon={FileText} label="Mis Informes" />
               </MenuSection>
@@ -734,7 +734,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   </>
                 )}
                 {checkPermission(user, PERMISSIONS.VIEW_MEDICAL) && (
-                  <NavItem view="medical-reviews" icon={Stethoscope} label="Área Médica" />
+                  <NavItem view="medical-reviews" icon={MessageCircle} label="Preguntas Dra Odile" />
                 )}
                 <NavItem view="testimonials" icon={Star} label="Testimonios" />
                 {(checkPermission(user, PERMISSIONS.MANAGE_SETTINGS) && !isRRSS) && (

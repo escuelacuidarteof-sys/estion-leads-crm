@@ -3,17 +3,18 @@ import { User, Client, MedicalReview, UserRole } from '../types';
 import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
 import { checkPermission, PERMISSIONS } from '../utils/permissions';
+import { normalizeRole } from '../utils/roleUtils';
 import { Stethoscope, Search, Clock, CheckCircle2, Video, User as UserIcon, Save, X, Lock, FileText, Image, ExternalLink, Download, ClipboardList } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import InitialPatientReport from './InitialPatientReport';
 
-interface EndocrinoDashboardProps {
+interface DoctorDashboardProps {
     currentUser: User;
     onNavigateToClient?: (clientId: string) => void;
     mode?: 'reviews' | 'initial-reports';
 }
 
-const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, onNavigateToClient, mode = 'reviews' }) => {
+const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ currentUser, onNavigateToClient, mode = 'reviews' }) => {
     const [reviews, setReviews] = useState<MedicalReview[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedReview, setSelectedReview] = useState<MedicalReview | null>(null);
@@ -30,8 +31,8 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
     const [loadingClient, setLoadingClient] = useState(false);
 
     const canManage = checkPermission(currentUser, PERMISSIONS.MANAGE_MEDICAL);
-    const isCoach = currentUser.role === UserRole.COACH || currentUser.role === UserRole.HEAD_COACH;
-    const isEndocrino = currentUser.role === UserRole.ENDOCRINO;
+    const isCoach = normalizeRole(currentUser.role) === 'coach' || normalizeRole(currentUser.role) === 'head_coach';
+    const isDoctor = normalizeRole(currentUser.role) === 'doctor';
 
     const isInitialReportsMode = mode === 'initial-reports';
 
@@ -246,12 +247,12 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
                         <div className={`p-2 rounded-xl ${isInitialReportsMode ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
                             {isInitialReportsMode ? <ClipboardList className="w-8 h-8" /> : <Stethoscope className="w-8 h-8" />}
                         </div>
-                        {isInitialReportsMode ? 'Informes Iniciales' : 'Revisiones Médicas'}
+                        {isInitialReportsMode ? 'Informes Iniciales' : 'Consultas de Salud'}
                     </h1>
                     <p className="text-slate-500 mt-1">
                         {isInitialReportsMode
                             ? 'Valoraciones iniciales de nuevos pacientes pendientes de revisión.'
-                            : 'Gestiona las revisiones médicas de los alumnos.'}
+                            : 'Gestiona las consultas de salud de los alumnos.'}
                     </p>
                 </div>
 
@@ -380,7 +381,7 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
                                 {selectedReview.report_type === 'Valoración Inicial' ? 'Valoración Inicial' : 'Revisión'} — {(selectedReview as any).client_name}
                             </h2>
                             <div className="flex items-center gap-2">
-                                {(selectedReview.status === 'reviewed' || (isEndocrino && doctorNotes)) && (
+                                {(selectedReview.status === 'reviewed' || (isDoctor && doctorNotes)) && (
                                     <button
                                         onClick={generateMedicalReport}
                                         className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
@@ -564,4 +565,4 @@ const EndocrinoDashboard: React.FC<EndocrinoDashboardProps> = ({ currentUser, on
     );
 };
 
-export default EndocrinoDashboard;
+export default DoctorDashboard;

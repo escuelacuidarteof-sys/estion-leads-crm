@@ -14,7 +14,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-interface EndocrinoInvoice {
+interface DoctorInvoice {
     id: string;
     user_id: string;
     user_name: string;
@@ -28,12 +28,12 @@ interface EndocrinoInvoice {
     paid_at?: string;
 }
 
-interface EndocrinoInvoicesProps {
+interface DoctorInvoicesProps {
     currentUser: User;
 }
 
-const EndocrinoInvoices: React.FC<EndocrinoInvoicesProps> = ({ currentUser }) => {
-    const [invoices, setInvoices] = useState<EndocrinoInvoice[]>([]);
+const DoctorInvoices: React.FC<DoctorInvoicesProps> = ({ currentUser }) => {
+    const [invoices, setInvoices] = useState<DoctorInvoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -217,11 +217,10 @@ const EndocrinoInvoices: React.FC<EndocrinoInvoicesProps> = ({ currentUser }) =>
                             <div key={invoice.id} className="p-5 hover:bg-slate-50 transition-colors">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                            invoice.status === 'paid'
-                                                ? 'bg-emerald-100 text-emerald-600'
-                                                : 'bg-amber-100 text-amber-600'
-                                        }`}>
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${invoice.status === 'paid'
+                                            ? 'bg-emerald-100 text-emerald-600'
+                                            : 'bg-amber-100 text-amber-600'
+                                            }`}>
                                             <FileText className="w-6 h-6" />
                                         </div>
                                         <div>
@@ -244,11 +243,10 @@ const EndocrinoInvoices: React.FC<EndocrinoInvoicesProps> = ({ currentUser }) =>
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                            invoice.status === 'paid'
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : 'bg-amber-100 text-amber-700'
-                                        }`}>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${invoice.status === 'paid'
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : 'bg-amber-100 text-amber-700'
+                                            }`}>
                                             {invoice.status === 'paid' ? 'Pagada' : 'Pendiente'}
                                         </span>
                                         <a
@@ -286,11 +284,10 @@ const EndocrinoInvoices: React.FC<EndocrinoInvoicesProps> = ({ currentUser }) =>
                             {/* File Upload */}
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Archivo de Factura *</label>
-                                <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
-                                    selectedFile
-                                        ? 'border-emerald-300 bg-emerald-50'
-                                        : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
-                                }`}>
+                                <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors ${selectedFile
+                                    ? 'border-emerald-300 bg-emerald-50'
+                                    : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                                    }`}>
                                     <input
                                         type="file"
                                         accept=".pdf,.jpg,.jpeg,.png"
@@ -388,4 +385,4 @@ const EndocrinoInvoices: React.FC<EndocrinoInvoicesProps> = ({ currentUser }) =>
     );
 };
 
-export default EndocrinoInvoices;
+export default DoctorInvoices;

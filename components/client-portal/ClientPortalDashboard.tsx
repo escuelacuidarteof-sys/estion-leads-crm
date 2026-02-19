@@ -146,7 +146,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             const { count: reportsCount } = await reportsQuery;
             setUnreadReportsCount(reportsCount || 0);
 
-            // 2. Revisiones no leídas (valoración inicial + analíticas del endocrino)
+            // 2. Revisiones no leídas (valoración inicial + analíticas del profesional de salud)
             const reviewsLastSeen = localStorage.getItem(REVIEWS_READ_KEY);
             let medicalQuery = supabase
                 .from('medical_reviews')
@@ -826,7 +826,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 <Stethoscope className="w-7 h-7 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold">Tienes novedades del endocrino</h2>
+                                <h2 className="text-lg font-bold">Tienes novedades de tu equipo de salud</h2>
                                 <p className="text-purple-100 text-sm mt-0.5">
                                     {[
                                         unreadReportsCount > 0 && `${unreadReportsCount} informe${unreadReportsCount > 1 ? 's' : ''} nuevo${unreadReportsCount > 1 ? 's' : ''}`,
@@ -1470,7 +1470,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             </h3>
                             <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
                                 <button
-                                    onClick={() => activeView !== 'checkin' && setActiveView('checkin')}
+                                    onClick={() => setActiveView('checkin')}
                                     className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-200 hover:shadow-xl transition-all group"
                                 >
                                     <div className="flex items-center gap-3">
@@ -1540,7 +1540,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 {client.allow_endocrine_access && (
                                     <div onClick={() => setActiveView('medical')} className="group cursor-pointer bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.98]">
                                         <div className="w-12 h-12 rounded-xl bg-white text-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><Stethoscope className="w-6 h-6" /></div>
-                                        <div className="flex-1"><h4 className="font-bold text-emerald-900 text-sm">Endocrinología</h4><p className="text-xs text-emerald-700">Premium Access</p></div><ChevronRight className="w-5 h-5 text-emerald-400" />
+                                        <div className="flex-1"><h4 className="font-bold text-emerald-900 text-sm">Mi Salud</h4><p className="text-xs text-emerald-700">Consultas y seguimiento</p></div><ChevronRight className="w-5 h-5 text-emerald-400" />
                                     </div>
                                 )}
                                 {client.hormonal_status && ['mujer', 'femenino', 'female'].includes(client.gender?.toLowerCase() || '') && (
@@ -1550,8 +1550,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             <h4 className="font-bold text-pink-900 text-sm">Mi Ciclo</h4>
                                             <p className="text-xs text-pink-700">
                                                 {client.hormonal_status === 'pre_menopausica' ? 'Seguimiento menstrual' :
-                                                 client.hormonal_status === 'perimenopausica' ? 'Seguimiento perimenopáusico' :
-                                                 'Seguimiento menopáusico'}
+                                                    client.hormonal_status === 'perimenopausica' ? 'Seguimiento perimenopáusico' :
+                                                        'Seguimiento menopáusico'}
                                             </p>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-pink-400" />

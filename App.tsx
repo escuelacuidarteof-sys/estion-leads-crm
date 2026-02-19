@@ -29,11 +29,11 @@ const InvoicesManagement = lazy(() => import('./components/InvoicesManagement').
 const TestimonialsManager = lazy(() => import('./components/TestimonialsManager').then(m => ({ default: m.TestimonialsManager })));
 const PaymentLinksLibrary = lazy(() => import('./components/PaymentLinksLibrary').then(m => ({ default: m.PaymentLinksLibrary })));
 const TeamDirectory = lazy(() => import('./components/TeamDirectory'));
-const EndocrinoDashboard = lazy(() => import('./components/EndocrinoDashboard'));
-const EndocrinoDashboardHome = lazy(() => import('./components/EndocrinoDashboardHome'));
-const EndocrinoInvoices = lazy(() => import('./components/EndocrinoInvoices'));
+const DoctorDashboard = lazy(() => import('./components/DoctorDashboard'));
+const DoctorDashboardHome = lazy(() => import('./components/DoctorDashboardHome'));
+const DoctorInvoices = lazy(() => import('./components/DoctorInvoices'));
 const CreateMedicalReport = lazy(() => import('./components/CreateMedicalReport'));
-const EndocrinoMedicalReports = lazy(() => import('./components/EndocrinoMedicalReports'));
+const DoctorMedicalReports = lazy(() => import('./components/DoctorMedicalReports'));
 const NewSaleForm = lazy(() => import('./components/NewSaleForm').then(m => ({ default: m.NewSaleForm })));
 const CloserDashboard = lazy(() => import('./components/CloserDashboard').then(m => ({ default: m.CloserDashboard })));
 const CoachCapacityManagement = lazy(() => import('./components/CoachCapacityManagement').then(m => ({ default: m.CoachCapacityManagement })));
@@ -626,17 +626,17 @@ const AppContent: React.FC = () => {
             onDeleteUser={mockAdmin.deleteUser}
           />
         ) : activeView === 'medical-reviews' ? (
-          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="reviews" />
+          <DoctorDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="reviews" />
         ) : activeView === 'doctor-initial-reports' ? (
-          <EndocrinoDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="initial-reports" />
+          <DoctorDashboard currentUser={user} onNavigateToClient={handleViewClientById} mode="initial-reports" />
         ) : activeView === 'create-medical-report' ? (
           <CreateMedicalReport currentUser={user} />
         ) : activeView === 'doctor-medical-reports' ? (
-          <EndocrinoMedicalReports currentUser={user} />
+          <DoctorMedicalReports currentUser={user} />
         ) : activeView === 'doctor-dashboard' ? (
-          <EndocrinoDashboardHome currentUser={user} onNavigate={handleNavigate} />
+          <DoctorDashboardHome currentUser={user} onNavigate={handleNavigate} />
         ) : activeView === 'doctor-invoices' ? (
-          <EndocrinoInvoices currentUser={user} />
+          <DoctorInvoices currentUser={user} />
         ) : activeView === 'new-sale' ? (
           <NewSaleForm currentUser={user} />
         ) : activeView === 'closer-dashboard' ? (
@@ -744,7 +744,7 @@ const AppContent: React.FC = () => {
               initialProject="Global"
             />
           ) : normalizeRole(user.role) === 'doctor' ? (
-            <EndocrinoDashboardHome currentUser={user} onNavigate={handleNavigate} />
+            <DoctorDashboardHome currentUser={user} onNavigate={handleNavigate} />
           ) : (
             <Dashboard
               clients={filteredClients}

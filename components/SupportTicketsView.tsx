@@ -606,7 +606,7 @@ export function SupportTicketsView({ user, clients }: SupportTicketsViewProps) {
                                         <option value="nutricion">Nutrición</option>
                                         <option value="entrenamiento">Entrenamiento</option>
                                         <option value="facturacion">Pagos / Facturación</option>
-                                        <option value="medico">Médico / Endocrino</option>
+                                        <option value="medico">Equipo Médico</option>
                                         <option value="otros">Otros</option>
                                     </select>
                                 </div>

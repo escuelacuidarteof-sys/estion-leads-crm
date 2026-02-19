@@ -34,7 +34,7 @@ interface Invoice {
     submitted_at: string;
     coach_notes?: string;
     paid_at?: string; // Fecha de pago
-    updated_at?: string;
+    updated_at: string;
     // Bank details
     bank_account_holder?: string;
     bank_account_iban?: string;
@@ -100,7 +100,7 @@ export function InvoicesManagement({ currentUser }: InvoicesManagementProps) {
 
     const normalizedRole = (currentUser.role || '').toLowerCase();
     const isAdminOrAccounting = ['admin', 'contabilidad', 'direccion'].includes(normalizedRole);
-    const availableRoles = [UserRole.COACH, UserRole.CLOSER, UserRole.ENDOCRINO, UserRole.PSICOLOGO, UserRole.CONTABILIDAD];
+    const availableRoles = [UserRole.COACH, UserRole.CLOSER, UserRole.DOCTOR, UserRole.PSICOLOGO, UserRole.CONTABILIDAD];
 
     // --- DATA FETCHING ---
     useEffect(() => {
@@ -152,7 +152,7 @@ export function InvoicesManagement({ currentUser }: InvoicesManagementProps) {
                 if (!resolvedRole) {
                     const name = (inv.coach_name || '').toLowerCase();
                     if (name.includes('closer')) resolvedRole = 'closer';
-                    else if (name.includes('endocrino') || name.includes('doctor')) resolvedRole = 'endocrino';
+                    else if (name.includes('salud') || name.includes('doctor') || name.includes('médico')) resolvedRole = 'doctor';
                     else if (name.includes('psico')) resolvedRole = 'psicologo';
                     else if (name.includes('coach') || name.includes('jesús') || name.includes('jesus')) resolvedRole = 'coach';
                     else resolvedRole = 'colaborador';

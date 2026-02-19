@@ -452,7 +452,7 @@ const CreateMedicalReport: React.FC<CreateMedicalReportProps> = ({ currentUser }
                               Informe del {new Date(report.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                             <p className="text-xs text-slate-400">
-                              Por {report.reviewed_by || 'Endocrino'}
+                              Por {report.reviewed_by || 'Equipo Médico'}
                             </p>
                           </div>
                         </div>

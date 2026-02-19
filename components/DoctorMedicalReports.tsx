@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { parseDoctorInfo, parseClientNameFromComments, generateMedicalReportPdf } from '../utils/medicalReportPdf';
 
-interface EndocrinoMedicalReportsProps {
+interface DoctorMedicalReportsProps {
   currentUser: User;
 }
 
@@ -24,7 +24,7 @@ interface MedicalReport {
   created_at: string;
 }
 
-const EndocrinoMedicalReports: React.FC<EndocrinoMedicalReportsProps> = ({ currentUser }) => {
+const DoctorMedicalReports: React.FC<DoctorMedicalReportsProps> = ({ currentUser }) => {
   const [reports, setReports] = useState<MedicalReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -185,4 +185,4 @@ const EndocrinoMedicalReports: React.FC<EndocrinoMedicalReportsProps> = ({ curre
   );
 };
 
-export default EndocrinoMedicalReports;
+export default DoctorMedicalReports;
