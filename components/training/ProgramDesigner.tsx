@@ -6,7 +6,7 @@ import {
     ClipboardList, X, Search, ChevronRight, ChevronDown,
     ChevronUp, Save, RotateCcw,
     Sparkles, Dumbbell, ArrowRight,
-    MousePointer2, Footprints, GripVertical
+    MousePointer2, Footprints, GripVertical, Edit3
 } from 'lucide-react';
 import { TrainingProgram, ProgramDay, ProgramActivity, Workout, Exercise } from '../../types';
 import { WorkoutEditor } from './WorkoutEditor';
@@ -62,7 +62,7 @@ export function ProgramDesigner({
     const [selectedDay, setSelectedDay] = useState<{ week: number; day: number } | null>(null);
     const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(() => new Set([0]));
     const [addingToDay, setAddingToDay] = useState<{ week: number; day: number } | null>(null);
-    const [editingActivity, setEditingActivity] = useState<{ dayNumber: number; activity: ProgramActivity } | null>(null);
+    const [editingActivity, setEditingActivity] = useState<{ dayNumber: number; weekIndex: number; activity: ProgramActivity } | null>(null);
 
     const filteredWorkouts = useMemo(() =>
         availableWorkouts.filter(w =>
@@ -434,7 +434,7 @@ export function ProgramDesigner({
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         const absoluteDay = (weekIndex * 7) + dayIndex + 1;
-                                                                                        setEditingActivity({ dayNumber: absoluteDay, activity });
+                                                                                        setEditingActivity({ dayNumber: absoluteDay, weekIndex, activity });
                                                                                     }}
                                                                                     className={`px-2 py-1.5 bg-gradient-to-r ${getActivityColor(activity.type)} text-white rounded-lg flex items-center gap-1.5 group/act shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer`}
                                                                                 >
@@ -719,6 +719,26 @@ export function ProgramDesigner({
                                 </div>
                             )}
 
+                            {editingActivity.activity.type === 'workout' && (
+                                <button
+                                    onClick={() => {
+                                        const workout = availableWorkouts.find(w => w.id === editingActivity.activity.activity_id);
+                                        if (workout) {
+                                            setEditingWorkout({
+                                                workout,
+                                                weekIndex: editingActivity.weekIndex,
+                                                dayIndex: editingActivity.dayNumber - (editingActivity.weekIndex * 7) - 1
+                                            });
+                                            setEditingActivity(null);
+                                        }
+                                    }}
+                                    className="w-full py-4 bg-brand-green/10 text-brand-green font-black rounded-xl border border-brand-green/20 hover:bg-brand-green/20 transition-all flex items-center justify-center gap-2 mb-2"
+                                >
+                                    <Edit3 className="w-4 h-4" />
+                                    Editar Ejercicios y Superseries
+                                </button>
+                            )}
+
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción / Notas</label>
                                 <textarea
@@ -752,8 +772,9 @@ export function ProgramDesigner({
                         </div>
                     </div>
                 </div>
-            )}
-        </div>,
+            )
+            }
+        </div >,
         document.body
     );
 };

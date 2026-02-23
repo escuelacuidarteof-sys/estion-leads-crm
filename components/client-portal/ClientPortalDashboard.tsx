@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { trainingService } from '../../services/trainingService';
 import {
     AreaChart,
     Area,
@@ -14,7 +15,7 @@ import {
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
-    Moon, Shield, Sparkles
+    Moon, Shield, Sparkles, CheckCircle, Camera
 } from 'lucide-react';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -62,6 +63,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [newWeight, setNewWeight] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
+
+    // Today's Tasks
+    const [todayProgramDay, setTodayProgramDay] = useState<any | null>(null);
+    const [todayWorkout, setTodayWorkout] = useState<any | null>(null);
+    const [todayActivityLogs, setTodayActivityLogs] = useState<any[]>([]);
+    const [isTodayTasksLoading, setIsTodayTasksLoading] = useState(false);
 
     // Unread badges
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
@@ -127,6 +134,48 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         }
         setLoading(false);
     }
+
+    // Load today tasks
+    useEffect(() => {
+        const loadTodayTasks = async () => {
+            setIsTodayTasksLoading(true);
+            try {
+                const asgn = await trainingService.getClientAssignment(client.id);
+                if (!asgn) return;
+                const prog = await trainingService.getProgramById(asgn.program_id);
+                if (!prog) return;
+
+                const startDate = new Date(asgn.start_date);
+                const now = new Date();
+                const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
+                const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
+                const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
+
+                let currentDayIndex = now.getDay() || 7;
+
+                const todayDay = prog.days?.find((d: any) => d.week_number === clampedWeek && d.day_number === currentDayIndex);
+                if (todayDay) {
+                    setTodayProgramDay(todayDay);
+                    const logs = await trainingService.getClientActivityLogs(client.id, todayDay.id);
+                    setTodayActivityLogs(logs);
+
+                    const workoutActivity = todayDay.activities?.find((a: any) => a.type === 'workout');
+                    if (workoutActivity) {
+                        const workoutId = workoutActivity.activity_id || workoutActivity.workout_id;
+                        if (workoutId) {
+                            const w = await trainingService.getWorkoutById(workoutId);
+                            setTodayWorkout(w);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading today tasks:", err);
+            } finally {
+                setIsTodayTasksLoading(false);
+            }
+        };
+        loadTodayTasks();
+    }, [client.id]);
 
     // --- Unread notifications logic ---
     const REPORTS_READ_KEY = `ec_crm_reports_last_seen_${client.id}`;
@@ -715,85 +764,160 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     // --- TAB CONTENT ---
 
     const HomeTab = () => (
-        <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Hero Card */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 blur-[100px] -mr-32 -mt-32 rounded-full" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-mint/10 blur-[100px] -ml-32 -mb-32 rounded-full" />
+        <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Extended Hero Card */}
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-dark via-[#1a2e1a] to-[#0a140a] p-8 md:p-10 shadow-2xl">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-brand-green/20 blur-[120px] -mr-32 -mt-32 rounded-full pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-mint/10 blur-[100px] -ml-32 -mb-32 rounded-full pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 mb-2">
-                            <Sparkles className="w-3.5 h-3.5 text-brand-mint" />
-                            <span className="text-[10px] text-white font-black uppercase tracking-widest">{oncologyStatus || 'Programa Activo'}</span>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                    <div className="space-y-4 flex-1">
+                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg mb-2">
+                            <Sparkles className="w-4 h-4 text-brand-mint" />
+                            <span className="text-[11px] text-white font-black uppercase tracking-widest">{oncologyStatus || 'Programa Activo'}</span>
                         </div>
-                        <h2 className="text-3xl font-heading font-black text-white leading-tight">
+                        <h2 className="text-4xl md:text-5xl font-heading font-black text-white leading-[1.1]">
                             Tu transformación <br /><span className="text-brand-mint">está en marcha.</span>
                         </h2>
-                        {programWeekCurrent > 0 && (
-                            <p className="text-slate-400 text-sm font-medium">Semana {programWeekCurrent} de {programWeekTotal} · 24 días restantes</p>
+                        {programWeekTotal > 0 && (
+                            <div className="flex flex-col gap-2 mt-6 max-w-sm">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-white font-bold text-sm">Progreso del programa</span>
+                                    <span className="text-brand-mint font-black text-xs">Semana {programWeekCurrent} de {programWeekTotal}</span>
+                                </div>
+                                <div className="h-2.5 bg-white/10 rounded-full overflow-hidden w-full backdrop-blur-md">
+                                    <div className="h-full bg-gradient-to-r from-brand-mint to-brand-green rounded-full shadow-[0_0_10px_rgba(107,160,107,0.5)] transition-all duration-1000" style={{ width: `${programProgress}%` }} />
+                                </div>
+                            </div>
                         )}
                     </div>
 
-                    <div className="flex flex-col items-center justify-center bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/10 min-w-[180px]">
-                        <p className="text-white/60 text-xs font-black uppercase tracking-widest mb-1">Tu Energía</p>
-                        <div className="relative w-24 h-24 flex items-center justify-center">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 * (1 - (energyVal || 0) / 10)} className="text-brand-mint transition-all duration-1000" strokeLinecap="round" />
+                    <div className="flex flex-col items-center justify-center bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border border-white/10 min-w-[200px] shadow-2xl ring-1 ring-white/5 relative group cursor-default">
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-3">Tu Energía</p>
+                        <div className="relative w-28 h-28 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
+                                <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                                <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={289.02} strokeDashoffset={289.02 * (1 - (energyVal || 0) / 10)} className="text-brand-mint transition-all duration-1000 ease-out" strokeLinecap="round" />
                             </svg>
-                            <span className="absolute text-2xl font-black text-white">{energyVal || '—'}</span>
+                            <span className="absolute text-4xl font-black text-white">{energyVal || '—'}</span>
                         </div>
-                        <p className="text-brand-mint text-[10px] font-bold mt-2">Nivel Óptimo</p>
+                        <p className="text-brand-green-dark text-[10px] font-black mt-3 bg-brand-mint px-3 py-1 rounded-full shadow-sm">Nivel Actual</p>
                     </div>
                 </div>
             </div>
 
+            {/* Daily Tasks Section */}
+            <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+                <div className="flex items-center justify-between mb-5 px-2">
+                    <h3 className="text-xl font-heading font-black text-brand-dark flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-brand-green" /> Tareas de Hoy
+                    </h3>
+                    <button onClick={() => setActiveTab('program')} className="text-xs font-bold text-brand-green hover:text-brand-green-dark hover:underline transition-all">Ver programa completo</button>
+                </div>
+
+                {isTodayTasksLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="h-28 bg-slate-100 animate-pulse rounded-[2rem]" />
+                        <div className="h-28 bg-slate-100 animate-pulse rounded-[2rem]" />
+                    </div>
+                ) : todayProgramDay && todayProgramDay.activities && todayProgramDay.activities.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {todayProgramDay.activities.map((activity: any) => {
+                            const isCompleted = todayActivityLogs.some((l: any) => l.activity_id === activity.id);
+                            const ACTIVITY_META: Record<string, { label: string, icon: any, color: string, bg: string, ring: string }> = {
+                                workout: { label: 'Entrenamiento', icon: Dumbbell, color: 'text-brand-green', bg: 'bg-brand-mint/40', ring: 'group-hover:ring-brand-green/30' },
+                                walking: { label: 'Caminata', icon: Footprints, color: 'text-pink-600', bg: 'bg-pink-100', ring: 'group-hover:ring-pink-300' },
+                                metrics: { label: 'Métricas', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-100', ring: 'group-hover:ring-amber-300' },
+                                photo: { label: 'Foto progreso', icon: Camera, color: 'text-cyan-500', bg: 'bg-cyan-100', ring: 'group-hover:ring-cyan-300' },
+                                form: { label: 'Check-in', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-100', ring: 'group-hover:ring-teal-300' },
+                                custom: { label: 'Tarea', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-100', ring: 'group-hover:ring-violet-300' },
+                            };
+                            const type = activity.type || 'custom';
+                            const meta = ACTIVITY_META[type] || ACTIVITY_META.custom;
+                            const Icon = meta.icon;
+
+                            return (
+                                <button
+                                    key={activity.id}
+                                    onClick={() => setActiveView('training')}
+                                    className={`bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200/40 border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl text-left flex items-center justify-between group flex-row ${isCompleted ? 'border-brand-green/30 opacity-80' : 'border-transparent hover:border-brand-mint/50'}`}
+                                >
+                                    <div className="flex gap-4 items-center">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all ring-4 ring-transparent ${meta.ring} ${isCompleted ? 'bg-brand-green/10' : meta.bg}`}>
+                                            {isCompleted ? <CheckCircle className="w-6 h-6 text-brand-green drop-shadow-sm" /> : <Icon className={`w-6 h-6 ${meta.color}`} />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-heading font-black text-brand-dark text-lg leading-tight">{activity.title || meta.label}</p>
+                                            {activity.description && <p className="text-xs text-slate-500 mt-1 line-clamp-1 font-medium">{activity.description}</p>}
+                                        </div>
+                                    </div>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isCompleted ? 'bg-brand-green/10' : 'bg-slate-50 group-hover:bg-slate-100'}`}>
+                                        <ChevronRight className={`w-5 h-5 ${isCompleted ? 'text-brand-green' : 'text-slate-300 group-hover:text-slate-500'}`} />
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 text-center shadow-inner relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-mint/20 rounded-full blur-[40px] -mr-10 -mt-10" />
+                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 rotate-3 transform relative z-10">
+                            <CheckCircle className="w-10 h-10 text-brand-mint" />
+                        </div>
+                        <h4 className="text-xl font-heading font-black text-brand-dark relative z-10">¡Todo cubierto por hoy!</h4>
+                        <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto relative z-10 font-medium leading-relaxed">Hoy no tienes tareas programadas. Aprovecha para descansar, desconectar y recuperarte bien.</p>
+                    </div>
+                )}
+            </div>
+
             {/* Priority Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                 {/* Priority Banners */}
                 {hasRenewal && (
-                    <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl p-5 flex flex-col justify-between shadow-xl shadow-amber-500/20 group hover:scale-[1.02] transition-all">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                                <Award className="w-6 h-6 text-white" />
+                    <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-[2rem] p-6 flex flex-col justify-between shadow-xl shadow-amber-500/20 group hover:scale-[1.02] transition-transform">
+                        <div className="flex items-start gap-4 mb-5">
+                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                <Award className="w-7 h-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-white font-black text-base italic">Nueva Etapa</p>
-                                <p className="text-white/80 text-xs">Renovación ya disponible</p>
+                                <p className="text-white font-black text-lg italic leading-tight">Nueva Etapa</p>
+                                <p className="text-white/80 text-sm font-medium mt-1">Renovación ya disponible</p>
                             </div>
                         </div>
-                        <button onClick={() => setActiveTab('profile')} className="w-full bg-white text-amber-600 font-black py-3 rounded-2xl shadow-lg ring-4 ring-white/20 hover:ring-white/40 transition-all">Continuar Progreso</button>
+                        <button onClick={() => setActiveTab('profile')} className="w-full bg-white text-amber-600 font-black py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider">Continuar Progreso</button>
                     </div>
                 )}
 
                 {hasNewReviews && (
-                    <div className="bg-gradient-to-br from-brand-green to-brand-green-dark rounded-3xl p-5 flex flex-col justify-between shadow-xl shadow-brand-green/20 group hover:scale-[1.02] transition-all">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                                <MessageCircle className="w-6 h-6 text-white" />
+                    <div className="bg-gradient-to-br from-brand-green to-[#2DA061] rounded-[2rem] p-6 flex flex-col justify-between shadow-xl shadow-brand-green/20 group hover:scale-[1.02] transition-transform">
+                        <div className="flex items-start gap-4 mb-5">
+                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                <MessageCircle className="w-7 h-7 text-white" />
                             </div>
                             <div>
-                                <p className="text-white font-black text-base italic">Nueva Revisión</p>
-                                <p className="text-white/80 text-xs">Feedback personalizado listo</p>
+                                <p className="text-white font-black text-lg italic leading-tight">Nueva Revisión</p>
+                                <p className="text-white/80 text-sm font-medium mt-1">Feedback personalizado listo</p>
                             </div>
                         </div>
-                        <button onClick={() => setActiveView('reviews')} className="w-full bg-white text-brand-green-dark font-black py-3 rounded-2xl shadow-lg ring-4 ring-white/20 hover:ring-white/40 transition-all">Ver Respuesta</button>
+                        <button onClick={() => setActiveView('reviews')} className="w-full bg-white text-brand-green-dark font-black py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider">Ver Respuesta</button>
                     </div>
                 )}
 
                 {!hasRenewal && !hasNewReviews && needsCheckin && (
-                    <div className="bg-white rounded-3xl p-5 border-2 border-brand-mint flex flex-col justify-between shadow-xl shadow-slate-100 group hover:scale-[1.02] transition-all">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center">
-                                <Calendar className="w-6 h-6" />
+                    <div className="bg-white rounded-[2rem] p-6 border-2 border-brand-mint flex flex-col justify-between shadow-xl shadow-brand-mint/20 group hover:scale-[1.02] transition-transform relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-mint/30 rounded-full blur-[30px] -mr-8 -mt-8" />
+                        <div className="flex items-start gap-4 mb-5 relative z-10">
+                            <div className="w-14 h-14 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center">
+                                <Calendar className="w-7 h-7" />
                             </div>
                             <div>
-                                <p className="text-brand-dark font-black text-base italic">Check-in Semanal</p>
-                                <p className="text-slate-500 text-xs">Cuéntanos cómo vas</p>
+                                <p className="text-brand-dark font-black text-lg italic leading-tight">Check-in Semanal</p>
+                                <p className="text-slate-500 text-sm font-medium mt-1">Cuéntanos cómo vas</p>
                             </div>
                         </div>
-                        <button onClick={() => setActiveView('checkin')} className="w-full bg-brand-green text-white font-black py-3 rounded-2xl shadow-lg hover:shadow-brand-green/30 transition-all">Completar ahora</button>
+                        <button onClick={() => setActiveView('checkin')} className="w-full bg-brand-green text-white font-black py-3.5 rounded-xl shadow-lg hover:shadow-brand-green/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider relative z-10">Completar ahora</button>
                     </div>
                 )}
             </div>

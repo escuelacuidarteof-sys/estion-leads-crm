@@ -194,16 +194,20 @@ export const trainingService = {
                 if (blockError) throw blockError;
 
                 if (block.exercises && block.exercises.length > 0) {
-                    const exerciseInserts = block.exercises.map((we, index) => ({
-                        block_id: savedBlock.id,
-                        exercise_id: we.exercise_id || we.exercise?.id,
-                        sets: we.sets,
-                        reps: we.reps,
-                        rest_seconds: we.rest_seconds,
-                        notes: we.notes,
-                        superset_id: we.superset_id || null,
-                        position: index
-                    }));
+                    const exerciseInserts = block.exercises.map((we, index) => {
+                        const sRounds = we.superset_rounds || we.sets || 3;
+                        return {
+                            block_id: savedBlock.id,
+                            exercise_id: we.exercise_id || we.exercise?.id,
+                            sets: we.superset_id ? sRounds : (we.sets || 3),
+                            reps: we.reps,
+                            rest_seconds: we.rest_seconds,
+                            notes: we.notes,
+                            superset_id: we.superset_id || null,
+                            superset_rounds: we.superset_id ? sRounds : null,
+                            position: index
+                        };
+                    });
 
                     const { error: exError } = await supabase
                         .from('training_workout_exercises')

@@ -204,6 +204,9 @@ function WorkoutDetail({ workout }: WorkoutDetailProps) {
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border-b border-amber-100">
                                         <Zap className="w-3 h-3 text-amber-500" />
                                         <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Superserie</span>
+                                        {segment.exercises[0]?.superset_rounds && (
+                                            <span className="text-[10px] font-bold text-amber-500 ml-auto">{segment.exercises[0].superset_rounds} rondas</span>
+                                        )}
                                     </div>
                                     {segment.exercises.map((we, idx) => (
                                         <div key={we.id} className={`px-1 ${idx < segment.exercises.length - 1 ? 'border-b border-amber-100' : ''}`}>

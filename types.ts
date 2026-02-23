@@ -859,6 +859,7 @@ export interface WorkoutExercise {
   exercise_id: string;
   exercise?: Exercise; // Loaded via join
   superset_id?: string;
+  superset_rounds?: number;
   sets: number;
   reps: string;
   rest_seconds: number;

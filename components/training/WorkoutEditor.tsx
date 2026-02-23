@@ -177,14 +177,20 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
             if (block.id === blockId) {
                 const ex1 = block.exercises.find(e => e.id === exerciseId1);
                 const ex2 = block.exercises.find(e => e.id === exerciseId2);
-                const supersetId = ex1?.superset_id || ex2?.superset_id || Math.random().toString(36).substring(2, 10);
+                const existingSupersetId = ex1?.superset_id || ex2?.superset_id;
+                const supersetId = existingSupersetId || Math.random().toString(36).substring(2, 10);
+                // Get existing rounds from the superset or default to 3
+                const existingRounds = existingSupersetId
+                    ? block.exercises.find(e => e.superset_id === existingSupersetId && e.superset_rounds)?.superset_rounds || 3
+                    : 3;
                 return {
                     ...block,
-                    exercises: block.exercises.map(ex =>
-                        ex.id === exerciseId1 || ex.id === exerciseId2
-                            ? { ...ex, superset_id: supersetId }
-                            : ex
-                    )
+                    exercises: block.exercises.map(ex => {
+                        if (ex.id === exerciseId1 || ex.id === exerciseId2) {
+                            return { ...ex, superset_id: supersetId, superset_rounds: existingRounds };
+                        }
+                        return ex;
+                    })
                 };
             }
             return block;
@@ -197,7 +203,21 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                 return {
                     ...block,
                     exercises: block.exercises.map(ex =>
-                        ex.superset_id === supersetId ? { ...ex, superset_id: undefined } : ex
+                        ex.superset_id === supersetId ? { ...ex, superset_id: undefined, superset_rounds: undefined, sets: 3 } : ex
+                    )
+                };
+            }
+            return block;
+        }));
+    };
+
+    const updateSupersetRounds = (blockId: string, supersetId: string, rounds: number) => {
+        setBlocks(prev => prev.map(block => {
+            if (block.id === blockId) {
+                return {
+                    ...block,
+                    exercises: block.exercises.map(ex =>
+                        ex.superset_id === supersetId ? { ...ex, superset_rounds: rounds } : ex
                     )
                 };
             }
@@ -412,6 +432,16 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                                         <Zap className="w-3 h-3 text-amber-500" />
                                                                         <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Superserie</span>
                                                                     </div>
+                                                                    <div className="flex items-center gap-1.5 bg-amber-50 rounded-xl px-3 py-1.5 ml-2">
+                                                                        <span className="text-[10px] font-black text-amber-500 uppercase">Rondas</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            value={item.superset_rounds || 3}
+                                                                            onChange={(e) => updateSupersetRounds(selectedBlock.id, item.superset_id!, parseInt(e.target.value) || 1)}
+                                                                            className="w-10 bg-transparent border-none text-amber-700 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
+                                                                        />
+                                                                    </div>
                                                                     <button
                                                                         onClick={() => breakSuperset(selectedBlock.id, item.superset_id!)}
                                                                         className="ml-auto text-[10px] text-amber-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 hover:bg-red-50 rounded-full"
@@ -472,6 +502,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
 
                                                                     {/* Parameters Row */}
                                                                     <div className="flex items-center gap-3">
+                                                                        {!item.superset_id && (
                                                                         <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
                                                                             <span className="text-[10px] font-black text-slate-400 uppercase">Series</span>
                                                                             <input
@@ -481,6 +512,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                                                 className="w-10 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
                                                                             />
                                                                         </div>
+                                                                        )}
                                                                         <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
                                                                             <span className="text-[10px] font-black text-slate-400 uppercase">Reps</span>
                                                                             <input
