@@ -6,7 +6,8 @@ import {
     WorkoutExercise,
     TrainingProgram,
     ProgramDay,
-    ProgramActivity
+    ProgramActivity,
+    ClientTrainingAssignment
 } from '../types';
 
 export const trainingService = {
@@ -58,6 +59,26 @@ export const trainingService = {
             .eq('id', id);
 
         if (error) throw error;
+    },
+
+    async findOrCreateExercise(name: string): Promise<Exercise> {
+        // Try to find existing first
+        const { data: existing, error: findError } = await supabase
+            .from('training_exercises')
+            .select('*')
+            .ilike('name', name)
+            .limit(1)
+            .maybeSingle();
+
+        if (existing) return existing;
+
+        // Create new if not found
+        return this.createExercise({
+            name,
+            equipment: 'Gimnasio',
+            type: 'Fuerza',
+            muscle_main: 'Varios'
+        });
     },
 
     // --- WORKOUTS ---
@@ -323,7 +344,61 @@ export const trainingService = {
                 activities: (day.training_program_activities || []).sort((a: any, b: any) => a.position - b.position)
             }))
         };
-    }
+    },
+
+    async addProgramDay(programId: string, day: Partial<ProgramDay>): Promise<ProgramDay> {
+        const { data: savedDay, error: dayError } = await supabase
+            .from('training_program_days')
+            .insert({
+                program_id: programId,
+                week_number: day.week_number,
+                day_number: day.day_number
+            })
+            .select()
+            .single();
+
+        if (dayError) throw dayError;
+
+        if (day.activities && day.activities.length > 0) {
+            const activityInserts = day.activities.map((act, index) => ({
+                day_id: savedDay.id,
+                type: act.type,
+                activity_id: act.activity_id,
+                workout_id: act.workout_id,
+                title: act.title,
+                description: act.description,
+                position: index,
+                color: act.color
+            }));
+
+            const { error: actError } = await supabase.from('training_program_activities').insert(activityInserts);
+            if (actError) throw actError;
+        }
+
+        return savedDay;
+    },
+
+    async deleteProgram(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('training_programs')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async getClientAssignment(clientId: string): Promise<ClientTrainingAssignment | null> {
+        const { data, error } = await supabase
+            .from('client_training_assignments')
+            .select('*')
+            .eq('client_id', clientId)
+            .order('assigned_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) return null;
+        return data;
+    },
 };
 
 export default trainingService;

@@ -617,7 +617,7 @@ const AppContent: React.FC = () => {
         ) : activeView === 'nutrition-management' ? (
           <NutritionManagement currentUser={user} />
         ) : activeView === 'training-management' ? (
-          <TrainingManagement />
+          <TrainingManagement currentUser={user} />
         ) : activeView === 'invoices' ? (
           <InvoicesManagement currentUser={user} />
         ) : activeView === 'testimonials' ? (

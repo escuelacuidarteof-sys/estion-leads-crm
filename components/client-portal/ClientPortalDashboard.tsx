@@ -37,6 +37,7 @@ import ClientMaterials from '../../components/ClientMaterials';
 import { ContractView } from './ContractView';
 import { MedicalReportsView } from './MedicalReportsView';
 import { CycleTrackingView } from './CycleTrackingView';
+import { TrainingView } from './TrainingView';
 
 interface WeightEntry {
     id: string;
@@ -54,7 +55,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const toast = useToast();
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
@@ -667,6 +668,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     if (activeView === 'cycle') return (
         <CycleTrackingView client={client} onBack={() => setActiveView('dashboard')} />
     );
+    if (activeView === 'training') return (
+        <TrainingView client={client} onBack={() => setActiveView('dashboard')} />
+    );
 
     // --- HELPERS ---
     const energyVal = client.energy_level ?? null;
@@ -1065,7 +1069,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
             )}
 
-            {/* Grid de recursos 2x2 */}
+            {/* Grid de recursos */}
             <div className="grid grid-cols-2 gap-3">
                 {[
                     { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'bg-violet-50', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
@@ -1084,6 +1088,18 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                     </button>
                 ))}
+                <button
+                    onClick={() => setActiveView('training')}
+                    className="col-span-2 bg-white rounded-2xl p-4 border border-brand-mint shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left"
+                >
+                    <div className="w-12 h-12 bg-brand-mint rounded-xl flex items-center justify-center">
+                        <Dumbbell className="w-6 h-6 text-brand-green" />
+                    </div>
+                    <div>
+                        <p className="font-black text-brand-dark text-sm">Entrenamientos</p>
+                        <p className="text-xs text-slate-400">Tu programa semanal</p>
+                    </div>
+                </button>
             </div>
 
             {/* Ciclo hormonal si aplica */}

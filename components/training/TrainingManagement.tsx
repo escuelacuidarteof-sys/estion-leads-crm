@@ -6,13 +6,18 @@ import {
 import { WorkoutEditor } from './WorkoutEditor';
 import { ProgramDesigner } from './ProgramDesigner';
 import { ExerciseEditor } from './ExerciseEditor';
+import { AIProgramImporter } from './AIProgramImporter';
 import { Exercise, Workout, TrainingProgram } from '../../types';
 import { trainingService } from '../../services/trainingService';
 import { ExerciseMediaUtils } from '../../utils/exerciseMedia';
 
 type TrainingView = 'overview' | 'exercises' | 'workouts' | 'programs';
 
-export function TrainingManagement() {
+interface TrainingManagementProps {
+    currentUser?: any;
+}
+
+export function TrainingManagement({ currentUser }: TrainingManagementProps) {
     const [activeView, setActiveView] = useState<TrainingView>('overview');
     const [exercises, setExercises] = useState<Exercise[]>([]);
     const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -20,6 +25,7 @@ export function TrainingManagement() {
     const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
     const [editingExercise, setEditingExercise] = useState<Exercise | null | 'new'>(null);
+    const [showAIImporter, setShowAIImporter] = useState(false);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState('');
@@ -147,6 +153,9 @@ export function TrainingManagement() {
                     </button>
                     <button onClick={() => setSelectedProgram({ id: '', name: '', weeks_count: 4, days: [] } as any)} className="px-5 py-2.5 bg-brand-green text-white font-black rounded-xl shadow-lg shadow-brand-green/20 hover:scale-105 transition-all flex items-center gap-2">
                         <Plus className="w-4 h-4" /> Programa
+                    </button>
+                    <button onClick={() => setShowAIImporter(true)} className="px-5 py-2.5 bg-gradient-to-r from-brand-green to-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-yellow-300" /> IA Program
                     </button>
                 </div>
             </div>
@@ -438,6 +447,18 @@ export function TrainingManagement() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* AI Program Importer Modal */}
+            {showAIImporter && (
+                <AIProgramImporter
+                    currentUser={currentUser}
+                    onSuccess={(program) => {
+                        setShowAIImporter(false);
+                        fetchData();
+                        setSelectedProgram(program);
+                    }}
+                    onClose={() => setShowAIImporter(false)}
+                />
             )}
         </div>
     );
