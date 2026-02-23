@@ -131,37 +131,40 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
         }
     };
 
-    const getMasterPromptForClipboard = () => {
-        const structure = `
-        {
-          "program": {
-            "name": "Nombre del Programa",
-            "description": "Descripción",
-            "weeks_count": ${config.weeks}
-          },
-          "days": [
+    const getJsonStructureOnly = () => {
+        return `{
+  "program": {
+    "name": "Nombre del Programa",
+    "description": "Breve resumen",
+    "weeks_count": ${config.weeks}
+  },
+  "days": [
+    {
+      "week_number": 1,
+      "day_number": 1,
+      "activity": {
+        "type": "workout",
+        "title": "Nombre del Entrenamiento",
+        "description": "Enfoque del día",
+        "workout_data": {
+          "name": "Nombre Entrenamiento",
+          "blocks": [
             {
-              "week_number": 1,
-              "day_number": 1,
-              "activity": {
-                "type": "workout",
-                "title": "Empuje A",
-                "description": "Enfoque",
-                "workout_data": {
-                  "name": "Empuje A",
-                  "blocks": [
-                    {
-                      "name": "Parte Principal",
-                      "exercises": [
-                        { "exercise_name": "Nombre Ejercicio", "sets": 3, "reps": "10", "rest_seconds": 60, "notes": "" }
-                      ]
-                    }
-                  ]
-                }
-              }
+              "name": "Calentamiento / Principal / Vuelta a calma",
+              "exercises": [
+                { "exercise_name": "Nombre Ejercicio", "sets": 3, "reps": "12", "rest_seconds": 60, "notes": "" }
+              ]
             }
           ]
-        }`;
+        }
+      }
+    }
+  ]
+}`;
+    };
+
+    const getMasterPromptForClipboard = () => {
+        const structure = getJsonStructureOnly();
 
         return `Actúa como un experto preparador físico. Genera un programa de entrenamiento magistral y devuélvelo ÚNICAMENTE en formato JSON para que pueda importarlo directamente en mi CRM.
 
@@ -173,14 +176,14 @@ ESPECIFICACIONES DEL PROGRAMA:
 - Duración: ${config.weeks} semanas
 - Notas adicionales: ${config.notes}
 
-INSTRUCCIONES TÉCNICAS PARA LA RESPUESTA:
-1. Traduce todo el contenido al ESPAÑOL.
-2. Usa nombres de ejercicios estándar y profesionales.
-3. La respuesta debe ser exclusivamente un bloque de código JSON con esta estructura exacta (puedes añadir tantos días y ejercicios como sea necesario para cubrir las ${config.weeks} semanas):
+INSTRUCCIONES TÉCNICAS:
+1. Traduce todo al ESPAÑOL.
+2. Usa nombres de ejercicios estándar.
+3. Devuelve los datos exactamente en este formato JSON (puedes añadir tantos días y bloques como necesites):
 
 ${structure}
 
-IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pueda copiarlo y pegarlo directamente.`;
+IMPORTANTE: No añadas texto antes ni después del bloque de código JSON.`;
     };
 
     return (
@@ -292,17 +295,28 @@ IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pu
                                         />
                                     </div>
 
-                                    <div className="pt-4">
+                                    <div className="space-y-3 pt-4">
                                         <button
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getMasterPromptForClipboard());
-                                                alert("Instrucciones copiadas con éxito 🚀");
+                                                alert("Instrucciones completas copiadas 🚀");
                                             }}
                                             className="w-full py-5 bg-gradient-to-r from-brand-green to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-black shadow-xl shadow-brand-green/25 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                                         >
-                                            <Copy className="w-5 h-5" /> COPIAR INSTRUCCIONES PARA GEMINI
+                                            <Copy className="w-5 h-5" /> COPIAR PROMPT PARA GEMINI
                                         </button>
-                                        <p className="text-[10px] text-slate-400 text-center mt-3 font-medium">Configura los parámetros arriba antes de copiar</p>
+
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(getJsonStructureOnly());
+                                                alert("Estructura JSON copiada 📄");
+                                            }}
+                                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <FileText className="w-4 h-4" /> Sólo copiar estructura JSON
+                                        </button>
+
+                                        <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">Usa la estructura si ya tienes la rutina y solo quieres formatearla</p>
                                     </div>
                                 </div>
                             </div>
