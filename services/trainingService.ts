@@ -7,7 +7,9 @@ import {
     TrainingProgram,
     ProgramDay,
     ProgramActivity,
-    ClientTrainingAssignment
+    ClientTrainingAssignment,
+    ClientDayLog,
+    ClientExerciseLog
 } from '../types';
 
 export const trainingService = {
@@ -480,6 +482,64 @@ export const trainingService = {
 
         if (error) throw error;
     },
+
+    // --- CLIENT LOGS ---
+    async saveClientDayLog(log: Omit<ClientDayLog, 'id'>, exercises: Omit<ClientExerciseLog, 'id' | 'log_id'>[]): Promise<void> {
+        // 1. Save Header
+        const { data: savedLog, error: logError } = await supabase
+            .from('training_client_day_logs')
+            .upsert({
+                client_id: log.client_id,
+                day_id: log.day_id,
+                completed_at: log.completed_at || new Date().toISOString(),
+                effort_rating: log.effort_rating,
+                notes: log.notes,
+                duration_minutes: log.duration_minutes
+            })
+            .select()
+            .single();
+
+        if (logError || !savedLog) throw logError || new Error('Error saving log header');
+
+        // 2. Save Exercises
+        if (exercises.length > 0) {
+            const exercisesToUpsert = exercises.map(ex => ({
+                log_id: savedLog.id,
+                workout_exercise_id: ex.workout_exercise_id,
+                sets_completed: ex.sets_completed,
+                reps_completed: ex.reps_completed,
+                weight_used: ex.weight_used,
+                is_completed: ex.is_completed
+            }));
+
+            const { error: exercisesError } = await supabase
+                .from('training_client_exercise_logs')
+                .upsert(exercisesToUpsert);
+
+            if (exercisesError) throw exercisesError;
+        }
+    },
+
+    async getClientDayLog(clientId: string, dayId: string): Promise<ClientDayLog | null> {
+        const { data: log, error } = await supabase
+            .from('training_client_day_logs')
+            .select('*')
+            .eq('client_id', clientId)
+            .eq('day_id', dayId)
+            .single();
+
+        if (error || !log) return null;
+
+        const { data: exercises } = await supabase
+            .from('training_client_exercise_logs')
+            .select('*')
+            .eq('log_id', log.id);
+
+        return {
+            ...log,
+            exercises: exercises || []
+        };
+    }
 };
 
 export default trainingService;

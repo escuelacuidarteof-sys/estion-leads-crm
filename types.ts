@@ -858,6 +858,7 @@ export interface WorkoutExercise {
   block_id: string;
   exercise_id: string;
   exercise?: Exercise; // Loaded via join
+  superset_id?: string;
   sets: number;
   reps: string;
   rest_seconds: number;
@@ -904,4 +905,27 @@ export interface ClientTrainingAssignment {
   start_date: string;
   assigned_by?: string;
   assigned_at?: string;
+}
+
+export interface ClientDayLog {
+  id: string;
+  client_id: string;
+  day_id: string;
+  completed_at: string;
+  effort_rating?: number;
+  notes?: string;
+  duration_minutes?: number;
+  exercises?: ClientExerciseLog[];
+  created_at?: string;
+}
+
+export interface ClientExerciseLog {
+  id: string;
+  log_id: string;
+  workout_exercise_id: string;
+  sets_completed?: number;
+  reps_completed?: string;
+  weight_used?: string;
+  is_completed: boolean;
+  created_at?: string;
 }
