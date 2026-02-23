@@ -91,6 +91,7 @@ export function TrainingManagement({ currentUser }: TrainingManagementProps) {
         try {
             if (confirmDelete.type === 'exercise') await trainingService.deleteExercise(confirmDelete.id);
             else if (confirmDelete.type === 'workout') await trainingService.deleteWorkout(confirmDelete.id);
+            else if (confirmDelete.type === 'program') await trainingService.deleteProgram(confirmDelete.id);
             await fetchData();
             setConfirmDelete(null);
         } catch (error) { console.error('Error deleting:', error); }
@@ -399,7 +400,8 @@ export function TrainingManagement({ currentUser }: TrainingManagementProps) {
                                         <span className="font-black text-slate-400 group-hover:text-brand-green transition-colors">Nuevo Programa</span>
                                     </button>
                                     {programs.map(p => (
-                                        <div key={p.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden group cursor-pointer hover:shadow-xl transition-all" onClick={() => setSelectedProgram(p)}>
+                                        <div key={p.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden group cursor-pointer hover:shadow-xl transition-all relative" onClick={() => setSelectedProgram(p)}>
+                                            <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'program', id: p.id, name: p.name }); }} className="absolute top-3 right-3 z-10 p-2 text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/20 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                             <div className="h-36 bg-gradient-to-br from-sky-500 to-blue-600 relative p-6 flex flex-col justify-end overflow-hidden">
                                                 <Calendar className="w-8 h-8 text-white/20 absolute top-4 right-4" />
                                                 <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-black rounded uppercase w-fit mb-2">Planificación</span>
