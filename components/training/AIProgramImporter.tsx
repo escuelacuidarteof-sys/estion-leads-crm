@@ -35,15 +35,16 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
             setLoading(true);
             setError(null);
 
-            // Cleanup the input text - it should be a JSON block
+            // Cleanup the input text - more robust regex
             let jsonText = text.trim();
-            if (jsonText.includes('```')) {
-                const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-                if (match) {
-                    jsonText = match[1].trim();
-                } else {
-                    jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
-                }
+
+            // Try to find a JSON block first
+            const jsonBlockMatch = jsonText.match(/\{[\s\S]*\}/);
+            if (jsonBlockMatch) {
+                jsonText = jsonBlockMatch[0];
+            } else {
+                // Fallback: strip markdown markers
+                jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
             }
 
             const data = JSON.parse(jsonText);
@@ -166,24 +167,26 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
     const getMasterPromptForClipboard = () => {
         const structure = getJsonStructureOnly();
 
-        return `Actúa como un experto preparador físico. Genera un programa de entrenamiento magistral y devuélvelo ÚNICAMENTE en formato JSON para que pueda importarlo directamente en mi CRM.
+        return `Actúa como un preparador físico de alto rendimiento y experto en análisis de datos. Tu tarea es diseñar una planificación detallada y entregarla EXCLUSIVAMENTE en un bloque de código JSON válido.
 
-ESPECIFICACIONES DEL PROGRAMA:
+REGLAS CRÍTICAS:
+1. No escribas introducciones, ni explicaciones, ni conclusiones. SOLO el JSON.
+2. Usa el idioma ESPAÑOL para todos los textos.
+3. Respeta estrictamente la estructura de datos proporcionada.
+4. Asegúrate de que todos los días de entrenamiento estén incluidos dentro del array "days".
+
+CONTEXTO DEL ATLETA:
 - Objetivo: ${config.goal}
-- Nivel: ${config.level}
-- Equipo: ${config.equipment}
-- Días/Semana: ${config.daysPerWeek}
-- Duración: ${config.weeks} semanas
-- Notas adicionales: ${config.notes}
+- Nivel actual: ${config.level}
+- Material disponible: ${config.equipment}
+- Frecuencia: ${config.daysPerWeek} días por semana
+- Duración total: ${config.weeks} semanas
+- Notas de salud/preferencias: ${config.notes}
 
-INSTRUCCIONES TÉCNICAS:
-1. Traduce todo al ESPAÑOL.
-2. Usa nombres de ejercicios estándar.
-3. Devuelve los datos exactamente en este formato JSON (puedes añadir tantos días y bloques como necesites):
-
+ESTRUCTURA JSON REQUERIDA (Sigue este esquema exacto):
 ${structure}
 
-IMPORTANTE: No añadas texto antes ni después del bloque de código JSON.`;
+IMPORTANTE: Verifica que el JSON sea válido antes de enviarlo. El bloque debe comenzar con { y terminar con }.`;
     };
 
     return (
