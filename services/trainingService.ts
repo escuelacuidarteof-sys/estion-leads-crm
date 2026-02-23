@@ -418,7 +418,6 @@ export const trainingService = {
                 client_id: clientId,
                 program_id: programId,
                 start_date: startDate,
-                assigned_by: assignedBy,
                 assigned_at: new Date().toISOString()
             });
 
