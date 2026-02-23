@@ -178,7 +178,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                 const ex1 = block.exercises.find(e => e.id === exerciseId1);
                 const ex2 = block.exercises.find(e => e.id === exerciseId2);
                 const existingSupersetId = ex1?.superset_id || ex2?.superset_id;
-                const supersetId = existingSupersetId || Math.random().toString(36).substring(2, 10);
+                const supersetId = existingSupersetId || crypto.randomUUID();
                 // Get existing rounds from the superset or default to 3
                 const existingRounds = existingSupersetId
                     ? block.exercises.find(e => e.superset_id === existingSupersetId && e.superset_rounds)?.superset_rounds || 3
