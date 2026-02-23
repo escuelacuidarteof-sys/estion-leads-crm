@@ -153,7 +153,7 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
             {
               "name": "Calentamiento / Principal / Vuelta a calma",
               "exercises": [
-                { "exercise_name": "Nombre Ejercicio", "sets": 3, "reps": "12", "rest_seconds": 60, "notes": "" }
+                { "exercise_name": "Nombre Ejercicio", "superset_id": "OPCIONAL: un_string_identico_para_agrupar_superseries", "sets": 3, "reps": "12", "rest_seconds": 60, "notes": "" }
               ]
             }
           ]
@@ -174,6 +174,7 @@ REGLAS CRÍTICAS:
 2. Usa el idioma ESPAÑOL para todos los textos.
 3. Respeta estrictamente la estructura de datos proporcionada.
 4. Asegúrate de que todos los días de entrenamiento estén incluidos dentro del array "days".
+5. Si deseas agrupar ejercicios en una superserie, asígnales el mismo valor en el campo "superset_id" (por ejemplo, "superset-1") a los ejercicios y colócalos consecutivos dentro del mismo bloque. Si no es superserie, omite "superset_id".
 
 CONTEXTO DEL ATLETA:
 - Objetivo: ${config.goal}

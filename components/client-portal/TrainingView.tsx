@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout } from '../../types';
 import { trainingService } from '../../services/trainingService';
+import { ActiveWorkoutSession } from './ActiveWorkoutSession';
 
 interface TrainingViewProps {
     client: Client;
@@ -216,9 +217,10 @@ interface ActivityCardProps {
     activity: ProgramActivity;
     workout: Workout | null;
     workoutLoading: boolean;
+    onStartWorkout?: (w: Workout) => void;
 }
 
-function ActivityCard({ activity, workout, workoutLoading }: ActivityCardProps) {
+function ActivityCard({ activity, workout, workoutLoading, onStartWorkout }: ActivityCardProps) {
     const [expanded, setExpanded] = useState(true);
     const type = (activity.type || 'custom') as ActivityType;
     const meta = ACTIVITY_META[type] || ACTIVITY_META.custom;
@@ -256,7 +258,19 @@ function ActivityCard({ activity, workout, workoutLoading }: ActivityCardProps) 
                             <div className="h-12 bg-brand-mint/20 rounded-xl" />
                         </div>
                     ) : workout ? (
-                        <WorkoutDetail workout={workout} />
+                        <div className="space-y-4">
+                            <WorkoutDetail workout={workout} />
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onStartWorkout?.(workout);
+                                }}
+                                className="w-full py-4 mt-2 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-green/30 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group"
+                            >
+                                <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
+                                Empezar Entrenamiento
+                            </button>
+                        </div>
                     ) : (
                         <p className="text-sm text-slate-400 italic py-2 text-center">
                             No se pudo cargar el entrenamiento.
@@ -273,9 +287,10 @@ interface DayDetailProps {
     workout: Workout | null;
     workoutLoading: boolean;
     dayName: string;
+    onStartWorkout?: (w: Workout) => void;
 }
 
-function DayDetail({ day, workout, workoutLoading, dayName }: DayDetailProps) {
+function DayDetail({ day, workout, workoutLoading, dayName, onStartWorkout }: DayDetailProps) {
     if (!day.activities || day.activities.length === 0) {
         return (
             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -298,6 +313,7 @@ function DayDetail({ day, workout, workoutLoading, dayName }: DayDetailProps) {
                         activity={activity}
                         workout={isWorkout ? workout : null}
                         workoutLoading={isWorkout ? workoutLoading : false}
+                        onStartWorkout={onStartWorkout}
                     />
                 );
             })}
@@ -313,6 +329,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [workoutLoading, setWorkoutLoading] = useState(false);
+    const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
 
     // Load assignment and program
     useEffect(() => {
@@ -490,11 +507,10 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 <button
                                     key={week}
                                     onClick={() => { setSelectedWeek(week); setSelectedDay(null); setSelectedWorkout(null); }}
-                                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                                        selectedWeek === week
-                                            ? 'bg-brand-green text-white shadow-sm'
-                                            : 'bg-white border border-brand-mint/40 text-brand-dark hover:bg-brand-mint/20'
-                                    }`}
+                                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedWeek === week
+                                        ? 'bg-brand-green text-white shadow-sm'
+                                        : 'bg-white border border-brand-mint/40 text-brand-dark hover:bg-brand-mint/20'
+                                        }`}
                                 >
                                     Sem. {week}
                                 </button>
@@ -520,13 +536,12 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                     key={dayNum}
                                     onClick={() => hasContent ? setSelectedDay(isSelected ? null : dayNum) : undefined}
                                     disabled={!hasContent}
-                                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
-                                        isSelected
-                                            ? 'bg-brand-green text-white shadow-sm'
-                                            : hasContent
-                                                ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
-                                                : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
-                                    }`}
+                                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${isSelected
+                                        ? 'bg-brand-green text-white shadow-sm'
+                                        : hasContent
+                                            ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
+                                            : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
+                                        }`}
                                 >
                                     <span className="text-[10px] font-black uppercase tracking-wider">
                                         {DAY_NAMES[dayNum - 1]}
@@ -562,6 +577,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 workout={selectedWorkout}
                                 workoutLoading={workoutLoading}
                                 dayName={DAY_NAMES_FULL[selectedDay - 1]}
+                                onStartWorkout={(workout) => setActiveWorkout(workout)}
                             />
                         ) : (
                             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -581,6 +597,18 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                     </div>
                 )}
             </div>
+
+            {activeWorkout && (
+                <ActiveWorkoutSession
+                    workout={activeWorkout}
+                    clientId={client.id}
+                    onClose={() => setActiveWorkout(null)}
+                    onComplete={() => {
+                        setActiveWorkout(null);
+                        // Optional: refresh data or show success toast
+                    }}
+                />
+            )}
         </div>
     );
 }
