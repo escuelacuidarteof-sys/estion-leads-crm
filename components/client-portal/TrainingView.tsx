@@ -329,7 +329,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [workoutLoading, setWorkoutLoading] = useState(false);
-    const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+    const [activeWorkout, setActiveWorkout] = useState<{ workout: Workout; dayId: string } | null>(null);
 
     // Load assignment and program
     useEffect(() => {
@@ -577,7 +577,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 workout={selectedWorkout}
                                 workoutLoading={workoutLoading}
                                 dayName={DAY_NAMES_FULL[selectedDay - 1]}
-                                onStartWorkout={(workout) => setActiveWorkout(workout)}
+                                onStartWorkout={(workout) => setActiveWorkout({ workout, dayId: selectedDayData!.id })}
                             />
                         ) : (
                             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -600,12 +600,12 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
 
             {activeWorkout && (
                 <ActiveWorkoutSession
-                    workout={activeWorkout}
+                    workout={activeWorkout.workout}
                     clientId={client.id}
+                    dayId={activeWorkout.dayId}
                     onClose={() => setActiveWorkout(null)}
                     onComplete={() => {
                         setActiveWorkout(null);
-                        // Optional: refresh data or show success toast
                     }}
                 />
             )}

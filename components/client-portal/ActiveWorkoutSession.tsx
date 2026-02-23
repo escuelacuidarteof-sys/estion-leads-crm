@@ -6,6 +6,7 @@ import { trainingService } from '../../services/trainingService';
 interface ActiveWorkoutSessionProps {
     workout: Workout;
     clientId: string;
+    dayId: string;
     onClose: () => void;
     onComplete: () => void;
 }
@@ -36,7 +37,7 @@ function groupWorkoutBlocks(blocks: WorkoutBlock[]) {
     });
 }
 
-export function ActiveWorkoutSession({ workout, clientId, onClose, onComplete }: ActiveWorkoutSessionProps) {
+export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComplete }: ActiveWorkoutSessionProps) {
     const [isStarted, setIsStarted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [secondsElapsed, setSecondsElapsed] = useState(0);
@@ -96,27 +97,27 @@ export function ActiveWorkoutSession({ workout, clientId, onClose, onComplete }:
             const exerciseLogs: Omit<ClientExerciseLog, 'id' | 'created_at'>[] = [];
 
             Object.entries(completedSets).forEach(([exerciseId, setsData]) => {
-                const exercise = workout.blocks?.flatMap(b => b.exercises).find(e => e?.id === exerciseId);
-                if (!exercise) return;
-
                 const completedSetsCount = setsData.filter(s => s.completed).length;
-                if (completedSetsCount === 0) return; // Skip if no sets completed
+                if (completedSetsCount === 0) return;
+
+                // Aggregate weight and reps from individual sets
+                const weights = setsData.filter(s => s.completed && s.weight != null).map(s => String(s.weight));
+                const reps = setsData.filter(s => s.completed && s.reps != null).map(s => String(s.reps));
 
                 exerciseLogs.push({
-                    day_log_id: '', // Will be set in the service
+                    log_id: '', // Set by the service
                     workout_exercise_id: exerciseId,
-                    exercise_id: exercise.exercise_id || '',
-                    completed: true,
                     sets_completed: completedSetsCount,
-                    // Basic aggregate or JSON for detailed rep/weight tracking could go here if needed in the future
-                    notes: ''
+                    reps_completed: reps.join(',') || undefined,
+                    weight_used: weights.join(',') || undefined,
+                    is_completed: true,
                 });
             });
 
             const dayLogData: Omit<ClientDayLog, 'id' | 'created_at'> = {
                 client_id: clientId,
-                date: new Date().toISOString().split('T')[0],
-                completed: true,
+                day_id: dayId,
+                completed_at: new Date().toISOString(),
                 duration_minutes: Math.ceil(secondsElapsed / 60),
                 effort_rating: effortRating > 0 ? effortRating : undefined,
                 notes: sessionNotes,
