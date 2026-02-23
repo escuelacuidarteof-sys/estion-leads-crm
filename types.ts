@@ -919,6 +919,12 @@ export interface ClientDayLog {
   duration_minutes?: number;
   exercises?: ClientExerciseLog[];
   created_at?: string;
+  pre_fatigue?: number;
+  pre_rpe_type?: string;
+  pre_oxygen?: string;
+  pre_pulse?: string;
+  safety_exclusion_data?: any;
+  safety_sequelae_data?: any;
 }
 
 export interface ClientExerciseLog {

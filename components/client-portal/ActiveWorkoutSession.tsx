@@ -38,6 +38,27 @@ function groupWorkoutBlocks(blocks: WorkoutBlock[]) {
 }
 
 export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComplete }: ActiveWorkoutSessionProps) {
+    const [showSafetyPass, setShowSafetyPass] = useState(false);
+    const [safetyPassData, setSafetyPassData] = useState({
+        exclusion: {
+            fever: false,
+            malaise: false,
+            blood_test: false,
+            bp_uncontrolled: false
+        },
+        preWorkout: {
+            fatigue: 5,
+            rpe_type: 'verde',
+            oxygen: '',
+            pulse: ''
+        },
+        sequelae: {
+            tingling: false,
+            tightness: false,
+            bone_pain: false
+        }
+    });
+
     const [isStarted, setIsStarted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [secondsElapsed, setSecondsElapsed] = useState(0);
@@ -124,6 +145,13 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                 duration_minutes: Math.ceil(secondsElapsed / 60),
                 effort_rating: effortRating > 0 ? effortRating : undefined,
                 notes: sessionNotes,
+                // Add safety pass data
+                pre_fatigue: safetyPassData.preWorkout.fatigue,
+                pre_rpe_type: safetyPassData.preWorkout.rpe_type,
+                pre_oxygen: safetyPassData.preWorkout.oxygen,
+                pre_pulse: safetyPassData.preWorkout.pulse,
+                safety_exclusion_data: safetyPassData.exclusion,
+                safety_sequelae_data: safetyPassData.sequelae
             };
 
             await trainingService.saveClientDayLog(dayLogData, exerciseLogs);
@@ -221,6 +249,20 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         );
     }
 
+    if (showSafetyPass) {
+        return (
+            <SafetyPassModal
+                data={safetyPassData}
+                onUpdate={setSafetyPassData}
+                onCancel={() => setShowSafetyPass(false)}
+                onConfirm={() => {
+                    setShowSafetyPass(false);
+                    handleStart();
+                }}
+            />
+        );
+    }
+
     if (!isStarted) {
         return (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[100] animate-in fade-in duration-300 p-4">
@@ -235,7 +277,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                         <button onClick={onClose} className="flex-1 py-3 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">
                             Cancelar
                         </button>
-                        <button onClick={handleStart} className="flex-[2] py-3 rounded-2xl font-bold text-white bg-brand-green hover:bg-brand-green/90 shadow-lg shadow-brand-mint/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <button onClick={() => setShowSafetyPass(true)} className="flex-[2] py-3 rounded-2xl font-bold text-white bg-brand-green hover:bg-brand-green/90 shadow-lg shadow-brand-mint/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                             <Play className="w-5 h-5 fill-current" />
                             Empezar Ahora
                         </button>
@@ -345,7 +387,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                                                     : thisRoundDone
                                                                         ? 'bg-brand-green/20 text-brand-green border border-brand-green/30'
                                                                         : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {ri + 1}
                                                             </button>
@@ -464,6 +506,436 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
     );
 }
 
+// --- SAFETY PASS MODAL COMPONENT ---
+
+function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
+    data: any,
+    onUpdate: (d: any) => void,
+    onCancel: () => void,
+    onConfirm: () => void
+}) {
+    const [step, setStep] = useState(1);
+
+    const hasExclusion = Object.values(data.exclusion).some(v => v === true);
+
+    const handleExclusionChange = (field: string, checked: boolean) => {
+        onUpdate({
+            ...data,
+            exclusion: { ...data.exclusion, [field]: checked }
+        });
+    };
+
+    const handlePreWorkoutChange = (field: string, value: any) => {
+        onUpdate({
+            ...data,
+            preWorkout: { ...data.preWorkout, [field]: value }
+        });
+    };
+
+    const handleSequelaeChange = (field: string, checked: boolean) => {
+        onUpdate({
+            ...data,
+            sequelae: { ...data.sequelae, [field]: checked }
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-50 z-[110] flex flex-col animate-in fade-in slide-in-from-bottom-4">
+            {/* Header */}
+            <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                    <button onClick={onCancel} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h2 className="font-black text-brand-dark flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-brand-green" />
+                            Pase de Seguridad
+                        </h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Paso {step} de 3</p>
+                    </div>
+                </div>
+                <div className="flex gap-1">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className={`h-1.5 w-8 rounded-full transition-all ${step === i ? 'bg-brand-green' : step > i ? 'bg-brand-mint' : 'bg-slate-100'}`} />
+                    ))}
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-8">
+                <div className="max-w-md mx-auto">
+
+                    {/* STEP 1: Exclusion (Semáforo) */}
+                    {step === 1 && (
+                        <div className="space-y-6 animate-in slide-in-from-right duration-300">
+                            <div className="bg-red-50 border border-red-100 rounded-[2rem] p-6">
+                                <h3 className="text-xl font-black text-red-900 mb-2 flex items-center gap-2">
+                                    <Flame className="w-6 h-6 text-red-500" /> El Semáforo de Seguridad
+                                </h3>
+                                <p className="text-sm text-red-700/80 mb-6 leading-relaxed">
+                                    Si marcas un <b>"SÍ"</b> en cualquiera de estos puntos, hoy <b>NO debes entrenar</b>. Es por tu seguridad clínica.
+                                </p>
+
+                                <div className="space-y-4">
+                                    <ExclusionCheck
+                                        label="¿Tienes fiebre? (Más de 38°C)"
+                                        checked={data.exclusion.fever}
+                                        onChange={(c) => handleExclusionChange('fever', c)}
+                                    />
+                                    <ExclusionCheck
+                                        label="¿Sientes un malestar agudo inusual? (Náuseas, mareos o escalofríos)"
+                                        checked={data.exclusion.malaise}
+                                        onChange={(c) => handleExclusionChange('malaise', c)}
+                                    />
+                                    <ExclusionCheck
+                                        label="¿Analítica en las últimas 24h?"
+                                        checked={data.exclusion.blood_test}
+                                        onChange={(c) => handleExclusionChange('blood_test', c)}
+                                    />
+                                    <ExclusionCheck
+                                        label="¿Tensión descontrolada? (Dolor punzante o visión borrosa)"
+                                        checked={data.exclusion.bp_uncontrolled}
+                                        onChange={(c) => handleExclusionChange('bp_uncontrolled', c)}
+                                    />
+                                </div>
+                            </div>
+
+                            {hasExclusion ? (
+                                <div className="bg-white border-2 border-red-500 rounded-[2rem] p-6 text-center shadow-xl shadow-red-100">
+                                    <Square className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                                    <h4 className="text-xl font-black text-red-600 mb-2">¡ALTO! SEMÁFORO EN ROJO</h4>
+                                    <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+                                        Debido a los criterios marcados, hoy <b>no es seguro entrenar</b>. Tu cuerpo necesita descanso absoluto para recuperarse de estos procesos agudos.
+                                    </p>
+                                    <button
+                                        onClick={onCancel}
+                                        className="w-full py-4 bg-red-600 text-white rounded-2xl font-black shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+                                    >
+                                        Cerrar y Descansar
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="pt-4">
+                                    <button
+                                        onClick={() => setStep(2)}
+                                        className="w-full py-4 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-mint/40 hover:emerald-600 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Semáforo en Verde: Continuar
+                                        <ArrowLeft className="w-5 h-5 rotate-180" />
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="bg-slate-100 rounded-2xl p-4 text-[11px] text-slate-500 leading-tight">
+                                💡 <b>CONSEJO FINAL:</b> No te castigues si un día solo puedes hacer 10 minutos de movilidad. En oncología, "poco es mucho mejor que nada".
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 2: Pre-Workout Assessment */}
+                    {step === 2 && (
+                        <div className="space-y-8 animate-in slide-in-from-right duration-300">
+                            <div>
+                                <h3 className="text-xl font-black text-brand-dark mb-1">Valoración Pre-Entreno</h3>
+                                <p className="text-sm text-slate-500">Ajustaremos la intensidad según cómo estés ahora.</p>
+                            </div>
+
+                            {/* Fatigue Slider */}
+                            <div className="bg-white rounded-3xl border border-brand-mint/30 p-6 shadow-sm">
+                                <label className="block text-sm font-black text-brand-dark mb-4 flex items-center justify-between">
+                                    <span>Nivel de Fatiga Actual</span>
+                                    <span className={`text-2xl font-black ${data.preWorkout.fatigue > 7 ? 'text-orange-500' : 'text-brand-green'}`}>
+                                        {data.preWorkout.fatigue}
+                                    </span>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="10"
+                                    step="1"
+                                    value={data.preWorkout.fatigue}
+                                    onChange={(e) => handlePreWorkoutChange('fatigue', parseInt(e.target.value))}
+                                    className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                                />
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
+                                    <span>ENERGÍA TOTAL</span>
+                                    <span>AGOTAMIENTO</span>
+                                </div>
+
+                                {data.preWorkout.fatigue > 7 && (
+                                    <p className="mt-4 p-3 bg-orange-50 border border-orange-100 text-orange-800 rounded-xl text-xs font-bold flex items-start gap-2">
+                                        <Info className="w-4 h-4 shrink-0" />
+                                        Tu fatiga es alta ({'>'}7). Hoy cambiaremos fuerza por movilidad suave y estiramientos. No fuerces.
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* RPE Type (Green vs Yellow) */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => handlePreWorkoutChange('rpe_type', 'verde')}
+                                    className={`p-4 rounded-3xl border-2 transition-all text-left ${data.preWorkout.rpe_type === 'verde' ? 'bg-green-50 border-green-500' : 'bg-white border-slate-100 hover:border-slate-200'}`}
+                                >
+                                    <div className="w-8 h-8 bg-green-500 rounded-full mb-3 flex items-center justify-center">
+                                        <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                                    </div>
+                                    <h4 className="font-black text-sm text-brand-dark">Día Verde</h4>
+                                    <p className="text-[10px] text-slate-500 mt-1 leading-tight">Me siento bien. Entrenaré a un 7-8/10 de esfuerzo.</p>
+                                </button>
+                                <button
+                                    onClick={() => handlePreWorkoutChange('rpe_type', 'amarillo')}
+                                    className={`p-4 rounded-3xl border-2 transition-all text-left ${data.preWorkout.rpe_type === 'amarillo' ? 'bg-yellow-50 border-yellow-500' : 'bg-white border-slate-100 hover:border-slate-200'}`}
+                                >
+                                    <div className="w-8 h-8 bg-yellow-500 rounded-full mb-3 flex items-center justify-center">
+                                        <div className="w-3 h-3 bg-white rounded-full" />
+                                    </div>
+                                    <h4 className="font-black text-sm text-brand-dark">Día Amarillo</h4>
+                                    <p className="text-[10px] text-slate-500 mt-1 leading-tight">Me siento cansado. Entrenaré a un 4-5/10.</p>
+                                </button>
+                            </div>
+
+                            {/* Oxygen & Pulse */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Oxígeno (%)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: 98%"
+                                        value={data.preWorkout.oxygen}
+                                        onChange={(e) => handlePreWorkoutChange('oxygen', e.target.value)}
+                                        className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
+                                    />
+                                </div>
+                                <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Pulso (ppm)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: 72"
+                                        value={data.preWorkout.pulse}
+                                        onChange={(e) => handlePreWorkoutChange('pulse', e.target.value)}
+                                        className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => setStep(1)} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition-colors">
+                                    Atrás
+                                </button>
+                                <button
+                                    onClick={() => setStep(3)}
+                                    className="flex-[2] py-4 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-mint/40 hover:emerald-600 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Continuar
+                                    <ArrowLeft className="w-5 h-5 rotate-180" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 3: Sequelae & Objectives */}
+                    {step === 3 && (
+                        <div className="space-y-8 animate-in slide-in-from-right duration-300">
+                            <div>
+                                <h3 className="text-xl font-black text-brand-dark mb-1 text-teal-800">Atención a Secuelas</h3>
+                                <p className="text-sm text-slate-500">¿Sientes alguna de estas hoy?</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <CheckCard
+                                    label="Hormigueo en pies o manos (Neuropatía)"
+                                    description="Ten siempre una silla cerca para apoyarte. El equilibrio es clave."
+                                    checked={data.sequelae.tingling}
+                                    onChange={(c) => handleSequelaeChange('tingling', c)}
+                                    icon={Activity}
+                                />
+                                <CheckCard
+                                    label="Tirantez en axila o brazo"
+                                    description="No cojas peso con ese brazo hoy. Haz movimientos circulares suaves."
+                                    checked={data.sequelae.tightness}
+                                    onChange={(c) => handleSequelaeChange('tightness', c)}
+                                    icon={Zap}
+                                />
+                                <CheckCard
+                                    label="Dolor en zona de metástasis ósea"
+                                    description="Si el dolor ha aumentado, no apliques carga en ese segmento."
+                                    checked={data.sequelae.bone_pain}
+                                    onChange={(c) => handleSequelaeChange('bone_pain', c)}
+                                    icon={Flame}
+                                />
+                            </div>
+
+                            <div className="bg-emerald-900 text-white rounded-[2rem] p-6 shadow-xl shadow-emerald-100">
+                                <h4 className="text-lg font-black mb-3 flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-emerald-300" /> Indicadores de Éxito
+                                </h4>
+                                <ul className="space-y-3 text-xs opacity-90 leading-tight">
+                                    <li className="flex gap-2">
+                                        <span className="text-emerald-300">•</span>
+                                        <span><b>Test de la Silla:</b> Si el número aumenta, estás ganando la batalla a la pérdida de músculo.  </span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-emerald-300">•</span>
+                                        <span><b>Recuperación:</b> Si al terminar te sientes más despejado, el ejercicio está cumpliendo su función antiinflamatoria.</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => setStep(2)} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition-colors">
+                                    Atrás
+                                </button>
+                                <button
+                                    onClick={onConfirm}
+                                    className="flex-[2] py-4 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-mint/40 hover:emerald-600 transition-all flex items-center justify-center gap-2 text-lg"
+                                >
+                                    ¡Listo para empezar!
+                                    <Target className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ExclusionCheck({ label, checked, onChange }: { label: string, checked: boolean, onChange: (c: boolean) => void }) {
+    return (
+        <button
+            onClick={() => onChange(!checked)}
+            className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 text-left ${checked ? 'bg-red-500 border-red-200 text-white shadow-md' : 'bg-white border-transparent text-slate-700'}`}
+        >
+            <span className="text-sm font-bold">{label}</span>
+            <div className={`w-12 h-6 rounded-full relative transition-all ${checked ? 'bg-white/30' : 'bg-slate-200'}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${checked ? 'right-1 bg-white' : 'left-1 bg-slate-400'}`} />
+            </div>
+        </button>
+    );
+}
+
+function CheckCard({ label, description, checked, onChange, icon: Icon }: { label: string, description: string, checked: boolean, onChange: (c: boolean) => void, icon: any }) {
+    return (
+        <button
+            onClick={() => onChange(!checked)}
+            className={`w-full p-4 rounded-3xl border-2 transition-all flex gap-4 text-left ${checked ? 'bg-brand-mint/10 border-brand-green' : 'bg-white border-slate-100'}`}
+        >
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${checked ? 'bg-brand-green text-white' : 'bg-slate-50 text-slate-400'}`}>
+                <Icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+                <h4 className="font-bold text-sm text-brand-dark leading-tight">{label}</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{description}</p>
+            </div>
+            <div className="ml-auto shrink-0 flex items-center">
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${checked ? 'bg-brand-green border-brand-green' : 'bg-white border-slate-200'}`}>
+                    {checked && <CheckCircle className="w-4 h-4 text-white fill-current" />}
+                </div>
+            </div>
+        </button>
+    );
+}
+
+// Sub-component for a single exercise within a superset round
+function SupersetExerciseRoundEntry({
+    exercise,
+    roundIndex,
+    setLog,
+    isDone,
+    onSetUpdate
+}: {
+    exercise: WorkoutExercise;
+    roundIndex: number;
+    setLog: { weight?: number | null; reps?: number | null; completed?: boolean };
+    isDone: boolean;
+    onSetUpdate: (field: 'weight' | 'reps' | 'completed', value: any) => void;
+}) {
+    const extractYoutubeId = (url?: string) => {
+        if (!url) return null;
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+        return match ? match[1] : null;
+    };
+    const youtubeId = exercise.exercise?.media_type === 'youtube' ? extractYoutubeId(exercise.exercise?.media_url) : null;
+    const thumbUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null;
+    const [videoOpen, setVideoOpen] = useState(false);
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+                {thumbUrl ? (
+                    <button
+                        onClick={() => setVideoOpen(v => !v)}
+                        className="relative flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-brand-mint/20 group shadow-sm border border-brand-mint/30"
+                    >
+                        <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                        </div>
+                    </button>
+                ) : (
+                    <div className="w-12 h-12 rounded-xl bg-brand-mint/20 border border-brand-mint/30 flex items-center justify-center shrink-0">
+                        <Dumbbell className="w-5 h-5 text-brand-green/40" />
+                    </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-brand-dark text-sm leading-tight truncate">
+                        {exercise.exercise?.name || 'Ejercicio'}
+                    </h4>
+                    {exercise.reps && (
+                        <span className="text-[10px] font-bold text-slate-400">{exercise.reps} reps</span>
+                    )}
+                </div>
+
+                {/* Inline weight + reps + OK for this round */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <input
+                        type="number"
+                        placeholder="Kg"
+                        value={setLog.weight || ''}
+                        onChange={(e) => onSetUpdate('weight', e.target.value ? Number(e.target.value) : null)}
+                        className={`w-16 bg-white border ${isDone ? 'border-brand-green/30 font-bold' : 'border-slate-200'} rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
+                    />
+                    <input
+                        type="number"
+                        placeholder={exercise.reps?.replace(/\D/g, '') || '0'}
+                        value={setLog.reps || ''}
+                        onChange={(e) => onSetUpdate('reps', e.target.value ? Number(e.target.value) : null)}
+                        className={`w-16 bg-white border ${isDone ? 'border-brand-green/30 font-bold' : 'border-slate-200'} rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
+                    />
+                    <button
+                        onClick={() => onSetUpdate('completed', !setLog.completed)}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isDone ? 'bg-brand-green text-white shadow-md shadow-brand-mint/40 scale-105' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-brand-mint hover:text-brand-mint'}`}
+                    >
+                        <CheckCircle className={`w-5 h-5 ${isDone ? 'fill-current' : ''}`} />
+                    </button>
+                </div>
+            </div>
+
+            {exercise.notes && (
+                <div className="bg-amber-50 text-amber-800 text-xs p-2 rounded-lg border border-amber-100 flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <p className="leading-snug">{exercise.notes}</p>
+                </div>
+            )}
+
+            {videoOpen && youtubeId && (
+                <div className="rounded-xl overflow-hidden aspect-video w-full">
+                    <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                        title={exercise.exercise?.name}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full rounded-xl"
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
+
 // Sub-component for individual exercise entries
 function ExerciseEntry({
     exercise,
@@ -570,7 +1042,7 @@ function ExerciseEntry({
 
                 <div className="space-y-2">
                     {setsArray.map((_, idx) => {
-                        const setLog = completedSets[idx] || {};
+                        const setLog = (completedSets || [])[idx] || {};
                         const isDone = !!setLog.completed;
 
                         return (
@@ -610,104 +1082,6 @@ function ExerciseEntry({
                     })}
                 </div>
             </div>
-        </div>
-    );
-}
-
-// Sub-component for a single exercise within a superset round
-function SupersetExerciseRoundEntry({
-    exercise,
-    roundIndex,
-    setLog,
-    isDone,
-    onSetUpdate
-}: {
-    exercise: WorkoutExercise;
-    roundIndex: number;
-    setLog: { weight?: number | null; reps?: number | null; completed?: boolean };
-    isDone: boolean;
-    onSetUpdate: (field: 'weight' | 'reps' | 'completed', value: any) => void;
-}) {
-    const extractYoutubeId = (url?: string) => {
-        if (!url) return null;
-        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-        return match ? match[1] : null;
-    };
-    const youtubeId = exercise.exercise?.media_type === 'youtube' ? extractYoutubeId(exercise.exercise?.media_url) : null;
-    const thumbUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null;
-    const [videoOpen, setVideoOpen] = useState(false);
-
-    return (
-        <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-                {thumbUrl ? (
-                    <button
-                        onClick={() => setVideoOpen(v => !v)}
-                        className="relative flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-brand-mint/20 group shadow-sm border border-brand-mint/30"
-                    >
-                        <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                        </div>
-                    </button>
-                ) : (
-                    <div className="w-12 h-12 rounded-xl bg-brand-mint/20 border border-brand-mint/30 flex items-center justify-center shrink-0">
-                        <Dumbbell className="w-5 h-5 text-brand-green/40" />
-                    </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-brand-dark text-sm leading-tight truncate">
-                        {exercise.exercise?.name || 'Ejercicio'}
-                    </h4>
-                    {exercise.reps && (
-                        <span className="text-[10px] font-bold text-slate-400">{exercise.reps} reps</span>
-                    )}
-                </div>
-
-                {/* Inline weight + reps + OK for this round */}
-                <div className="flex items-center gap-2 shrink-0">
-                    <input
-                        type="number"
-                        placeholder="Kg"
-                        value={setLog.weight || ''}
-                        onChange={(e) => onSetUpdate('weight', e.target.value ? Number(e.target.value) : null)}
-                        className={`w-16 bg-white border ${isDone ? 'border-brand-green/30 font-bold' : 'border-slate-200'} rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
-                    />
-                    <input
-                        type="number"
-                        placeholder={exercise.reps?.replace(/\D/g, '') || '0'}
-                        value={setLog.reps || ''}
-                        onChange={(e) => onSetUpdate('reps', e.target.value ? Number(e.target.value) : null)}
-                        className={`w-16 bg-white border ${isDone ? 'border-brand-green/30 font-bold' : 'border-slate-200'} rounded-lg py-2 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
-                    />
-                    <button
-                        onClick={() => onSetUpdate('completed', !setLog.completed)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isDone ? 'bg-brand-green text-white shadow-md shadow-brand-mint/40 scale-105' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-brand-mint hover:text-brand-mint'}`}
-                    >
-                        <CheckCircle className={`w-5 h-5 ${isDone ? 'fill-current' : ''}`} />
-                    </button>
-                </div>
-            </div>
-
-            {exercise.notes && (
-                <div className="bg-amber-50 text-amber-800 text-xs p-2 rounded-lg border border-amber-100 flex items-start gap-1.5">
-                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <p className="leading-snug">{exercise.notes}</p>
-                </div>
-            )}
-
-            {videoOpen && youtubeId && (
-                <div className="rounded-xl overflow-hidden aspect-video w-full">
-                    <iframe
-                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
-                        title={exercise.exercise?.name}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full rounded-xl"
-                    />
-                </div>
-            )}
         </div>
     );
 }
