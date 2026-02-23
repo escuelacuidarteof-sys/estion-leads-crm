@@ -64,59 +64,76 @@ function ExerciseRow({ we }: ExerciseRowProps) {
     const exercise = we.exercise;
     const youtubeId = exercise?.media_type === 'youtube' ? extractYoutubeId(exercise.media_url) : null;
     const thumbUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null;
+    const [videoOpen, setVideoOpen] = useState(false);
 
     return (
-        <div className="flex items-start gap-3 py-3 border-b border-brand-mint/30 last:border-0">
-            {thumbUrl ? (
-                <button
-                    onClick={() => window.open(`https://www.youtube.com/watch?v=${youtubeId}`, '_blank')}
-                    className="relative flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden bg-brand-mint/20 group"
-                    aria-label={`Ver video de ${exercise?.name}`}
-                >
-                    <img
-                        src={thumbUrl}
-                        alt={exercise?.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                        <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
-                            <Play className="w-3 h-3 text-brand-dark fill-brand-dark ml-0.5" />
+        <div className="py-3 border-b border-brand-mint/30 last:border-0">
+            <div className="flex items-start gap-3">
+                {thumbUrl ? (
+                    <button
+                        onClick={() => setVideoOpen(v => !v)}
+                        className="relative flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden bg-brand-mint/20 group"
+                        aria-label={`Ver video de ${exercise?.name}`}
+                    >
+                        <img
+                            src={thumbUrl}
+                            alt={exercise?.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
+                                {videoOpen
+                                    ? <ChevronUp className="w-3 h-3 text-brand-dark" />
+                                    : <Play className="w-3 h-3 text-brand-dark fill-brand-dark ml-0.5" />
+                                }
+                            </div>
                         </div>
+                    </button>
+                ) : (
+                    <div className="flex-shrink-0 w-20 h-14 rounded-xl bg-brand-mint/20 flex items-center justify-center">
+                        <Dumbbell className="w-6 h-6 text-brand-green/50" />
                     </div>
-                </button>
-            ) : (
-                <div className="flex-shrink-0 w-20 h-14 rounded-xl bg-brand-mint/20 flex items-center justify-center">
-                    <Dumbbell className="w-6 h-6 text-brand-green/50" />
+                )}
+                <div className="flex-1 min-w-0">
+                    <p className="font-bold text-brand-dark text-sm leading-tight mb-1.5 truncate">
+                        {exercise?.name || 'Ejercicio'}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {we.sets > 0 && (
+                            <span className="text-[11px] bg-brand-mint/40 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
+                                {we.sets} series
+                            </span>
+                        )}
+                        {we.reps && (
+                            <span className="text-[11px] bg-brand-mint/40 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
+                                {we.reps} reps
+                            </span>
+                        )}
+                        {we.rest_seconds > 0 && (
+                            <span className="text-[11px] bg-brand-gold/20 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
+                                {we.rest_seconds}s descanso
+                            </span>
+                        )}
+                    </div>
+                    {we.notes && (
+                        <p className="text-xs text-slate-400 mt-1 italic">{we.notes}</p>
+                    )}
+                </div>
+            </div>
+            {videoOpen && youtubeId && (
+                <div className="mt-3 rounded-xl overflow-hidden aspect-video w-full">
+                    <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                        title={exercise?.name}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                    />
                 </div>
             )}
-            <div className="flex-1 min-w-0">
-                <p className="font-bold text-brand-dark text-sm leading-tight mb-1.5 truncate">
-                    {exercise?.name || 'Ejercicio'}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                    {we.sets > 0 && (
-                        <span className="text-[11px] bg-brand-mint/40 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
-                            {we.sets} series
-                        </span>
-                    )}
-                    {we.reps && (
-                        <span className="text-[11px] bg-brand-mint/40 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
-                            {we.reps} reps
-                        </span>
-                    )}
-                    {we.rest_seconds > 0 && (
-                        <span className="text-[11px] bg-brand-gold/20 text-brand-dark px-2 py-0.5 rounded-full font-semibold">
-                            {we.rest_seconds}s descanso
-                        </span>
-                    )}
-                </div>
-                {we.notes && (
-                    <p className="text-xs text-slate-400 mt-1 italic">{we.notes}</p>
-                )}
-            </div>
         </div>
     );
 }
