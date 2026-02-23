@@ -525,12 +525,12 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                                 <div className="flex-1 border-t border-amber-200 border-dashed" />
                                                             </div>
                                                         ) : canLinkWithNext ? (
-                                                            <div className="flex justify-center my-1">
+                                                            <div className="flex justify-center my-2">
                                                                 <button
                                                                     onClick={() => linkExercises(selectedBlock.id, item.id, nextItem!.id)}
-                                                                    className="flex items-center gap-1 text-[10px] text-slate-300 hover:text-amber-500 px-3 py-0.5 hover:bg-amber-50 rounded-full transition-all font-bold"
+                                                                    className="flex items-center gap-1.5 text-xs text-amber-500 border border-amber-200 bg-amber-50 hover:bg-amber-100 px-4 py-1.5 rounded-full transition-all font-bold shadow-sm hover:shadow"
                                                                 >
-                                                                    <Layers className="w-3 h-3" />
+                                                                    <Layers className="w-3.5 h-3.5" />
                                                                     {linkLabel}
                                                                 </button>
                                                             </div>
