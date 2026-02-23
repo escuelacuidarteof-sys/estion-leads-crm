@@ -105,7 +105,9 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
     };
 
     const runAI = async (prompt: string) => {
-        const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+        const rawApiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+        const apiKey = rawApiKey?.trim();
+
         if (!apiKey) throw new Error('API Key de Gemini no configurada');
 
         const genAI = new GoogleGenerativeAI(apiKey);
