@@ -223,24 +223,55 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
     };
 
     const getMasterPromptForClipboard = () => {
-        return `Eres un preparador físico de élite. Genera un programa de entrenamiento magistral con estas especificaciones:
+        const structure = `
+        {
+          "program": {
+            "name": "Nombre del Programa",
+            "description": "Descripción",
+            "weeks_count": ${config.weeks}
+          },
+          "days": [
+            {
+              "week_number": 1,
+              "day_number": 1,
+              "activity": {
+                "type": "workout",
+                "title": "Empuje A",
+                "description": "Enfoque",
+                "workout_data": {
+                  "name": "Empuje A",
+                  "blocks": [
+                    {
+                      "name": "Parte Principal",
+                      "exercises": [
+                        { "exercise_name": "Nombre Ejercicio", "sets": 3, "reps": "10", "rest_seconds": 60, "notes": "" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }`;
 
-PARÁMETROS CRÍTICOS:
-- Objetivo: ${config.goal}.
-- Nivel: ${config.level}.
-- Equipamiento disponible: ${config.equipment}.
-- Frecuencia: ${config.daysPerWeek} días por semana.
-- Duración: ${config.weeks} semanas.
+        return `Actúa como un experto preparador físico. Genera un programa de entrenamiento magistral y devuélvelo ÚNICAMENTE en formato JSON para que pueda importarlo directamente en mi CRM.
 
-ESTRUCTURA REQUERIDA:
-Para cada día de entrenamiento, detalla:
-1. Nombre del entrenamiento.
-2. Bloques (Calentamiento, Parte Principal, etc.).
-3. Ejercicios con Series, Repeticiones, Descanso y Notas Técnicas.
+ESPECIFICACIONES DEL PROGRAMA:
+- Objetivo: ${config.goal}
+- Nivel: ${config.level}
+- Equipo: ${config.equipment}
+- Días/Semana: ${config.daysPerWeek}
+- Duración: ${config.weeks} semanas
+- Notas adicionales: ${config.notes}
 
-RECOMENDACIONES GENERALES:
-- Incluye consejos sobre progresión de cargas y técnica.
-- Estilo: Profesional, técnico y motivador.`;
+INSTRUCCIONES TÉCNICAS PARA LA RESPUESTA:
+1. Traduce todo el contenido al ESPAÑOL.
+2. Usa nombres de ejercicios estándar y profesionales.
+3. La respuesta debe ser exclusivamente un bloque de código JSON con esta estructura exacta (puedes añadir tantos días y ejercicios como sea necesario para cubrir las ${config.weeks} semanas):
+
+${structure}
+
+IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pueda copiarlo y pegarlo directamente.`;
     };
 
     return (
