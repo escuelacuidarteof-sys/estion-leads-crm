@@ -1,101 +1,50 @@
 -- ==========================================
--- FIX: RLS y políticas en tablas de training
+-- FIX: RLS tablas de training
 -- Ejecutar en Supabase → SQL Editor
 -- ==========================================
--- PROBLEMA: Los ejercicios del workout no se guardan (INSERT silencioso)
--- CAUSA: RLS habilitado sin políticas de INSERT en training_workout_exercises
+-- PROBLEMA: La app usa clave anon para TODAS las peticiones (coaches y clientes).
+-- Las políticas para "authenticated" no aplican. Se necesitan políticas para "anon"
+-- O simplemente deshabilitar RLS en estas tablas operacionales.
+-- ==========================================
 
-DO $$
-BEGIN
+-- Opción A (recomendada): Deshabilitar RLS en tablas de training
+-- ya que la app no usa Supabase Auth y no puede diferenciar usuarios por JWT.
 
-  -- training_exercises
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_exercises' AND policyname = 'Authenticated users can manage training_exercises') THEN
-    CREATE POLICY "Authenticated users can manage training_exercises" ON training_exercises
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_exercises' AND policyname = 'Anon can read training_exercises') THEN
-    CREATE POLICY "Anon can read training_exercises" ON training_exercises
-      FOR SELECT TO anon USING (true);
-  END IF;
+ALTER TABLE IF EXISTS training_exercises          DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_workouts           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_workout_blocks     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_workout_exercises  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_programs           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_program_days       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_program_activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS client_training_assignments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_client_day_logs    DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS training_client_exercise_logs DISABLE ROW LEVEL SECURITY;
 
-  -- training_workouts
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workouts' AND policyname = 'Authenticated users can manage training_workouts') THEN
-    CREATE POLICY "Authenticated users can manage training_workouts" ON training_workouts
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workouts' AND policyname = 'Anon can read training_workouts') THEN
-    CREATE POLICY "Anon can read training_workouts" ON training_workouts
-      FOR SELECT TO anon USING (true);
-  END IF;
+-- Opción B (alternativa si prefieres mantener RLS):
+-- Añadir políticas permisivas para rol anon (que es el que usa la app)
+-- Descomenta las líneas de abajo si prefieres B en vez de A.
 
-  -- training_workout_blocks
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workout_blocks' AND policyname = 'Authenticated users can manage training_workout_blocks') THEN
-    CREATE POLICY "Authenticated users can manage training_workout_blocks" ON training_workout_blocks
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workout_blocks' AND policyname = 'Anon can read training_workout_blocks') THEN
-    CREATE POLICY "Anon can read training_workout_blocks" ON training_workout_blocks
-      FOR SELECT TO anon USING (true);
-  END IF;
+-- DO $$
+-- BEGIN
+--   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workout_exercises' AND policyname = 'Anon full access training_workout_exercises') THEN
+--     CREATE POLICY "Anon full access training_workout_exercises" ON training_workout_exercises
+--       FOR ALL TO anon USING (true) WITH CHECK (true);
+--   END IF;
+--   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_exercises' AND policyname = 'Anon full access training_exercises') THEN
+--     CREATE POLICY "Anon full access training_exercises" ON training_exercises
+--       FOR ALL TO anon USING (true) WITH CHECK (true);
+--   END IF;
+--   -- (repetir para cada tabla)
+-- END $$;
 
-  -- training_workout_exercises  ← la más crítica
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workout_exercises' AND policyname = 'Authenticated users can manage training_workout_exercises') THEN
-    CREATE POLICY "Authenticated users can manage training_workout_exercises" ON training_workout_exercises
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_workout_exercises' AND policyname = 'Anon can read training_workout_exercises') THEN
-    CREATE POLICY "Anon can read training_workout_exercises" ON training_workout_exercises
-      FOR SELECT TO anon USING (true);
-  END IF;
-
-  -- training_programs
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_programs' AND policyname = 'Authenticated users can manage training_programs') THEN
-    CREATE POLICY "Authenticated users can manage training_programs" ON training_programs
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_programs' AND policyname = 'Anon can read training_programs') THEN
-    CREATE POLICY "Anon can read training_programs" ON training_programs
-      FOR SELECT TO anon USING (true);
-  END IF;
-
-  -- training_program_days
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_program_days' AND policyname = 'Authenticated users can manage training_program_days') THEN
-    CREATE POLICY "Authenticated users can manage training_program_days" ON training_program_days
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_program_days' AND policyname = 'Anon can read training_program_days') THEN
-    CREATE POLICY "Anon can read training_program_days" ON training_program_days
-      FOR SELECT TO anon USING (true);
-  END IF;
-
-  -- training_program_activities
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_program_activities' AND policyname = 'Authenticated users can manage training_program_activities') THEN
-    CREATE POLICY "Authenticated users can manage training_program_activities" ON training_program_activities
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'training_program_activities' AND policyname = 'Anon can read training_program_activities') THEN
-    CREATE POLICY "Anon can read training_program_activities" ON training_program_activities
-      FOR SELECT TO anon USING (true);
-  END IF;
-
-  -- client_training_assignments
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'client_training_assignments' AND policyname = 'Authenticated users can manage client_training_assignments') THEN
-    CREATE POLICY "Authenticated users can manage client_training_assignments" ON client_training_assignments
-      FOR ALL TO authenticated USING (true) WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'client_training_assignments' AND policyname = 'Anon can read client_training_assignments') THEN
-    CREATE POLICY "Anon can read client_training_assignments" ON client_training_assignments
-      FOR SELECT TO anon USING (true);
-  END IF;
-
-END $$;
-
--- Verificar políticas creadas
-SELECT tablename, policyname, cmd, permissive
-FROM pg_policies
+-- Verificar resultado
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE tablename IN (
   'training_exercises', 'training_workouts', 'training_workout_blocks',
   'training_workout_exercises', 'training_programs', 'training_program_days',
-  'training_program_activities', 'client_training_assignments'
+  'training_program_activities', 'client_training_assignments',
+  'training_client_day_logs', 'training_client_exercise_logs'
 )
-ORDER BY tablename, cmd;
+ORDER BY tablename;
