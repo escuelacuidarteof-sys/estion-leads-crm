@@ -399,6 +399,34 @@ export const trainingService = {
         if (error) return null;
         return data;
     },
+
+    async assignProgramToClient(
+        clientId: string,
+        programId: string,
+        startDate: string,
+        assignedBy: string
+    ): Promise<void> {
+        const { error } = await supabase
+            .from('client_training_assignments')
+            .upsert({
+                client_id: clientId,
+                program_id: programId,
+                start_date: startDate,
+                assigned_by: assignedBy,
+                assigned_at: new Date().toISOString()
+            }, { onConflict: 'client_id' });
+
+        if (error) throw error;
+    },
+
+    async removeClientAssignment(clientId: string): Promise<void> {
+        const { error } = await supabase
+            .from('client_training_assignments')
+            .delete()
+            .eq('client_id', clientId);
+
+        if (error) throw error;
+    },
 };
 
 export default trainingService;

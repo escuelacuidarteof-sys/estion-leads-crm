@@ -31,6 +31,7 @@ import { ClientImportantNotes } from './ClientImportantNotes';
 import { ClientRiskAlertSection } from './ClientRiskAlertSection';
 import RenewalTimeline from './RenewalTimeline';
 import { ClientNutritionSelector } from './nutrition/ClientNutritionSelector';
+import { ClientTrainingSelector } from './training/ClientTrainingSelector';
 import { generateContractHTML, calculateDaysFromMonths, getMesesList, ContractData } from '../utils/contractTemplate';
 import { getContractHistory, saveContractToHistory, deleteContractFromHistory, ContractHistoryRecord } from '../services/contractHistoryService';
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
@@ -4164,6 +4165,27 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           </div>
                                           <DataField label="Lugar Entrenamiento" value={formData.training.trainingLocation} path="training.trainingLocation" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
                                           <DataField label="Horario Disponibilidad" value={formData.training.availability} path="training.availability" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                       </div>
+                                    </div>
+                                 </div>
+
+                                 {/* Programa de Entrenamiento Asignado */}
+                                 <div className="space-y-4">
+                                    <SectionTitle title="Programa de Entrenamiento" icon={<Dumbbell className="w-4 h-4 text-brand-green" />} />
+                                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                       <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+                                          <Dumbbell className="w-4 h-4 text-brand-green" />
+                                          <h3 className="text-sm font-bold text-slate-700">Programa Asignado</h3>
+                                       </div>
+                                       <div className="p-5">
+                                          <ClientTrainingSelector
+                                             clientId={client.id}
+                                             currentUser={currentUser!}
+                                             onAssigned={() => {}}
+                                          />
+                                          <p className="text-xs text-slate-400 mt-4 leading-relaxed">
+                                             El programa asignado aquí es el que verá el cliente en su portal bajo "Entrenamientos".
+                                          </p>
                                        </div>
                                     </div>
                                  </div>
