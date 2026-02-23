@@ -34,7 +34,7 @@ CREATE POLICY "Staff puede ver materiales" ON materials_library
         EXISTS (
             SELECT 1 FROM users
             WHERE users.id = auth.uid()
-            AND users.role IN ('admin', 'head_coach', 'coach', 'endocrino', 'direccion', 'dietitian')
+            AND users.role IN ('admin', 'super_admin', 'head_coach', 'coach', 'endocrino', 'direccion', 'dietitian')
         )
     );
 
@@ -45,7 +45,14 @@ CREATE POLICY "Staff puede gestionar materiales" ON materials_library
         EXISTS (
             SELECT 1 FROM users
             WHERE users.id = auth.uid()
-            AND users.role IN ('admin', 'head_coach', 'coach', 'direccion')
+            AND users.role IN ('admin', 'super_admin', 'head_coach', 'coach', 'direccion', 'dietitian')
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM users
+            WHERE users.id = auth.uid()
+            AND users.role IN ('admin', 'super_admin', 'head_coach', 'coach', 'direccion', 'dietitian')
         )
     );
 
