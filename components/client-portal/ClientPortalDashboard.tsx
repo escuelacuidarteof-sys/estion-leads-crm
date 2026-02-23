@@ -73,6 +73,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
     const [unreadReviewsCount, setUnreadReviewsCount] = useState(0);
 
+    // Last check-in data (for metrics)
+    const [lastCheckin, setLastCheckin] = useState<any>(null);
+
     // Payment States
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isUploadingPayment, setIsUploadingPayment] = useState(false);
@@ -122,6 +125,16 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             .order('date', { ascending: false })
             .limit(12);
         if (data) setWeightHistory(data);
+
+        // Fetch last check-in for dashboard metrics
+        const { data: checkinData } = await supabase
+            .from('weekly_checkins')
+            .select('responses, rating, created_at')
+            .eq('client_id', client.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        if (checkinData) setLastCheckin(checkinData);
 
         if (client.coach_id) {
             const { data: cData } = await supabase
@@ -549,9 +562,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         const today = new Date();
         const dayOfWeek = today.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
 
-        // Only show on Friday (5), Saturday (6), or Sunday (0)
-        const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-        if (!isWeekend) return false;
+        // Only show on Friday (5), Saturday (6), Sunday (0), or Monday (1)
+        const isCheckinWindow = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1;
+        if (!isCheckinWindow) return false;
 
         // Calculate the date of the most recent Friday (start of check-in week)
         let fridayDate = new Date(today);
@@ -721,9 +734,21 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     );
 
     // --- HELPERS ---
-    const energyVal = client.energy_level ?? null;
-    const fatigueVal = (medical as any).symptom_fatigue ?? null;
-    const sleepVal = (medical as any).symptom_sleep_quality ?? null;
+    // Parse real metrics from the last check-in responses
+    const parseCheckinMetrics = () => {
+        if (!lastCheckin?.responses?.question_1) return { fatigue: null, sleep: null };
+        const q1 = lastCheckin.responses.question_1;
+        const fatigueMatch = q1.match(/Fatiga:\s*(\d+)/);
+        const sleepMatch = q1.match(/Sueño:\s*(\d+)/);
+        return {
+            fatigue: fatigueMatch ? parseInt(fatigueMatch[1]) : null,
+            sleep: sleepMatch ? parseInt(sleepMatch[1]) : null,
+        };
+    };
+    const checkinMetrics = parseCheckinMetrics();
+    const energyVal = lastCheckin?.rating ?? (lastCheckin?.responses?.question_6 ? parseInt(lastCheckin.responses.question_6) : null);
+    const fatigueVal = checkinMetrics.fatigue;
+    const sleepVal = checkinMetrics.sleep;
     const oncologyStatus = (medical as any).oncology_status || '';
 
     const displayTargetWeight = localTargetWeight ?? client.target_weight;
@@ -745,7 +770,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
 
     // Banner prioritario
-    const needsCheckin = client.last_checkin_status !== 'pending_review' && (!client.last_checkin_submitted || new Date().getTime() - new Date(client.last_checkin_submitted).getTime() > 7 * 86400000);
+    const needsCheckin = shouldShowCheckinReminder;
     const hasNewReviews = unreadReviewsCount > 0;
     const hasRenewal = cAny.renewal_status === 'pending';
 
@@ -777,7 +802,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <span className="text-[11px] text-white font-black uppercase tracking-widest">{oncologyStatus || 'Programa Activo'}</span>
                         </div>
                         <h2 className="text-4xl md:text-5xl font-heading font-black text-white leading-[1.1]">
-                            Tu transformación <br /><span className="text-brand-mint">está en marcha.</span>
+                            {(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; })()}, <br /><span className="text-brand-mint">{client.firstName || 'campeón/a'} 💪</span>
                         </h2>
                         {programWeekTotal > 0 && (
                             <div className="flex flex-col gap-2 mt-6 max-w-sm">
@@ -788,21 +813,39 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 <div className="h-2.5 bg-white/10 rounded-full overflow-hidden w-full backdrop-blur-md">
                                     <div className="h-full bg-gradient-to-r from-brand-mint to-brand-green rounded-full shadow-[0_0_10px_rgba(107,160,107,0.5)] transition-all duration-1000" style={{ width: `${programProgress}%` }} />
                                 </div>
+                                {activeContract.startDate && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-white/50 text-[10px] font-bold">
+                                            {new Date(activeContract.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </span>
+                                        <span className="text-white/30 text-[10px]">→</span>
+                                        <span className="text-brand-mint/70 text-[10px] font-bold">
+                                            {activeContract.endDate
+                                                ? new Date(activeContract.endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                : activeContract.duration
+                                                    ? new Date(new Date(activeContract.startDate).getTime() + activeContract.duration * 30 * 86400000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                    : '—'
+                                            }
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
 
                     <div className="flex flex-col items-center justify-center bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border border-white/10 min-w-[200px] shadow-2xl ring-1 ring-white/5 relative group cursor-default">
                         <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-3">Tu Energía</p>
+                        <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-3">Valoración Semanal</p>
                         <div className="relative w-28 h-28 flex items-center justify-center">
                             <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
                                 <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
                                 <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={289.02} strokeDashoffset={289.02 * (1 - (energyVal || 0) / 10)} className="text-brand-mint transition-all duration-1000 ease-out" strokeLinecap="round" />
                             </svg>
-                            <span className="absolute text-4xl font-black text-white">{energyVal || '—'}</span>
+                            <span className="absolute text-4xl font-black text-white">{energyVal !== null ? energyVal : '—'}</span>
                         </div>
-                        <p className="text-brand-green-dark text-[10px] font-black mt-3 bg-brand-mint px-3 py-1 rounded-full shadow-sm">Nivel Actual</p>
+                        <p className="text-brand-green-dark text-[10px] font-black mt-3 bg-brand-mint px-3 py-1 rounded-full shadow-sm">
+                            {energyVal !== null ? (energyVal >= 7 ? '¡Genial!' : energyVal >= 4 ? 'En progreso' : 'Ánimo 💚') : 'Sin datos aún'}
+                        </p>
                     </div>
                 </div>
             </div>
