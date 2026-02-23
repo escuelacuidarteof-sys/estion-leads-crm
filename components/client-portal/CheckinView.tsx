@@ -125,7 +125,10 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
 
                     await supabase
                         .from('clientes')
-                        .update({ property_peso_actual: weightVal })
+                        .update({
+                            current_weight: weightVal,
+                            last_weight_date: new Date().toISOString().split('T')[0],
+                        })
                         .eq('id', client.id);
                 }
             }
