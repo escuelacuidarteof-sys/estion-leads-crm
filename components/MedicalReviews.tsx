@@ -88,13 +88,24 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('🚀 Iniciando handleSubmit...');
+        console.log('Datos actuales del formulario:', formData);
+
+        if (!client.id) {
+            console.error('❌ Error: client.id es nulo');
+            alert('Error interno: No se ha identificado al cliente.');
+            return;
+        }
+
         setSubmitting(true);
         try {
-            await mockDb.medical.create({
+            console.log('Enviando a mockDb.medical.create...');
+            const result = await mockDb.medical.create({
                 client_id: client.id,
                 coach_id: client.coach_id,
                 ...formData
             });
+            console.log('✅ Resultado de creación:', result);
             await loadReviews();
             setShowForm(false);
             setFormData({
@@ -107,8 +118,9 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 report_type: 'Compartir Analítica',
                 file_urls: []
             });
-        } catch (err) {
-            alert('Error al enviar la solicitud.');
+        } catch (err: any) {
+            console.error('❌ Error al enviar consulta:', err);
+            alert(`Error al enviar la solicitud: ${err.message || 'Error desconocido'}`);
         } finally {
             setSubmitting(false);
         }
