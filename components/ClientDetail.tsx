@@ -3241,24 +3241,46 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           );
                                        })}
                                     </tr>
-                                    {/* Main Goal Row (question_1) */}
+                                    {/* Síntomas Row (question_1 = sliders combinados) */}
                                     <tr className="hover:bg-slate-50/50 transition-colors group">
-                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200">Mayor Logro</td>
+                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200">Síntomas</td>
                                        {checkins.map(c => (
                                           <td key={c.id} className="px-6 py-4 border-r border-slate-50 px-8">
-                                             <p className="text-[11px] text-slate-700 font-medium italic leading-relaxed text-center line-clamp-4">
-                                                "{c.responses.question_1 || '-'}"
+                                             <p className="text-[11px] text-slate-700 font-medium leading-relaxed text-center line-clamp-4">
+                                                {c.responses.question_1 || '-'}
                                              </p>
                                           </td>
                                        ))}
                                     </tr>
-                                    {/* Obstacles Row (question_5) */}
+                                    {/* Efectos Secundarios Row (question_2) */}
                                     <tr className="hover:bg-slate-50/50 transition-colors group">
-                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200">Dificultades</td>
+                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200">Efectos Secundarios</td>
                                        {checkins.map(c => (
                                           <td key={c.id} className="px-6 py-4 border-r border-slate-50 px-8">
                                              <p className="text-[11px] text-slate-700 font-medium italic leading-relaxed text-center line-clamp-4">
-                                                "{c.responses.question_5 || 'Ninguna'}"
+                                                {c.responses.question_2 || 'Ninguno'}
+                                             </p>
+                                          </td>
+                                       ))}
+                                    </tr>
+                                    {/* Momento Positivo Row (question_5) */}
+                                    <tr className="hover:bg-slate-50/50 transition-colors group">
+                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200">Momento Positivo</td>
+                                       {checkins.map(c => (
+                                          <td key={c.id} className="px-6 py-4 border-r border-slate-50 px-8">
+                                             <p className="text-[11px] text-emerald-700 font-medium italic leading-relaxed text-center line-clamp-4">
+                                                "{c.responses.question_5 || '-'}"
+                                             </p>
+                                          </td>
+                                       ))}
+                                    </tr>
+                                    {/* Mensaje al Coach Row (coach_message) */}
+                                    <tr className="hover:bg-slate-50/50 transition-colors group">
+                                       <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 px-6 py-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest border-r border-slate-200">💬 Msg Coach</td>
+                                       {checkins.map(c => (
+                                          <td key={c.id} className="px-6 py-4 border-r border-slate-50 px-8">
+                                             <p className="text-[11px] text-indigo-700 font-medium italic leading-relaxed text-center line-clamp-4">
+                                                {c.responses.coach_message || '-'}
                                              </p>
                                           </td>
                                        ))}
@@ -3391,21 +3413,31 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
                                  {/* Contenido Reporte */}
                                  <div className="p-6 space-y-6">
-                                    {/* Logro y Obstáculo Destacados */}
+                                    {/* Síntomas y Momento Positivo */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
                                           <p className="flex items-center gap-2 text-xs font-bold text-amber-600 uppercase mb-2">
-                                             <Trophy className="w-3.5 h-3.5" /> Principal Logro
+                                             <AlertOctagon className="w-3.5 h-3.5" /> Síntomas de la Semana
                                           </p>
-                                          <p className="text-slate-800 text-sm font-medium italic leading-relaxed">"{checkin.responses.question_1}"</p>
+                                          <p className="text-slate-800 text-sm font-medium leading-relaxed">{checkin.responses.question_1 || '-'}</p>
                                        </div>
-                                       <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100">
-                                          <p className="flex items-center gap-2 text-xs font-bold text-rose-600 uppercase mb-2">
-                                             <AlertOctagon className="w-3.5 h-3.5" /> Obstáculos
+                                       <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                                          <p className="flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase mb-2">
+                                             <Trophy className="w-3.5 h-3.5" /> Momento Positivo
                                           </p>
-                                          <p className="text-slate-800 text-sm font-medium italic leading-relaxed">"{checkin.responses.question_5 || 'Ninguno'}"</p>
+                                          <p className="text-slate-800 text-sm font-medium italic leading-relaxed">"{checkin.responses.question_5 || '-'}"</p>
                                        </div>
                                     </div>
+
+                                    {/* Mensaje al Coach */}
+                                    {checkin.responses.coach_message && (
+                                       <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                                          <p className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase mb-2">
+                                             💬 Mensaje para ti
+                                          </p>
+                                          <p className="text-slate-800 text-sm font-medium italic leading-relaxed">"{checkin.responses.coach_message}"</p>
+                                       </div>
+                                    )}
 
                                     {/* Acordeón de Detalles */}
                                     <details className="group/details open:bg-slate-50/50 open:rounded-xl transition-all p-2 -mx-2">
@@ -3417,8 +3449,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
                                        <div className="mt-4 grid grid-cols-1 gap-6 pl-2 md:pl-6 border-l-2 border-blue-100 animate-in fade-in slide-in-from-top-2 duration-200">
                                           <div className="prose prose-sm max-w-none">
-                                             <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">¿Por qué lo crees así?</p>
-                                             <p className="text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-100 shadow-sm">{checkin.responses.question_2}</p>
+                                             <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Nuevos efectos secundarios</p>
+                                             <p className="text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-100 shadow-sm">{checkin.responses.question_2 || 'Ninguno reportado'}</p>
                                           </div>
 
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4182,7 +4214,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           <ClientTrainingSelector
                                              clientId={client.id}
                                              currentUser={currentUser!}
-                                             onAssigned={() => {}}
+                                             onAssigned={() => { }}
                                           />
                                           <p className="text-xs text-slate-400 mt-4 leading-relaxed">
                                              El programa asignado aquí es el que verá el cliente en su portal bajo "Entrenamientos".
