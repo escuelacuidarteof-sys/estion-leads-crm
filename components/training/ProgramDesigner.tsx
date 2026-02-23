@@ -220,7 +220,7 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
     };
 
     return (
-        <div className="fixed inset-0 flex flex-col h-screen bg-slate-50 overflow-hidden animate-fade-in z-[60]">
+        <div className="fixed inset-0 flex flex-col h-screen bg-slate-50 overflow-hidden animate-fade-in z-[9999]">
             {/* ─── HEADER ─── */}
             <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
