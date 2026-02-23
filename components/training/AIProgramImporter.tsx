@@ -174,7 +174,7 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
                     for (const block of dayData.activity.workout_data.blocks) {
                         const resolvedExercises = [];
                         for (const exData of block.exercises) {
-                            const exercise = await (trainingService as any).findOrCreateExercise(exData.exercise_name);
+                            const exercise = await trainingService.findOrCreateExercise(exData.exercise_name);
                             resolvedExercises.push({
                                 ...exData,
                                 exercise_id: exercise.id
@@ -196,7 +196,7 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
                 }
 
                 // Add day to program
-                await (trainingService as any).addProgramDay(program.id, {
+                await trainingService.addProgramDay(program.id, {
                     week_number: dayData.week_number,
                     day_number: dayData.day_number,
                     activities: [{
