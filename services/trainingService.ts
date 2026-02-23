@@ -82,32 +82,56 @@ export const trainingService = {
 
     // --- WORKOUTS ---
     async getWorkouts(): Promise<Workout[]> {
-        const { data, error } = await supabase
+        const { data: workouts, error } = await supabase
             .from('training_workouts')
-            .select(`
-                *,
-                training_workout_blocks (
-                    *,
-                    training_workout_exercises (
-                        *,
-                        exercise:training_exercises(*)
-                    )
-                )
-            `)
+            .select('*')
             .order('updated_at', { ascending: false });
 
         if (error) throw error;
+        if (!workouts || workouts.length === 0) return [];
 
-        // Map data to match Workout type (specifically the exercises field in blocks)
-        return (data || []).map(workout => ({
+        // Get all blocks for these workouts
+        const workoutIds = workouts.map((w: any) => w.id);
+        const { data: allBlocks } = await supabase
+            .from('training_workout_blocks')
+            .select('*')
+            .in('workout_id', workoutIds)
+            .order('position', { ascending: true });
+
+        if (!allBlocks || allBlocks.length === 0) {
+            return workouts.map((w: any) => ({ ...w, blocks: [] }));
+        }
+
+        // Get all exercises for these blocks
+        const allBlockIds = allBlocks.map((b: any) => b.id);
+        const { data: allWorkoutExercises } = await supabase
+            .from('training_workout_exercises')
+            .select('*')
+            .in('block_id', allBlockIds)
+            .order('position', { ascending: true });
+
+        // Get exercise details
+        const exerciseIds = [...new Set(
+            (allWorkoutExercises || []).map((we: any) => we.exercise_id).filter(Boolean)
+        )];
+        const { data: exercises } = exerciseIds.length > 0
+            ? await supabase.from('training_exercises').select('*').in('id', exerciseIds)
+            : { data: [] };
+
+        const exerciseMap: Record<string, any> = Object.fromEntries(
+            (exercises || []).map((e: any) => [e.id, e])
+        );
+
+        return workouts.map((workout: any) => ({
             ...workout,
-            blocks: (workout.training_workout_blocks || []).map((block: any) => ({
-                ...block,
-                exercises: (block.training_workout_exercises || []).map((we: any) => ({
-                    ...we,
-                    exercise: we.exercise
-                })).sort((a: any, b: any) => a.position - b.position)
-            })).sort((a: any, b: any) => a.position - b.position)
+            blocks: (allBlocks || [])
+                .filter((b: any) => b.workout_id === workout.id)
+                .map((block: any) => ({
+                    ...block,
+                    exercises: (allWorkoutExercises || [])
+                        .filter((we: any) => we.block_id === block.id)
+                        .map((we: any) => ({ ...we, exercise: exerciseMap[we.exercise_id] || null }))
+                }))
         }));
     },
 
@@ -190,32 +214,58 @@ export const trainingService = {
     },
 
     async getWorkoutById(id: string): Promise<Workout | null> {
-        const { data, error } = await supabase
+        // 1. Get workout header
+        const { data: workout, error } = await supabase
             .from('training_workouts')
-            .select(`
-                *,
-                training_workout_blocks (
-                    *,
-                    training_workout_exercises (
-                        *,
-                        exercise:training_exercises(*)
-                    )
-                )
-            `)
+            .select('*')
             .eq('id', id)
             .single();
 
-        if (error) return null;
+        if (error || !workout) return null;
+
+        // 2. Get blocks (explicit query, no FK join dependency)
+        const { data: blocks } = await supabase
+            .from('training_workout_blocks')
+            .select('*')
+            .eq('workout_id', id)
+            .order('position', { ascending: true });
+
+        if (!blocks || blocks.length === 0) {
+            return { ...workout, blocks: [] };
+        }
+
+        // 3. Get all workout exercises for these blocks
+        const blockIds = blocks.map((b: any) => b.id);
+        const { data: workoutExercises } = await supabase
+            .from('training_workout_exercises')
+            .select('*')
+            .in('block_id', blockIds)
+            .order('position', { ascending: true });
+
+        if (!workoutExercises || workoutExercises.length === 0) {
+            return { ...workout, blocks: blocks.map((b: any) => ({ ...b, exercises: [] })) };
+        }
+
+        // 4. Get exercise details
+        const exerciseIds = [...new Set(
+            workoutExercises.map((we: any) => we.exercise_id).filter(Boolean)
+        )];
+        const { data: exercises } = exerciseIds.length > 0
+            ? await supabase.from('training_exercises').select('*').in('id', exerciseIds)
+            : { data: [] };
+
+        const exerciseMap: Record<string, any> = Object.fromEntries(
+            (exercises || []).map((e: any) => [e.id, e])
+        );
 
         return {
-            ...data,
-            blocks: (data.training_workout_blocks || []).map((block: any) => ({
+            ...workout,
+            blocks: blocks.map((block: any) => ({
                 ...block,
-                exercises: (block.training_workout_exercises || []).map((we: any) => ({
-                    ...we,
-                    exercise: we.exercise
-                })).sort((a: any, b: any) => a.position - b.position)
-            })).sort((a: any, b: any) => a.position - b.position)
+                exercises: workoutExercises
+                    .filter((we: any) => we.block_id === block.id)
+                    .map((we: any) => ({ ...we, exercise: exerciseMap[we.exercise_id] || null }))
+            }))
         };
     },
 
