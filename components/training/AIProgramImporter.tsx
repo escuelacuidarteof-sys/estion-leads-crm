@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Loader2, AlertCircle, Copy, Check, Calendar, Dumbbell, Target, Zap, FileText, ChevronRight } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { trainingService } from '../../services/trainingService';
 import { TrainingProgram, Workout, ProgramDay, ProgramActivity } from '../../types';
 
@@ -10,7 +9,7 @@ interface AIProgramImporterProps {
     onClose: () => void;
 }
 
-type Step = 'setup' | 'generating' | 'preview';
+type Step = 'setup' | 'preview';
 
 export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgramImporterProps) {
     const [step, setStep] = useState<Step>('setup');
@@ -29,128 +28,35 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
         notes: 'Priorizar entrenamiento de fuerza con énfasis en glúteo y core. Adaptado para mujer.'
     });
 
-    const generateSystemPrompt = (isAnalysis: boolean) => {
-        const base = `Actúa como un experto preparador físico de élite e ingeniero de datos.`;
-
-        const structure = `
-        {
-          "program": {
-            "name": "Nombre descriptivo del programa",
-            "description": "Resumen del enfoque del programa",
-            "weeks_count": ${parseInt(config.weeks) || 4}
-          },
-          "days": [
-            {
-              "week_number": 1,
-              "day_number": 1,
-              "activity": {
-                "type": "workout",
-                "title": "Nombre del Entrenamiento (ej: Empuje A)",
-                "description": "Enfoque del día",
-                "workout_data": {
-                  "name": "Nombre del Entrenamiento",
-                  "blocks": [
-                    {
-                      "name": "Calentamiento",
-                      "exercises": [
-                        {
-                          "exercise_name": "Nombre Común del Ejercicio",
-                          "sets": 2,
-                          "reps": "12-15",
-                          "rest_seconds": 60,
-                          "notes": "Controlar el tempo"
-                        }
-                      ]
-                    },
-                    {
-                      "name": "Parte Principal",
-                      "exercises": [
-                        {
-                          "exercise_name": "Sentadilla con Barra",
-                          "sets": 4,
-                          "reps": "8-10",
-                          "rest_seconds": 120,
-                          "notes": "RPE 8"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }`;
-
-        if (isAnalysis) {
-            return `${base} Analiza el texto proporcionado (que contiene una rutina) y conviértelo EXACTAMENTE a este formato JSON: ${structure}. 
-            Importante: Si el texto original tiene varios días, inclúyelos todos en el array "days". 
-            Si el plan es de varias semanas pero los días se repiten, genera los registros para la semana 1 y menciónalo en la descripción.`;
-        }
-
-        return `${base} Genera un programa de entrenamiento profesional COMPLETO basado en:
-        - Objetivo: ${config.goal}
-        - Nivel: ${config.level}
-        - Equipamiento: ${config.equipment}
-        - Días por semana: ${config.daysPerWeek}
-        - Duración: ${config.weeks} semanas
-        - Notas adicionales: ${config.notes}
-        
-        REQUISITOS:
-        1. Diseña entrenamientos variados y efectivos.
-        2. Usa nombres de ejercicios estándar.
-        3. Para cada día de entrenamiento, genera la estructura "workout_data" completa con bloques y ejercicios.
-        4. Si un día es de descanso, pon el tipo de actividad como "custom" y título "Descanso Activo" o similar.
-        
-        Devuelve SOLO el objeto JSON con esta estructura exacta: ${structure}`;
-    };
-
-    const runAI = async (prompt: string) => {
-        const rawApiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-        const apiKey = rawApiKey?.trim();
-
-        if (!apiKey) throw new Error('API Key de Gemini no configurada');
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let jsonText = response.text();
-
-        // Sanitize JSON
-        jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(jsonText);
-    }
-
-    const handleDirectGenerate = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            setStep('generating');
-
-            const data = await runAI(generateSystemPrompt(false));
-            setPreviewData(data);
-            setStep('preview');
-        } catch (err: any) {
-            console.error('AI error:', err);
-            setError(err.message || 'Error al generar con IA');
-            setStep('setup');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleManualAnalyze = async () => {
         if (!text.trim()) return;
+
         try {
             setLoading(true);
             setError(null);
 
-            const data = await runAI(`${generateSystemPrompt(true)}\n\nTexto a analizar:\n${text}`);
+            // Cleanup the input text - it should be a JSON block
+            let jsonText = text.trim();
+            if (jsonText.includes('```')) {
+                const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                if (match) {
+                    jsonText = match[1].trim();
+                } else {
+                    jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+                }
+            }
+
+            const data = JSON.parse(jsonText);
+
+            if (!data.program || !data.days) {
+                throw new Error('El formato JSON no es válido. Falta "program" o "days".');
+            }
+
             setPreviewData(data);
             setStep('preview');
         } catch (err: any) {
-            setError(err.message || 'Error al analizar el texto');
+            console.error('Parsing error:', err);
+            setError('El texto no es un código JSON válido. Asegúrate de copiar el bloque de código completo que generó Gemini.');
         } finally {
             setLoading(false);
         }
@@ -159,6 +65,7 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
     const handleConfirmImport = async () => {
         try {
             setLoading(true);
+            setError(null);
 
             // 1. Create the Program
             const program = await trainingService.saveProgram({
@@ -212,10 +119,12 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
             }
 
             // Fetch the full program with its days to return it
-            const fullProgram = (await trainingService.getPrograms()).find(p => p.id === program.id);
+            const programs = await trainingService.getPrograms();
+            const fullProgram = programs.find(p => p.id === program.id);
 
             onSuccess(fullProgram || program);
         } catch (err: any) {
+            console.error('Save error:', err);
             setError(err.message || 'Error al guardar el programa');
         } finally {
             setLoading(false);
@@ -383,24 +292,17 @@ IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pu
                                         />
                                     </div>
 
-                                    <div className="flex flex-col gap-3">
-                                        <button
-                                            onClick={handleDirectGenerate}
-                                            disabled={loading}
-                                            className="w-full py-4 bg-gradient-to-r from-brand-green to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-black shadow-xl shadow-brand-green/25 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
-                                        >
-                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                                            GENERAR PROGRAMA CON IA
-                                        </button>
+                                    <div className="pt-4">
                                         <button
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getMasterPromptForClipboard());
-                                                alert("Instrucción copiada con éxito 🚀");
+                                                alert("Instrucciones copiadas con éxito 🚀");
                                             }}
-                                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
+                                            className="w-full py-5 bg-gradient-to-r from-brand-green to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-black shadow-xl shadow-brand-green/25 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                                         >
-                                            <Copy className="w-4 h-4" /> Copiar para Gemini Externo
+                                            <Copy className="w-5 h-5" /> COPIAR INSTRUCCIONES PARA GEMINI
                                         </button>
+                                        <p className="text-[10px] text-slate-400 text-center mt-3 font-medium">Configura los parámetros arriba antes de copiar</p>
                                     </div>
                                 </div>
                             </div>
@@ -415,7 +317,7 @@ IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pu
                                     <textarea
                                         value={text}
                                         onChange={e => setText(e.target.value)}
-                                        placeholder="Cualquier texto con una rutina, la IA lo convertirá al formato del CRM..."
+                                        placeholder="Pega aquí el código JSON generado por Gemini..."
                                         className="flex-1 w-full p-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-sm font-mono leading-relaxed text-slate-600 resize-none mb-4"
                                     />
                                     <button
@@ -431,122 +333,120 @@ IMPORTANTE: Responde solo con el JSON dentro de un bloque de código para que pu
                         </div>
                     )}
 
-                    {step === 'generating' && (
-                        <div className="flex flex-col items-center justify-center py-20 animate-in zoom-in-95 duration-500">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-brand-green blur-3xl opacity-20 animate-pulse rounded-full" />
-                                <Loader2 className="w-24 h-24 text-brand-green animate-spin relative z-10" />
-                            </div>
-                            <h3 className="text-3xl font-black text-slate-800 mt-8">Planificando...</h3>
-                            <p className="text-slate-500 font-medium mt-2">Nuestra IA está diseñando un programa de alta intensidad para ti.</p>
-                            <div className="mt-10 flex gap-2">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-3 h-3 bg-brand-green rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     {step === 'preview' && previewData && (
-                        <div className="animate-in slide-in-from-right-4 duration-500 space-y-8 pb-10">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <button onClick={() => setStep('setup')} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                    <h3 className="text-2xl font-black text-slate-800">Previsualización del Programa</h3>
-                                </div>
-                                <div className="flex gap-3">
-                                    <span className="px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-black flex items-center gap-2">
-                                        <Calendar className="w-4 h-4" /> {previewData.program.weeks_count} Semanas
-                                    </span>
-                                    <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-black flex items-center gap-2">
-                                        <Dumbbell className="w-4 h-4" /> {previewData.days.filter((d: any) => d.activity.type === 'workout').length} Entrenamientos
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* Left: Program Info */}
-                                <div className="lg:col-span-1 space-y-6">
-                                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detalles del Programa</h4>
-                                        <p className="text-xl font-black text-slate-800 leading-tight mb-4">{previewData.program.name}</p>
-                                        <div className="space-y-4">
-                                            <div className="bg-slate-50 p-4 rounded-xl border-l-4 border-brand-green">
-                                                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Descripción</p>
-                                                <p className="text-sm text-slate-600 font-medium">{previewData.program.description}</p>
-                                            </div>
-                                            <div className="bg-blue-50/50 p-4 rounded-xl border-l-4 border-blue-500">
-                                                <p className="text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
-                                                    <FileText className="w-3 h-3" /> Metodología IA
-                                                </p>
-                                                <p className="text-sm text-slate-700 leading-relaxed italic">
-                                                    Programa diseñado siguiendo principios de sobrecarga progresiva y periodización ondulatoria.
-                                                </p>
-                                            </div>
+                        <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="px-4 py-1.5 bg-brand-green text-slate-900 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-green/20">
+                                            Vista Previa del Programa
+                                        </div>
+                                        <div className="px-4 py-1.5 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                            {previewData.program.weeks_count} Semanas
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Right: Days List Preview */}
-                                <div className="lg:col-span-2 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {previewData.days.map((day: any, idx: number) => (
-                                        <div key={idx} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:border-brand-green transition-all group">
-                                            <div className="flex gap-4">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white shadow-lg ${day.activity.type === 'workout' ? 'bg-orange-500' : 'bg-slate-400'}`}>
-                                                    {day.day_number}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <h5 className="font-bold text-slate-800 text-lg">{day.activity.title}</h5>
-                                                        <span className="text-xs font-black text-slate-400 uppercase">Semana {day.week_number} • Día {day.day_number}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-4">
-                                                        <p className="text-sm text-slate-500 line-clamp-1">{day.activity.description || 'Sin descripción'}</p>
-                                                        {day.activity.workout_data && (
-                                                            <div className="flex gap-2">
-                                                                <span className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[10px] font-black rounded-lg">
-                                                                    {day.activity.workout_data.blocks.length} Bloques
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-brand-green transition-colors self-center" />
-                                            </div>
-                                        </div>
-                                    ))}
+                                    <h3 className="text-4xl font-black mb-2">{previewData.program.name}</h3>
+                                    <p className="text-slate-300 text-lg font-medium max-w-2xl">{previewData.program.description}</p>
                                 </div>
                             </div>
 
-                            {/* Sticky Footer */}
-                            <div className="sticky bottom-0 bg-slate-50 pt-6 border-t border-slate-200 flex justify-end gap-4">
-                                <button
-                                    onClick={() => setStep('setup')}
-                                    className="px-6 py-3 text-slate-500 font-bold hover:text-slate-800 transition-colors"
-                                >
-                                    Corregir Parámetros
-                                </button>
-                                <button
-                                    onClick={handleConfirmImport}
-                                    disabled={loading}
-                                    className="px-12 py-3 bg-gradient-to-r from-brand-green to-emerald-600 text-white rounded-[1.5rem] font-black shadow-xl shadow-brand-green/30 flex items-center gap-3 transition-all active:scale-95"
-                                >
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                                    CONFIRMAR Y GUARDAR PROGRAMA
-                                </button>
+                            <div className="space-y-6">
+                                {previewData.days.map((day: any, idx: number) => (
+                                    <div key={idx} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                                        <div className="p-6 bg-slate-50 flex items-center justify-between border-b border-slate-100">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex flex-col items-center justify-center border border-slate-100">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase leading-none">Sem</span>
+                                                    <span className="text-lg font-black text-brand-green leading-none">{day.week_number}</span>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                                                        Día {day.day_number}: {day.activity.title}
+                                                        {day.activity.type === 'workout' && <Dumbbell className="w-4 h-4 text-brand-green" />}
+                                                    </h4>
+                                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{day.activity.description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="px-4 py-2 bg-white rounded-xl border border-slate-100 text-xs font-bold text-slate-500">
+                                                {day.activity.type === 'workout' ? 'Entrenamiento' : 'Actividad'}
+                                            </div>
+                                        </div>
+
+                                        {day.activity.type === 'workout' && day.activity.workout_data && (
+                                            <div className="p-6 space-y-6">
+                                                {day.activity.workout_data.blocks.map((block: any, bIdx: number) => (
+                                                    <div key={bIdx} className="space-y-3">
+                                                        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                            <div className="h-px flex-1 bg-slate-100" />
+                                                            {block.name}
+                                                            <div className="h-px flex-1 bg-slate-100" />
+                                                        </h5>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {block.exercises.map((ex: any, eIdx: number) => (
+                                                                <div key={eIdx} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-white hover:border-brand-green/30 transition-all group/ex">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-xs font-black text-slate-400 group-hover/ex:text-brand-green transition-colors">
+                                                                            {eIdx + 1}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-bold text-slate-700 text-sm">{ex.exercise_name}</p>
+                                                                            <p className="text-[10px] font-semibold text-slate-400">
+                                                                                {ex.sets} × {ex.reps} {ex.notes && `• ${ex.notes}`}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-[10px] font-black text-slate-400 tabular-nums">
+                                                                        {ex.rest_seconds}s rest
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
                 </div>
 
-                {error && (
-                    <div className="mx-8 mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-700 animate-in slide-in-from-top-2">
-                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        <p className="text-sm font-bold">{error}</p>
-                    </div>
-                )}
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-100 flex items-center justify-between bg-white px-8">
+                    {step === 'preview' ? (
+                        <>
+                            <button
+                                onClick={() => setStep('setup')}
+                                className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-all"
+                            >
+                                Volver a ajustar
+                            </button>
+                            <div className="flex items-center gap-3">
+                                {error && (
+                                    <div className="flex items-center gap-2 text-rose-500 px-4 font-bold text-sm bg-rose-50 py-2 rounded-xl border border-rose-100 animate-in slide-in-from-right-4">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {error}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={handleConfirmImport}
+                                    disabled={loading}
+                                    className="px-10 py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-black shadow-xl flex items-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                                    CONFIRMAR E IMPORTAR PROGRAMA
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2 text-slate-400 font-medium text-sm italic">
+                            <AlertCircle className="w-4 h-4" />
+                            Asegúrate de copiar el código completo desde Gemini
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
