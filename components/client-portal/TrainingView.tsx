@@ -14,7 +14,10 @@ import {
     Save,
     Upload,
     Loader2,
-    Ruler
+    Ruler,
+    Clock,
+    Flame,
+    History
 } from 'lucide-react';
 import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout, ClientActivityLog, ClientDayLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
@@ -240,6 +243,11 @@ function WalkingActivityCard({ activity, existingLog, clientId, dayId, onSaved }
                 client_id: clientId, activity_id: activity.id, day_id: dayId,
                 completed_at: new Date().toISOString(), data: { steps: Number(steps) }
             });
+            // Also save to steps_history for unified step tracking
+            const today = new Date().toISOString().split('T')[0];
+            await supabase
+                .from('steps_history')
+                .upsert({ client_id: clientId, steps: Number(steps), date: today }, { onConflict: 'client_id,date' });
             onSaved();
         } catch (e) { console.error(e); alert('Error al guardar'); }
         finally { setSaving(false); }
@@ -658,6 +666,11 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [activityLogs, setActivityLogs] = useState<ClientActivityLog[]>([]);
     const [dayLog, setDayLog] = useState<ClientDayLog | null>(null);
     const [showCheckin, setShowCheckin] = useState(false);
+    const [viewMode, setViewMode] = useState<'program' | 'history'>('program');
+    const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    const [completedDayIds, setCompletedDayIds] = useState<Set<string>>(new Set());
 
     const loadActivityLogs = async (dayId: string) => {
         try {
@@ -669,6 +682,37 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
             setDayLog(log);
         } catch (e) { console.error('Error loading activity logs:', e); }
     };
+
+    const loadCompletedDays = async () => {
+        try {
+            const [dayLogs, actLogs] = await Promise.all([
+                supabase.from('training_client_day_logs').select('day_id').eq('client_id', client.id),
+                supabase.from('training_client_activity_logs').select('day_id').eq('client_id', client.id).then(r => r).catch(() => ({ data: null }))
+            ]);
+            const ids = new Set<string>();
+            (dayLogs.data || []).forEach(d => ids.add(d.day_id));
+            (actLogs.data || []).forEach(d => ids.add(d.day_id));
+            setCompletedDayIds(ids);
+        } catch (e) { console.error('Error loading completed days:', e); }
+    };
+
+    const loadHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            const data = await trainingService.getClientAllDayLogs(client.id);
+            setHistoryLogs(data);
+        } catch (e) {
+            console.error('Error loading history:', e);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (viewMode === 'history' && historyLogs.length === 0) {
+            loadHistory();
+        }
+    }, [viewMode]);
 
     // Load assignment and program
     useEffect(() => {
@@ -696,6 +740,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                 const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
                 const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
                 setSelectedWeek(clampedWeek);
+                loadCompletedDays();
             } catch (err) {
                 console.error('Error loading training assignment:', err);
             } finally {
@@ -828,7 +873,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                     <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
-                    <div>
+                    <div className="flex-1">
                         <h1 className="text-xl font-bold text-brand-dark flex items-center gap-2">
                             <Dumbbell className="w-6 h-6 text-brand-green" />
                             {program.name}
@@ -838,8 +883,26 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                         )}
                     </div>
                 </div>
+                {/* Program / History Toggle */}
+                <div className="max-w-4xl mx-auto px-4 pb-2 flex gap-1 bg-brand-mint/20 rounded-xl p-1">
+                    <button
+                        onClick={() => setViewMode('program')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'program' ? 'bg-white text-brand-dark shadow-sm' : 'text-slate-500 hover:text-brand-dark'}`}
+                    >
+                        <Dumbbell className="w-4 h-4" />
+                        Programa
+                    </button>
+                    <button
+                        onClick={() => setViewMode('history')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'history' ? 'bg-white text-brand-dark shadow-sm' : 'text-slate-500 hover:text-brand-dark'}`}
+                    >
+                        <History className="w-4 h-4" />
+                        Historial
+                    </button>
+                </div>
             </div>
 
+            {viewMode === 'program' && (
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
                 {/* Week Selector */}
                 {program.weeks_count > 1 && (
@@ -875,19 +938,27 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                             const isSelected = selectedDay === dayNum;
                             const dayData = getDayData(selectedWeek, dayNum);
                             const activities = dayData?.activities || [];
+                            const isDayCompleted = dayData ? completedDayIds.has(dayData.id) : false;
 
                             return (
                                 <button
                                     key={dayNum}
                                     onClick={() => hasContent ? setSelectedDay(isSelected ? null : dayNum) : undefined}
                                     disabled={!hasContent}
-                                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${isSelected
+                                    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${isSelected
                                         ? 'bg-brand-green text-white shadow-sm'
-                                        : hasContent
-                                            ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
-                                            : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
+                                        : isDayCompleted
+                                            ? 'bg-green-50 border-2 border-brand-green/60 text-brand-dark hover:bg-green-100 active:scale-95'
+                                            : hasContent
+                                                ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
+                                                : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
                                         }`}
                                 >
+                                    {isDayCompleted && !isSelected && (
+                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-green rounded-full flex items-center justify-center shadow-sm">
+                                            <CheckCircle className="w-3 h-3 text-white" />
+                                        </div>
+                                    )}
                                     <span className="text-[10px] font-black uppercase tracking-wider">
                                         {DAY_NAMES[dayNum - 1]}
                                     </span>
@@ -947,6 +1018,151 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                     </div>
                 )}
             </div>
+            )}
+
+            {viewMode === 'history' && (
+                <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+                    <p className="text-xs font-black text-brand-dark uppercase tracking-wider px-1">
+                        Entrenamientos completados
+                    </p>
+
+                    {historyLoading ? (
+                        <div className="flex items-center justify-center py-12 text-slate-400">
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-300 border-t-brand-green mr-3"></div>
+                            Cargando historial...
+                        </div>
+                    ) : historyLogs.length === 0 ? (
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-8 text-center">
+                            <History className="w-10 h-10 text-brand-mint mx-auto mb-3" />
+                            <p className="text-sm text-slate-500 font-medium">Aún no has completado entrenamientos</p>
+                            <p className="text-xs text-slate-400 mt-1">Cuando termines tu primera sesión aparecerá aquí</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {historyLogs.map(log => {
+                                const isExpanded = expandedLogId === log.id;
+                                const completedEx = (log.exerciseDetails || []).filter((e: any) => e.is_completed).length;
+                                const totalEx = (log.exerciseDetails || []).length;
+                                const formatDate = (iso: string) => {
+                                    const d = new Date(iso);
+                                    return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+                                };
+                                const rpeColor = (rpe: number) => {
+                                    if (rpe <= 3) return 'text-green-600 bg-green-50';
+                                    if (rpe <= 5) return 'text-blue-600 bg-blue-50';
+                                    if (rpe <= 7) return 'text-orange-600 bg-orange-50';
+                                    return 'text-red-600 bg-red-50';
+                                };
+
+                                return (
+                                    <div key={log.id} className="bg-white rounded-2xl border border-brand-mint/40 overflow-hidden shadow-sm">
+                                        <button
+                                            onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                                            className="w-full px-4 py-3 flex items-center gap-3 text-left"
+                                        >
+                                            <div className="w-10 h-10 rounded-xl bg-brand-mint/30 flex items-center justify-center flex-shrink-0">
+                                                <CheckCircle className="w-5 h-5 text-brand-green" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold text-brand-dark truncate">
+                                                        {log.day_name || 'Entrenamiento'}
+                                                    </span>
+                                                    {log.week_number && (
+                                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                            S{log.week_number}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3 mt-0.5">
+                                                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {formatDate(log.completed_at)}
+                                                    </span>
+                                                    {log.duration_minutes && (
+                                                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            {log.duration_minutes} min
+                                                        </span>
+                                                    )}
+                                                    {totalEx > 0 && (
+                                                        <span className="text-xs text-slate-400">
+                                                            {completedEx}/{totalEx} ej.
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {log.effort_rating && (
+                                                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${rpeColor(log.effort_rating)}`}>
+                                                    RPE {log.effort_rating}
+                                                </span>
+                                            )}
+                                            {isExpanded ? (
+                                                <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                            ) : (
+                                                <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                            )}
+                                        </button>
+
+                                        {isExpanded && (
+                                            <div className="px-4 pb-4 border-t border-brand-mint/30 pt-3 space-y-3">
+                                                {log.notes && (
+                                                    <div className="flex items-start gap-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                                                        <FileText className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                                        <p className="text-xs text-amber-800">{log.notes}</p>
+                                                    </div>
+                                                )}
+
+                                                {log.effort_rating && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Flame className="w-4 h-4 text-orange-500" />
+                                                        <span className="text-xs text-slate-600">
+                                                            Esfuerzo: <strong>{log.effort_rating}/10</strong>
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {(log.exerciseDetails || []).length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <p className="text-[10px] font-black text-brand-dark uppercase tracking-widest">Ejercicios</p>
+                                                        {log.exerciseDetails.map((ex: any, i: number) => (
+                                                            <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl ${ex.is_completed ? 'bg-brand-mint/20 border border-brand-mint/30' : 'bg-slate-50 border border-slate-100'}`}>
+                                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${ex.is_completed ? 'bg-brand-green/20 text-brand-green' : 'bg-slate-200 text-slate-500'}`}>
+                                                                    {i + 1}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-xs font-semibold text-brand-dark truncate">{ex.name}</p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        {ex.weight_used && (
+                                                                            <span className="text-[10px] text-slate-500">
+                                                                                {ex.weight_used.split(',').filter(Boolean).join(' / ')} kg
+                                                                            </span>
+                                                                        )}
+                                                                        {ex.reps_completed && (
+                                                                            <span className="text-[10px] text-slate-500">
+                                                                                {ex.reps_completed.split(',').filter(Boolean).join(' / ')} reps
+                                                                            </span>
+                                                                        )}
+                                                                        {ex.sets_completed != null && (
+                                                                            <span className="text-[10px] text-slate-500">
+                                                                                {ex.sets_completed} series
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {activeWorkout && (
                 <ActiveWorkoutSession
@@ -958,6 +1174,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                         const dayId = activeWorkout.dayId;
                         setActiveWorkout(null);
                         loadActivityLogs(dayId);
+                        loadCompletedDays();
                     }}
                 />
             )}

@@ -28,7 +28,6 @@ import { ClientAnnouncements } from '../ClientAnnouncements';
 import { SecurityMigrationBanner } from './SecurityMigrationBanner';
 import MedicalReviews from '../../components/MedicalReviews';
 import { useToast } from '../../components/ToastProvider';
-import { SymptomTrackerCard } from './SymptomTrackerCard';
 import { BodyMeasurementsCard } from './BodyMeasurementsCard';
 import { WellnessCard } from './WellnessCard';
 import { AchievementsCard } from './AchievementsCard';
@@ -1116,7 +1115,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
             {/* Medidas */}
             <BodyMeasurementsCard clientId={client.id} initialAbdominal={client.abdominal_perimeter} initialArm={client.arm_perimeter} initialThigh={client.thigh_perimeter} />
-            <SymptomTrackerCard medical={client.medical} energyLevel={client.energy_level} recoveryCapacity={client.recovery_capacity} />
             <WellnessCard clientId={client.id} />
 
             {/* Objetivos */}

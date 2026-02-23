@@ -32,6 +32,7 @@ import { ClientRiskAlertSection } from './ClientRiskAlertSection';
 import RenewalTimeline from './RenewalTimeline';
 import { ClientNutritionSelector } from './nutrition/ClientNutritionSelector';
 import { ClientTrainingSelector } from './training/ClientTrainingSelector';
+import { ClientWorkoutHistory } from './training/ClientWorkoutHistory';
 import { generateContractHTML, calculateDaysFromMonths, getMesesList, ContractData } from '../utils/contractTemplate';
 import { getContractHistory, saveContractToHistory, deleteContractFromHistory, ContractHistoryRecord } from '../services/contractHistoryService';
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
@@ -4195,6 +4196,13 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     <SectionTitle title="Registro de Pasos" icon={<Activity className="w-4 h-4 text-orange-600" />} />
                                     <StepsCard clientId={client.id} isClientView={false} />
                                  </div>
+                              </div>
+
+                              {/* Historial de Entrenamientos Completados */}
+                              <div className="mt-8 pt-8 border-t border-slate-100">
+                                 <SectionTitle title="Historial de Entrenamientos" icon={<Dumbbell className="w-4 h-4 text-brand-green" />} />
+                                 <p className="text-xs text-slate-400 mb-4">Entrenamientos completados por el cliente en su portal.</p>
+                                 <ClientWorkoutHistory clientId={client.id} />
                               </div>
                            </div>
                         )}
