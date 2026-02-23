@@ -896,6 +896,7 @@ export interface ProgramActivity {
   description?: string;
   position: number;
   color?: string;
+  config?: Record<string, any>;
 }
 
 export interface ClientTrainingAssignment {
@@ -927,5 +928,15 @@ export interface ClientExerciseLog {
   reps_completed?: string;
   weight_used?: string;
   is_completed: boolean;
+  created_at?: string;
+}
+
+export interface ClientActivityLog {
+  id: string;
+  client_id: string;
+  activity_id: string;
+  day_id: string;
+  completed_at: string;
+  data: Record<string, any>;
   created_at?: string;
 }

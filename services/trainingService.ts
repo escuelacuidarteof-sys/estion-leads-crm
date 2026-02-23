@@ -9,7 +9,8 @@ import {
     ProgramActivity,
     ClientTrainingAssignment,
     ClientDayLog,
-    ClientExerciseLog
+    ClientExerciseLog,
+    ClientActivityLog
 } from '../types';
 
 export const trainingService = {
@@ -363,7 +364,8 @@ export const trainingService = {
                         title: act.title,
                         description: act.description,
                         position: index,
-                        color: act.color
+                        color: act.color,
+                        config: act.config || {}
                     }));
 
                     await supabase.from('training_program_activities').insert(activityInserts);
@@ -540,6 +542,32 @@ export const trainingService = {
             ...log,
             exercises: exercises || []
         };
+    },
+
+    // --- CLIENT ACTIVITY LOGS ---
+    async saveClientActivityLog(log: Omit<ClientActivityLog, 'id' | 'created_at'>): Promise<void> {
+        const { error } = await supabase
+            .from('training_client_activity_logs')
+            .upsert({
+                client_id: log.client_id,
+                activity_id: log.activity_id,
+                day_id: log.day_id,
+                completed_at: log.completed_at || new Date().toISOString(),
+                data: log.data
+            }, { onConflict: 'client_id,activity_id,day_id' });
+
+        if (error) throw error;
+    },
+
+    async getClientActivityLogs(clientId: string, dayId: string): Promise<ClientActivityLog[]> {
+        const { data, error } = await supabase
+            .from('training_client_activity_logs')
+            .select('*')
+            .eq('client_id', clientId)
+            .eq('day_id', dayId);
+
+        if (error) throw error;
+        return data || [];
     }
 };
 

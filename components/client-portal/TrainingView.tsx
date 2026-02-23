@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     ArrowLeft,
     Dumbbell,
@@ -9,11 +9,18 @@ import {
     Calendar,
     ChevronDown,
     ChevronUp,
-    Play
+    Play,
+    CheckCircle,
+    Save,
+    Upload,
+    Loader2,
+    Ruler
 } from 'lucide-react';
-import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout } from '../../types';
+import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout, ClientActivityLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
+import { supabase } from '../../services/supabaseClient';
 import { ActiveWorkoutSession } from './ActiveWorkoutSession';
+import { CheckinView } from './CheckinView';
 
 interface TrainingViewProps {
     client: Client;
@@ -213,18 +220,297 @@ function WorkoutDetail({ workout }: WorkoutDetailProps) {
     );
 }
 
-interface ActivityCardProps {
+// --- Walking Activity Card ---
+function WalkingActivityCard({ activity, existingLog, clientId, dayId, onSaved }: {
+    activity: ProgramActivity; existingLog?: ClientActivityLog; clientId: string; dayId: string; onSaved: () => void;
+}) {
+    const goalSteps = activity.config?.goal_steps || 0;
+    const [steps, setSteps] = useState<string>(existingLog?.data?.steps?.toString() || '');
+    const [saving, setSaving] = useState(false);
+    const saved = !!existingLog;
+
+    const handleSave = async () => {
+        if (!steps) return;
+        setSaving(true);
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId, activity_id: activity.id, day_id: dayId,
+                completed_at: new Date().toISOString(), data: { steps: Number(steps) }
+            });
+            onSaved();
+        } catch (e) { console.error(e); alert('Error al guardar'); }
+        finally { setSaving(false); }
+    };
+
+    return (
+        <div className={`bg-white rounded-2xl border ${saved ? 'border-brand-green/40' : 'border-brand-mint/40'} shadow-sm overflow-hidden`}>
+            <div className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl ${saved ? 'bg-brand-green/10' : 'bg-pink-50'} flex items-center justify-center flex-shrink-0`}>
+                    {saved ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Footprints className="w-5 h-5 text-pink-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-black text-brand-dark text-sm">{activity.title || 'Caminata'}</p>
+                    {goalSteps > 0 && <p className="text-xs text-slate-400">Meta: {goalSteps.toLocaleString()} pasos</p>}
+                </div>
+                {saved && <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Registrado</span>}
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+                {activity.description && <p className="text-xs text-slate-500 italic">{activity.description}</p>}
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 relative">
+                        <input type="number" value={steps} onChange={e => setSteps(e.target.value)} placeholder="Pasos realizados"
+                            className="w-full px-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-brand-dark border border-slate-200 focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all" />
+                        {goalSteps > 0 && Number(steps) > 0 && (
+                            <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${Number(steps) >= goalSteps ? 'text-brand-green' : 'text-orange-500'}`}>
+                                {Math.round((Number(steps) / goalSteps) * 100)}%
+                            </span>
+                        )}
+                    </div>
+                    <button onClick={handleSave} disabled={saving || !steps}
+                        className="px-5 py-3 bg-brand-green text-white rounded-xl font-bold text-sm disabled:opacity-40 hover:bg-emerald-600 active:scale-95 transition-all flex items-center gap-1.5">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saved ? 'Actualizar' : 'Guardar'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Metrics Activity Card ---
+function MetricsActivityCard({ activity, existingLog, clientId, dayId, onSaved }: {
+    activity: ProgramActivity; existingLog?: ClientActivityLog; clientId: string; dayId: string; onSaved: () => void;
+}) {
+    const [abdomen, setAbdomen] = useState<string>(existingLog?.data?.abdomen?.toString() || '');
+    const [arm, setArm] = useState<string>(existingLog?.data?.arm?.toString() || '');
+    const [thigh, setThigh] = useState<string>(existingLog?.data?.thigh?.toString() || '');
+    const [saving, setSaving] = useState(false);
+    const saved = !!existingLog;
+
+    const handleSave = async () => {
+        if (!abdomen && !arm && !thigh) return;
+        setSaving(true);
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId, activity_id: activity.id, day_id: dayId,
+                completed_at: new Date().toISOString(),
+                data: {
+                    abdomen: abdomen ? Number(abdomen) : undefined,
+                    arm: arm ? Number(arm) : undefined,
+                    thigh: thigh ? Number(thigh) : undefined
+                }
+            });
+            onSaved();
+        } catch (e) { console.error(e); alert('Error al guardar'); }
+        finally { setSaving(false); }
+    };
+
+    const fields = [
+        { label: 'Abdomen', value: abdomen, set: setAbdomen, unit: 'cm' },
+        { label: 'Brazo', value: arm, set: setArm, unit: 'cm' },
+        { label: 'Muslo', value: thigh, set: setThigh, unit: 'cm' },
+    ];
+
+    return (
+        <div className={`bg-white rounded-2xl border ${saved ? 'border-brand-green/40' : 'border-brand-mint/40'} shadow-sm overflow-hidden`}>
+            <div className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl ${saved ? 'bg-brand-green/10' : 'bg-sky-50'} flex items-center justify-center flex-shrink-0`}>
+                    {saved ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Ruler className="w-5 h-5 text-sky-500" />}
+                </div>
+                <div className="flex-1"><p className="font-black text-brand-dark text-sm">{activity.title || 'Métricas'}</p></div>
+                {saved && <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Registrado</span>}
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+                {activity.description && <p className="text-xs text-slate-500 italic">{activity.description}</p>}
+                <div className="grid grid-cols-3 gap-2">
+                    {fields.map(f => (
+                        <div key={f.label} className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">{f.label}</label>
+                            <div className="relative">
+                                <input type="number" value={f.value} onChange={e => f.set(e.target.value)} placeholder="0"
+                                    className="w-full px-3 py-2.5 bg-slate-50 rounded-xl text-sm font-bold text-brand-dark border border-slate-200 focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none text-center transition-all" />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">{f.unit}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={handleSave} disabled={saving || (!abdomen && !arm && !thigh)}
+                    className="w-full py-3 bg-brand-green text-white rounded-xl font-bold text-sm disabled:opacity-40 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {saved ? 'Actualizar medidas' : 'Guardar medidas'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// --- Photo Activity Card ---
+function PhotoActivityCard({ activity, existingLog, clientId, dayId, onSaved }: {
+    activity: ProgramActivity; existingLog?: ClientActivityLog; clientId: string; dayId: string; onSaved: () => void;
+}) {
+    const [urls, setUrls] = useState<{ front?: string; profile?: string; back?: string }>(existingLog?.data || {});
+    const [uploading, setUploading] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const saved = !!existingLog;
+    const frontRef = useRef<HTMLInputElement>(null);
+    const profileRef = useRef<HTMLInputElement>(null);
+    const backRef = useRef<HTMLInputElement>(null);
+
+    const uploadPhoto = async (file: File, view: 'front' | 'profile' | 'back') => {
+        setUploading(view);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `progress-photos/${clientId}/${activity.id}/${view}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('client-materials').upload(fileName, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage.from('client-materials').getPublicUrl(fileName);
+            setUrls(prev => ({ ...prev, [view]: publicUrl }));
+        } catch (e) { console.error(e); alert('Error al subir foto'); }
+        finally { setUploading(null); }
+    };
+
+    const handleSave = async () => {
+        if (!urls.front && !urls.profile && !urls.back) return;
+        setSaving(true);
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId, activity_id: activity.id, day_id: dayId,
+                completed_at: new Date().toISOString(), data: urls
+            });
+            onSaved();
+        } catch (e) { console.error(e); alert('Error al guardar'); }
+        finally { setSaving(false); }
+    };
+
+    const views = [
+        { key: 'front' as const, label: 'Frente', ref: frontRef },
+        { key: 'profile' as const, label: 'Perfil', ref: profileRef },
+        { key: 'back' as const, label: 'Espalda', ref: backRef },
+    ];
+
+    return (
+        <div className={`bg-white rounded-2xl border ${saved ? 'border-brand-green/40' : 'border-brand-mint/40'} shadow-sm overflow-hidden`}>
+            <div className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl ${saved ? 'bg-brand-green/10' : 'bg-cyan-50'} flex items-center justify-center flex-shrink-0`}>
+                    {saved ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Camera className="w-5 h-5 text-cyan-500" />}
+                </div>
+                <div className="flex-1"><p className="font-black text-brand-dark text-sm">{activity.title || 'Fotos de progreso'}</p></div>
+                {saved && <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Registrado</span>}
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+                {activity.description && <p className="text-xs text-slate-500 italic">{activity.description}</p>}
+                <div className="grid grid-cols-3 gap-2">
+                    {views.map(v => (
+                        <div key={v.key} className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center block">{v.label}</label>
+                            <input type="file" accept="image/*" capture="environment" ref={v.ref} className="hidden"
+                                onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, v.key); }} />
+                            {urls[v.key] ? (
+                                <button onClick={() => v.ref.current?.click()} className="w-full aspect-[3/4] rounded-xl overflow-hidden border-2 border-brand-green/30 relative group">
+                                    <img src={urls[v.key]} alt={v.label} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Camera className="w-5 h-5 text-white" />
+                                    </div>
+                                </button>
+                            ) : (
+                                <button onClick={() => v.ref.current?.click()} disabled={uploading === v.key}
+                                    className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-200 hover:border-brand-mint flex flex-col items-center justify-center gap-1.5 transition-colors bg-slate-50">
+                                    {uploading === v.key
+                                        ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                                        : <Upload className="w-5 h-5 text-slate-300" />}
+                                    <span className="text-[10px] text-slate-400 font-bold">{uploading === v.key ? 'Subiendo...' : 'Subir'}</span>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <button onClick={handleSave} disabled={saving || (!urls.front && !urls.profile && !urls.back)}
+                    className="w-full py-3 bg-brand-green text-white rounded-xl font-bold text-sm disabled:opacity-40 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {saved ? 'Actualizar fotos' : 'Guardar fotos'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// --- Custom Activity Card (mark as done) ---
+function CustomActivityCard({ activity, existingLog, clientId, dayId, onSaved }: {
+    activity: ProgramActivity; existingLog?: ClientActivityLog; clientId: string; dayId: string; onSaved: () => void;
+}) {
+    const [saving, setSaving] = useState(false);
+    const saved = !!existingLog;
+
+    const handleComplete = async () => {
+        setSaving(true);
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId, activity_id: activity.id, day_id: dayId,
+                completed_at: new Date().toISOString(), data: { completed: true }
+            });
+            onSaved();
+        } catch (e) { console.error(e); alert('Error al guardar'); }
+        finally { setSaving(false); }
+    };
+
+    return (
+        <div className={`bg-white rounded-2xl border ${saved ? 'border-brand-green/40' : 'border-brand-mint/40'} shadow-sm overflow-hidden`}>
+            <div className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl ${saved ? 'bg-brand-green/10' : 'bg-violet-50'} flex items-center justify-center flex-shrink-0`}>
+                    {saved ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Calendar className="w-5 h-5 text-violet-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-black text-brand-dark text-sm">{activity.title || 'Tarea'}</p>
+                    {activity.description && <p className="text-xs text-slate-400">{activity.description}</p>}
+                </div>
+                {saved ? (
+                    <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Completado</span>
+                ) : (
+                    <button onClick={handleComplete} disabled={saving}
+                        className="px-4 py-2 bg-brand-green text-white rounded-xl font-bold text-xs hover:bg-emerald-600 active:scale-95 transition-all flex items-center gap-1.5">
+                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                        Hecho
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// --- Checkin Activity Card (opens CheckinView) ---
+function CheckinActivityCard({ activity, onOpenCheckin }: {
+    activity: ProgramActivity; onOpenCheckin: () => void;
+}) {
+    return (
+        <div className="bg-white rounded-2xl border border-brand-mint/40 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 p-4">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-teal-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-black text-brand-dark text-sm">{activity.title || 'Check-in semanal'}</p>
+                    {activity.description && <p className="text-xs text-slate-400">{activity.description}</p>}
+                </div>
+                <button onClick={onOpenCheckin}
+                    className="px-4 py-2 bg-teal-500 text-white rounded-xl font-bold text-xs hover:bg-teal-600 active:scale-95 transition-all flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" />
+                    Abrir
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// --- Workout Activity Card (existing behavior) ---
+interface WorkoutActivityCardProps {
     activity: ProgramActivity;
     workout: Workout | null;
     workoutLoading: boolean;
     onStartWorkout?: (w: Workout) => void;
 }
 
-function ActivityCard({ activity, workout, workoutLoading, onStartWorkout }: ActivityCardProps) {
+function WorkoutActivityCard({ activity, workout, workoutLoading, onStartWorkout }: WorkoutActivityCardProps) {
     const [expanded, setExpanded] = useState(true);
-    const type = (activity.type || 'custom') as ActivityType;
-    const meta = ACTIVITY_META[type] || ACTIVITY_META.custom;
-    const { Icon } = meta;
 
     return (
         <div className="bg-white rounded-2xl border border-brand-mint/40 shadow-sm overflow-hidden">
@@ -233,24 +519,17 @@ function ActivityCard({ activity, workout, workoutLoading, onStartWorkout }: Act
                 className="w-full flex items-center gap-3 p-4 text-left hover:bg-brand-mint/10 transition-colors"
             >
                 <div className="w-10 h-10 rounded-xl bg-brand-mint/30 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 text-brand-green" />
+                    <Dumbbell className="w-5 h-5 text-brand-green" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="font-black text-brand-dark text-sm">
-                        {activity.title || meta.label}
-                    </p>
-                    {activity.description && (
-                        <p className="text-xs text-slate-400 truncate">{activity.description}</p>
-                    )}
+                    <p className="font-black text-brand-dark text-sm">{activity.title || 'Entrenamiento'}</p>
+                    {activity.description && <p className="text-xs text-slate-400 truncate">{activity.description}</p>}
                 </div>
-                {type === 'workout' && (
-                    expanded
-                        ? <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        : <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                )}
+                {expanded
+                    ? <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    : <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />}
             </button>
-
-            {expanded && type === 'workout' && (
+            {expanded && (
                 <div className="px-4 pb-4 pt-1 border-t border-brand-mint/20">
                     {workoutLoading ? (
                         <div className="space-y-2 animate-pulse">
@@ -260,21 +539,14 @@ function ActivityCard({ activity, workout, workoutLoading, onStartWorkout }: Act
                     ) : workout ? (
                         <div className="space-y-4">
                             <WorkoutDetail workout={workout} />
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onStartWorkout?.(workout);
-                                }}
-                                className="w-full py-4 mt-2 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-green/30 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); onStartWorkout?.(workout); }}
+                                className="w-full py-4 mt-2 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-green/30 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group">
                                 <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
                                 Empezar Entrenamiento
                             </button>
                         </div>
                     ) : (
-                        <p className="text-sm text-slate-400 italic py-2 text-center">
-                            No se pudo cargar el entrenamiento.
-                        </p>
+                        <p className="text-sm text-slate-400 italic py-2 text-center">No se pudo cargar el entrenamiento.</p>
                     )}
                 </div>
             )}
@@ -282,15 +554,20 @@ function ActivityCard({ activity, workout, workoutLoading, onStartWorkout }: Act
     );
 }
 
+// --- Day Detail (dispatches to type-specific cards) ---
 interface DayDetailProps {
     day: ProgramDay;
     workout: Workout | null;
     workoutLoading: boolean;
     dayName: string;
+    clientId: string;
+    activityLogs: ClientActivityLog[];
     onStartWorkout?: (w: Workout) => void;
+    onOpenCheckin: () => void;
+    onActivitySaved: () => void;
 }
 
-function DayDetail({ day, workout, workoutLoading, dayName, onStartWorkout }: DayDetailProps) {
+function DayDetail({ day, workout, workoutLoading, dayName, clientId, activityLogs, onStartWorkout, onOpenCheckin, onActivitySaved }: DayDetailProps) {
     if (!day.activities || day.activities.length === 0) {
         return (
             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -306,16 +583,25 @@ function DayDetail({ day, workout, workoutLoading, dayName, onStartWorkout }: Da
                 {dayName} — {day.activities.length} actividad{day.activities.length !== 1 ? 'es' : ''}
             </p>
             {day.activities.map((activity) => {
-                const isWorkout = activity.type === 'workout';
-                return (
-                    <ActivityCard
-                        key={activity.id}
-                        activity={activity}
-                        workout={isWorkout ? workout : null}
-                        workoutLoading={isWorkout ? workoutLoading : false}
-                        onStartWorkout={onStartWorkout}
-                    />
-                );
+                const log = activityLogs.find(l => l.activity_id === activity.id);
+                const type = activity.type || 'custom';
+
+                if (type === 'workout') {
+                    return <WorkoutActivityCard key={activity.id} activity={activity} workout={workout} workoutLoading={workoutLoading} onStartWorkout={onStartWorkout} />;
+                }
+                if (type === 'walking') {
+                    return <WalkingActivityCard key={activity.id} activity={activity} existingLog={log} clientId={clientId} dayId={day.id} onSaved={onActivitySaved} />;
+                }
+                if (type === 'metrics') {
+                    return <MetricsActivityCard key={activity.id} activity={activity} existingLog={log} clientId={clientId} dayId={day.id} onSaved={onActivitySaved} />;
+                }
+                if (type === 'photo') {
+                    return <PhotoActivityCard key={activity.id} activity={activity} existingLog={log} clientId={clientId} dayId={day.id} onSaved={onActivitySaved} />;
+                }
+                if (type === 'form') {
+                    return <CheckinActivityCard key={activity.id} activity={activity} onOpenCheckin={onOpenCheckin} />;
+                }
+                return <CustomActivityCard key={activity.id} activity={activity} existingLog={log} clientId={clientId} dayId={day.id} onSaved={onActivitySaved} />;
             })}
         </div>
     );
@@ -330,6 +616,15 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [workoutLoading, setWorkoutLoading] = useState(false);
     const [activeWorkout, setActiveWorkout] = useState<{ workout: Workout; dayId: string } | null>(null);
+    const [activityLogs, setActivityLogs] = useState<ClientActivityLog[]>([]);
+    const [showCheckin, setShowCheckin] = useState(false);
+
+    const loadActivityLogs = async (dayId: string) => {
+        try {
+            const logs = await trainingService.getClientActivityLogs(client.id, dayId);
+            setActivityLogs(logs);
+        } catch (e) { console.error('Error loading activity logs:', e); }
+    };
 
     // Load assignment and program
     useEffect(() => {
@@ -366,18 +661,23 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
         load();
     }, [client.id]);
 
-    // Load workout when day/week/program changes
+    // Load workout and activity logs when day/week/program changes
     useEffect(() => {
         if (!program || selectedDay === null) {
             setSelectedWorkout(null);
+            setActivityLogs([]);
             return;
         }
 
         const dayData = getDayData(selectedWeek, selectedDay);
         if (!dayData) {
             setSelectedWorkout(null);
+            setActivityLogs([]);
             return;
         }
+
+        // Load activity logs for the selected day
+        loadActivityLogs(dayData.id);
 
         const workoutActivity = dayData.activities?.find(
             (a) => a.type === 'workout'
@@ -577,7 +877,11 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 workout={selectedWorkout}
                                 workoutLoading={workoutLoading}
                                 dayName={DAY_NAMES_FULL[selectedDay - 1]}
+                                clientId={client.id}
+                                activityLogs={activityLogs}
                                 onStartWorkout={(workout) => setActiveWorkout({ workout, dayId: selectedDayData!.id })}
+                                onOpenCheckin={() => setShowCheckin(true)}
+                                onActivitySaved={() => loadActivityLogs(selectedDayData.id)}
                             />
                         ) : (
                             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -608,6 +912,12 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                         setActiveWorkout(null);
                     }}
                 />
+            )}
+
+            {showCheckin && (
+                <div className="fixed inset-0 bg-white z-[100] overflow-y-auto">
+                    <CheckinView client={client} onBack={() => setShowCheckin(false)} />
+                </div>
             )}
         </div>
     );

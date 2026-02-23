@@ -97,8 +97,7 @@ export function ProgramDesigner({
                 .map(d => ({
                     ...d,
                     activities: d.activities.map(a => ({
-                        ...a,
-                        type: a.type === 'walking' ? 'custom' as const : a.type
+                        ...a
                     }))
                 }));
             await onSave({
@@ -701,6 +700,25 @@ export function ProgramDesigner({
                                 />
                             </div>
 
+                            {editingActivity.activity.type === 'walking' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Meta de pasos diarios</label>
+                                    <input
+                                        type="number"
+                                        value={editingActivity.activity.config?.goal_steps || ''}
+                                        onChange={(e) => setEditingActivity({
+                                            ...editingActivity,
+                                            activity: {
+                                                ...editingActivity.activity,
+                                                config: { ...editingActivity.activity.config, goal_steps: e.target.value ? Number(e.target.value) : undefined }
+                                            }
+                                        })}
+                                        placeholder="Ej: 10000"
+                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl font-bold text-slate-700 text-sm focus:ring-2 focus:ring-brand-mint transition-all"
+                                    />
+                                </div>
+                            )}
+
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción / Notas</label>
                                 <textarea
@@ -723,7 +741,8 @@ export function ProgramDesigner({
                                 <button
                                     onClick={() => updateActivity(editingActivity.dayNumber, editingActivity.activity.id, {
                                         title: editingActivity.activity.title,
-                                        description: editingActivity.activity.description
+                                        description: editingActivity.activity.description,
+                                        config: editingActivity.activity.config
                                     })}
                                     className="flex-[2] py-3 bg-slate-800 text-white font-black rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all uppercase text-xs tracking-widest"
                                 >
