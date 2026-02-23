@@ -16,7 +16,7 @@ import {
     Loader2,
     Ruler
 } from 'lucide-react';
-import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout, ClientActivityLog } from '../../types';
+import { Client, ClientTrainingAssignment, TrainingProgram, ProgramDay, ProgramActivity, Workout, ClientActivityLog, ClientDayLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
 import { supabase } from '../../services/supabaseClient';
 import { ActiveWorkoutSession } from './ActiveWorkoutSession';
@@ -509,24 +509,34 @@ interface WorkoutActivityCardProps {
     activity: ProgramActivity;
     workout: Workout | null;
     workoutLoading: boolean;
+    dayLog: ClientDayLog | null;
     onStartWorkout?: (w: Workout) => void;
 }
 
-function WorkoutActivityCard({ activity, workout, workoutLoading, onStartWorkout }: WorkoutActivityCardProps) {
+function WorkoutActivityCard({ activity, workout, workoutLoading, dayLog, onStartWorkout }: WorkoutActivityCardProps) {
     const [expanded, setExpanded] = useState(true);
+    const isCompleted = !!dayLog;
 
     return (
-        <div className="bg-white rounded-2xl border border-brand-mint/40 shadow-sm overflow-hidden">
+        <div className={`bg-white rounded-2xl border ${isCompleted ? 'border-brand-green/40' : 'border-brand-mint/40'} shadow-sm overflow-hidden`}>
             <button
                 onClick={() => setExpanded(!expanded)}
                 className="w-full flex items-center gap-3 p-4 text-left hover:bg-brand-mint/10 transition-colors"
             >
-                <div className="w-10 h-10 rounded-xl bg-brand-mint/30 flex items-center justify-center flex-shrink-0">
-                    <Dumbbell className="w-5 h-5 text-brand-green" />
+                <div className={`w-10 h-10 rounded-xl ${isCompleted ? 'bg-brand-green/10' : 'bg-brand-mint/30'} flex items-center justify-center flex-shrink-0`}>
+                    {isCompleted ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Dumbbell className="w-5 h-5 text-brand-green" />}
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="font-black text-brand-dark text-sm">{activity.title || 'Entrenamiento'}</p>
-                    {activity.description && <p className="text-xs text-slate-400 truncate">{activity.description}</p>}
+                    {isCompleted ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-bold text-brand-green">Completado</span>
+                            {dayLog.duration_minutes && <span className="text-[10px] text-slate-400">{dayLog.duration_minutes} min</span>}
+                            {dayLog.effort_rating && <span className="text-[10px] text-slate-400">RPE {dayLog.effort_rating}</span>}
+                        </div>
+                    ) : (
+                        activity.description && <p className="text-xs text-slate-400 truncate">{activity.description}</p>
+                    )}
                 </div>
                 {expanded
                     ? <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -541,11 +551,36 @@ function WorkoutActivityCard({ activity, workout, workoutLoading, onStartWorkout
                         </div>
                     ) : workout ? (
                         <div className="space-y-4">
+                            {/* Show past exercise results if completed */}
+                            {isCompleted && dayLog.exercises && dayLog.exercises.length > 0 && (
+                                <div className="bg-brand-green/5 rounded-xl p-3 space-y-2">
+                                    <p className="text-[10px] font-black text-brand-green uppercase tracking-wider">Resultados</p>
+                                    {dayLog.exercises.map((exLog) => {
+                                        const we = (workout.blocks || []).flatMap(b => b.exercises || []).find(e => e.id === exLog.workout_exercise_id);
+                                        return (
+                                            <div key={exLog.id} className="flex items-center justify-between text-sm">
+                                                <span className="text-brand-dark font-medium truncate flex-1">{we?.exercise?.name || 'Ejercicio'}</span>
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+                                                    {exLog.sets_completed && <span>{exLog.sets_completed}×</span>}
+                                                    {exLog.weight_used && <span>{exLog.weight_used} kg</span>}
+                                                    {exLog.reps_completed && <span>{exLog.reps_completed} reps</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {dayLog.notes && (
+                                        <p className="text-xs text-slate-500 italic mt-1 pt-1 border-t border-brand-green/10">{dayLog.notes}</p>
+                                    )}
+                                </div>
+                            )}
                             <WorkoutDetail workout={workout} />
                             <button onClick={(e) => { e.stopPropagation(); onStartWorkout?.(workout); }}
-                                className="w-full py-4 mt-2 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-green/30 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group">
+                                className={`w-full py-4 mt-2 rounded-2xl font-black shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group ${isCompleted
+                                    ? 'bg-slate-100 text-slate-600 shadow-none hover:bg-slate-200'
+                                    : 'bg-brand-green text-white shadow-brand-green/30 hover:bg-emerald-600'
+                                }`}>
                                 <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
-                                Empezar Entrenamiento
+                                {isCompleted ? 'Repetir Entrenamiento' : 'Empezar Entrenamiento'}
                             </button>
                         </div>
                     ) : (
@@ -565,12 +600,13 @@ interface DayDetailProps {
     dayName: string;
     clientId: string;
     activityLogs: ClientActivityLog[];
+    dayLog: ClientDayLog | null;
     onStartWorkout?: (w: Workout) => void;
     onOpenCheckin: () => void;
     onActivitySaved: () => void;
 }
 
-function DayDetail({ day, workout, workoutLoading, dayName, clientId, activityLogs, onStartWorkout, onOpenCheckin, onActivitySaved }: DayDetailProps) {
+function DayDetail({ day, workout, workoutLoading, dayName, clientId, activityLogs, dayLog, onStartWorkout, onOpenCheckin, onActivitySaved }: DayDetailProps) {
     if (!day.activities || day.activities.length === 0) {
         return (
             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -590,7 +626,7 @@ function DayDetail({ day, workout, workoutLoading, dayName, clientId, activityLo
                 const type = activity.type || 'custom';
 
                 if (type === 'workout') {
-                    return <WorkoutActivityCard key={activity.id} activity={activity} workout={workout} workoutLoading={workoutLoading} onStartWorkout={onStartWorkout} />;
+                    return <WorkoutActivityCard key={activity.id} activity={activity} workout={workout} workoutLoading={workoutLoading} dayLog={dayLog} onStartWorkout={onStartWorkout} />;
                 }
                 if (type === 'walking') {
                     return <WalkingActivityCard key={activity.id} activity={activity} existingLog={log} clientId={clientId} dayId={day.id} onSaved={onActivitySaved} />;
@@ -620,12 +656,17 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [workoutLoading, setWorkoutLoading] = useState(false);
     const [activeWorkout, setActiveWorkout] = useState<{ workout: Workout; dayId: string } | null>(null);
     const [activityLogs, setActivityLogs] = useState<ClientActivityLog[]>([]);
+    const [dayLog, setDayLog] = useState<ClientDayLog | null>(null);
     const [showCheckin, setShowCheckin] = useState(false);
 
     const loadActivityLogs = async (dayId: string) => {
         try {
-            const logs = await trainingService.getClientActivityLogs(client.id, dayId);
+            const [logs, log] = await Promise.all([
+                trainingService.getClientActivityLogs(client.id, dayId),
+                trainingService.getClientDayLog(client.id, dayId)
+            ]);
             setActivityLogs(logs);
+            setDayLog(log);
         } catch (e) { console.error('Error loading activity logs:', e); }
     };
 
@@ -669,6 +710,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
         if (!program || selectedDay === null) {
             setSelectedWorkout(null);
             setActivityLogs([]);
+            setDayLog(null);
             return;
         }
 
@@ -882,6 +924,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 dayName={DAY_NAMES_FULL[selectedDay - 1]}
                                 clientId={client.id}
                                 activityLogs={activityLogs}
+                                dayLog={dayLog}
                                 onStartWorkout={(workout) => setActiveWorkout({ workout, dayId: selectedDayData!.id })}
                                 onOpenCheckin={() => setShowCheckin(true)}
                                 onActivitySaved={() => loadActivityLogs(selectedDayData.id)}
@@ -912,7 +955,9 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                     dayId={activeWorkout.dayId}
                     onClose={() => setActiveWorkout(null)}
                     onComplete={() => {
+                        const dayId = activeWorkout.dayId;
                         setActiveWorkout(null);
+                        loadActivityLogs(dayId);
                     }}
                 />
             )}

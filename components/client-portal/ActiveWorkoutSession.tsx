@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity } from 'lucide-react';
+import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity, Trophy, Flame, Timer } from 'lucide-react';
 import { Workout, WorkoutBlock, WorkoutExercise, ClientDayLog, ClientExerciseLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
 
@@ -44,6 +44,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
     const [effortRating, setEffortRating] = useState<number>(0);
     const [sessionNotes, setSessionNotes] = useState('');
     const [saving, setSaving] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
     const [completedSets, setCompletedSets] = useState<Record<string, { weight: number | null, reps: number | null, completed: boolean }[]>>({});
     // Track current round for each superset (keyed by superset_id)
     const [supersetRound, setSupersetRound] = useState<Record<string, number>>({});
@@ -127,7 +128,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
             await trainingService.saveClientDayLog(dayLogData, exerciseLogs);
 
-            onComplete();
+            setShowSummary(true);
         } catch (error) {
             console.error("Error saving workout log:", error);
             alert("Hubo un error al guardar tu entrenamiento. Por favor, intenta de nuevo.");
@@ -135,6 +136,90 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             setSaving(false);
         }
     };
+
+    // Compute summary stats
+    const summaryStats = () => {
+        let totalSetsCompleted = 0;
+        let totalWeight = 0;
+        let exercisesWorked = 0;
+        Object.entries(completedSets).forEach(([_, setsData]) => {
+            const done = setsData.filter(s => s.completed);
+            if (done.length > 0) exercisesWorked++;
+            totalSetsCompleted += done.length;
+            done.forEach(s => {
+                if (s.weight && s.reps) totalWeight += s.weight * s.reps;
+            });
+        });
+        const allExercises = (workout.blocks || []).reduce((sum, b) => sum + (b.exercises?.length || 0), 0);
+        return { totalSetsCompleted, totalWeight, exercisesWorked, allExercises };
+    };
+
+    if (showSummary) {
+        const stats = summaryStats();
+        return (
+            <div className="fixed inset-0 bg-slate-50 flex flex-col z-[100] animate-in fade-in">
+                <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full">
+                    <div className="w-20 h-20 bg-brand-green/10 rounded-full flex items-center justify-center mb-6 animate-in zoom-in duration-500">
+                        <Trophy className="w-10 h-10 text-brand-green" />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-brand-dark mb-1 text-center">
+                        Entrenamiento completado
+                    </h2>
+                    <p className="text-slate-400 text-sm mb-8 text-center">{workout.name}</p>
+
+                    <div className="grid grid-cols-2 gap-3 w-full mb-8">
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 text-center">
+                            <Timer className="w-5 h-5 text-brand-green mx-auto mb-1" />
+                            <p className="text-xl font-black text-brand-dark">{formatTime(secondsElapsed)}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Duración</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 text-center">
+                            <Dumbbell className="w-5 h-5 text-brand-green mx-auto mb-1" />
+                            <p className="text-xl font-black text-brand-dark">{stats.exercisesWorked}/{stats.allExercises}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Ejercicios</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 text-center">
+                            <CheckCircle className="w-5 h-5 text-brand-green mx-auto mb-1" />
+                            <p className="text-xl font-black text-brand-dark">{stats.totalSetsCompleted}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Series</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 text-center">
+                            <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+                            <p className="text-xl font-black text-brand-dark">{stats.totalWeight > 0 ? `${Math.round(stats.totalWeight)}` : '—'}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Kg totales</p>
+                        </div>
+                    </div>
+
+                    {effortRating > 0 && (
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 w-full mb-4 flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-white ${effortRating <= 3 ? 'bg-green-500' : effortRating <= 6 ? 'bg-yellow-500' : effortRating <= 8 ? 'bg-orange-500' : 'bg-red-500'}`}>
+                                {effortRating}
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-brand-dark">Esfuerzo percibido (RPE)</p>
+                                <p className="text-xs text-slate-400">{effortRating <= 3 ? 'Fácil' : effortRating <= 6 ? 'Moderado' : effortRating <= 8 ? 'Intenso' : 'Máximo esfuerzo'}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {sessionNotes && (
+                        <div className="bg-white rounded-2xl border border-brand-mint/40 p-4 w-full mb-8">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-1">Notas</p>
+                            <p className="text-sm text-brand-dark">{sessionNotes}</p>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => onComplete()}
+                        className="w-full py-4 bg-brand-green text-white rounded-2xl font-black shadow-lg shadow-brand-green/30 hover:bg-emerald-600 active:scale-[0.98] transition-all text-lg"
+                    >
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (!isStarted) {
         return (
