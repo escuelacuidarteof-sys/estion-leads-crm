@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+
 import {
     Plus, Copy, Trash2, Calendar, Layout, User, Camera,
     ClipboardList, X, Search, ChevronRight, ChevronDown,
@@ -6,12 +8,16 @@ import {
     Sparkles, Dumbbell, ArrowRight,
     MousePointer2, Footprints, GripVertical
 } from 'lucide-react';
-import { TrainingProgram, ProgramDay, ProgramActivity, Workout } from '../../types';
+import { TrainingProgram, ProgramDay, ProgramActivity, Workout, Exercise } from '../../types';
+import { WorkoutEditor } from './WorkoutEditor';
 
 interface ProgramDesignerProps {
-    program: TrainingProgram | null;
+    program: TrainingProgram;
     availableWorkouts: Workout[];
+    availableExercises: Exercise[];
     onSave: (program: Partial<TrainingProgram>) => Promise<void>;
+    onSaveWorkout: (workout: Partial<Workout>) => Promise<Workout>;
+    onSaveExercise: (exercise: Partial<Exercise>) => Promise<void>;
     onClose: () => void;
 }
 
@@ -27,7 +33,15 @@ const QUICK_ACTIONS: { type: ProgramActivity['type']; label: string; icon: any; 
 const DAY_NAMES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 const DAY_NAMES_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }: ProgramDesignerProps) {
+export function ProgramDesigner({
+    program,
+    availableWorkouts,
+    availableExercises,
+    onSave,
+    onSaveWorkout,
+    onSaveExercise,
+    onClose
+}: ProgramDesignerProps) {
     const [name, setName] = useState(program?.name || '');
     const [description, setDescription] = useState(program?.description || '');
     const [weeksCount, setWeeksCount] = useState(program?.weeks_count || 4);
@@ -43,6 +57,8 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
     const [saveError, setSaveError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [hasChanges, setHasChanges] = useState(false);
+    const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+    const [editingWorkout, setEditingWorkout] = useState<{ workout: Workout | null, weekIndex: number, dayIndex: number } | null>(null);
     const [selectedDay, setSelectedDay] = useState<{ week: number; day: number } | null>(null);
     const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(() => new Set([0]));
     const [addingToDay, setAddingToDay] = useState<{ week: number; day: number } | null>(null);
@@ -101,18 +117,18 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
         }
     };
 
-    const addActivityToDay = (weekIndex: number, dayIndex: number, type: ProgramActivity['type'], workoutId?: string) => {
+    const addActivityToDay = (weekIndex: number, dayIndex: number, type: ProgramActivity['type'], workoutId?: string, workoutInstance?: Workout) => {
         const weekNum = weekIndex + 1;
         const dayNumInWeek = dayIndex + 1;
         const dayKey = `day-${(weekIndex * 7) + dayNumInWeek}`;
 
         setDays(prev => {
             const existingDay = prev.find(d => d.week_number === weekNum && d.day_number === dayNumInWeek);
-            const workout = workoutId ? availableWorkouts.find(w => w.id === workoutId) : undefined;
+            const workout = workoutInstance || (workoutId ? availableWorkouts.find(w => w.id === workoutId) : undefined);
 
             const newActivity: ProgramActivity = {
                 id: `act-${Math.random().toString(36).substr(2, 9)}`,
-                day_id: dayKey,
+                day_id: existingDay?.id || `temp-${dayKey}`, // Use existing day ID or generate temp
                 type,
                 activity_id: workoutId,
                 workout_id: workoutId,
@@ -219,8 +235,37 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
         return QUICK_ACTIONS.find(a => a.type === type)?.icon || Calendar;
     };
 
-    return (
-        <div className="fixed inset-0 flex flex-col h-screen bg-slate-50 overflow-hidden animate-fade-in z-[9999]">
+    const handleSelectDay = (weekIndex: number, dayIndex: number) => {
+        setSelectedDay({ week: weekIndex, day: dayIndex });
+        setAddingToDay(null);
+        const dayData = days.find(d => d.week_number === (weekIndex + 1) && d.day_number === (dayIndex + 1));
+        setSelectedDayId(dayData?.id || `temp-day-${(weekIndex * 7) + dayIndex + 1}`);
+    };
+
+    const handleCreateNewWorkout = (weekIndex: number, dayIndex: number) => {
+        setEditingWorkout({
+            workout: { id: '', name: '', blocks: [] } as Workout,
+            weekIndex,
+            dayIndex
+        });
+    };
+
+    const handleWorkoutSaved = async (workoutData: Partial<Workout>) => {
+        if (!editingWorkout) return;
+        try {
+            const savedWorkout = await onSaveWorkout(workoutData);
+            // Add the newly created/updated workout to the day
+            addActivityToDay(editingWorkout.weekIndex, editingWorkout.dayIndex, 'workout', savedWorkout.id, savedWorkout);
+            setEditingWorkout(null);
+        } catch (error) {
+            console.error('Error saving workout from designer:', error);
+            throw error;
+        }
+    };
+
+    return createPortal(
+        <div className="fixed inset-0 flex flex-col h-[100dvh] bg-slate-50 overflow-hidden animate-fade-in z-[9999]">
+
             {/* ─── HEADER ─── */}
             <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -253,271 +298,308 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
                             className="p-1.5 hover:bg-white rounded-md transition-all"><ChevronUp className="w-3.5 h-3.5 text-slate-600" /></button>
                     </div>
 
-                    <div className="h-7 w-px bg-slate-200" />
+                    <div className="flex items-center gap-4 shrink-0">
+                        <button
+                            onClick={onClose}
+                            className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-brand-green text-white rounded-xl font-bold hover:bg-brand-green-dark transition-all shadow-lg shadow-brand-green/20 whitespace-nowrap"
+                        >
+                            <Save className="w-5 h-5" />
+                            {saving ? 'Guardando...' : 'Guardar Programa'}
+                        </button>
+                    </div>
 
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <X className="w-5 h-5 text-slate-400" />
-                    </button>
-                    <button onClick={handleSave} disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-brand-green text-white font-black rounded-xl shadow-lg shadow-brand-green/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 text-sm">
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </button>
                 </div>
+
+                {/* Workout Editor Modal */}
+                {editingWorkout && (
+                    <WorkoutEditor
+                        workout={editingWorkout.workout}
+                        availableExercises={availableExercises}
+                        onSave={handleWorkoutSaved}
+                        onSaveExercise={onSaveExercise}
+                        onClose={() => setEditingWorkout(null)}
+                    />
+                )}
             </div>
 
             {/* ─── MAIN CONTENT ─── */}
             <div className="flex-1 flex overflow-hidden">
-                {/* ─── LEFT: Weeks & Days Grid ─── */}
+                {/* Left: Weeks & Days Grid */}
                 <div className="flex-1 overflow-auto p-6 space-y-4 custom-scrollbar pb-32">
-                    {Array.from({ length: weeksCount }).map((_, weekIndex) => {
-                        const isExpanded = expandedWeeks.has(weekIndex);
-                        const stats = getWeekStats(weekIndex);
+                    <div className="min-w-[1200px] mx-auto max-w-7xl">
+                        {Array.from({ length: weeksCount }).map((_, weekIndex) => {
+                            const isExpanded = expandedWeeks.has(weekIndex);
+                            const stats = getWeekStats(weekIndex);
 
-                        return (
-                            <div key={`week-${weekIndex}-${weeksCount}`} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all">
-                                {/* Week Header */}
-                                <div
-                                    onClick={() => toggleWeek(weekIndex)}
-                                    className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-slate-50/50 transition-colors select-none"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm transition-colors ${isExpanded ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                            {weekIndex + 1}
+                            return (
+                                <div key={`week-${weekIndex}-${weeksCount}`} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all mb-4">
+                                    {/* Week Header */}
+                                    <div
+                                        onClick={() => toggleWeek(weekIndex)}
+                                        className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-slate-50/50 transition-colors select-none"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm transition-colors ${isExpanded ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                {weekIndex + 1}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-slate-800">Semana {weekIndex + 1}</h3>
+                                                <p className="text-[10px] text-slate-400 font-bold">
+                                                    {stats.daysWithContent}/7 días • {stats.totalActivities} actividades
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-black text-slate-800">Semana {weekIndex + 1}</h3>
-                                            <p className="text-[10px] text-slate-400 font-bold">
-                                                {stats.daysWithContent}/7 días • {stats.totalActivities} actividades
-                                            </p>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* Mini day indicators */}
+                                            <div className="flex gap-1 mr-2">
+                                                {DAY_NAMES.map((_, dayIdx) => {
+                                                    const dayData = days.find(d => d.week_number === weekIndex + 1 && d.day_number === dayIdx + 1);
+                                                    const hasContent = dayData && dayData.activities.length > 0;
+                                                    return (
+                                                        <div key={dayIdx} className={`w-2 h-2 rounded-full transition-colors ${hasContent ? 'bg-brand-green' : 'bg-slate-200'}`} />
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <button onClick={(e) => { e.stopPropagation(); copyWeek(weekIndex); }}
+                                                className="p-1.5 hover:bg-blue-50 rounded-lg transition-all text-slate-400 hover:text-blue-500" title="Duplicar semana">
+                                                <Copy className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta semana?')) removeWeek(weekIndex); }}
+                                                className="p-1.5 hover:bg-red-50 rounded-lg transition-all text-slate-400 hover:text-red-500" title="Eliminar semana">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <div className={`p-1.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                                <ChevronDown className="w-4 h-4 text-slate-400" />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        {/* Mini day indicators */}
-                                        <div className="flex gap-1 mr-2">
-                                            {DAY_NAMES.map((_, dayIdx) => {
-                                                const dayData = days.find(d => d.week_number === weekIndex + 1 && d.day_number === dayIdx + 1);
-                                                const hasContent = dayData && dayData.activities.length > 0;
-                                                return (
-                                                    <div key={dayIdx} className={`w-2 h-2 rounded-full transition-colors ${hasContent ? 'bg-brand-green' : 'bg-slate-200'}`} />
-                                                );
-                                            })}
-                                        </div>
+                                    {/* Week Content - Days Grid */}
+                                    {isExpanded && (
+                                        <div className="px-5 pb-5 pt-1 border-t border-slate-100">
+                                            <div className="grid grid-cols-7 gap-3">
+                                                {DAY_NAMES.map((dayName, dayIndex) => {
+                                                    const dayNumInWeek = dayIndex + 1;
+                                                    const dayData = days.find(d => d.week_number === (weekIndex + 1) && d.day_number === dayNumInWeek);
+                                                    const isSelected = selectedDay?.week === weekIndex && selectedDay?.day === dayIndex;
+                                                    const isAdding = addingToDay?.week === weekIndex && addingToDay?.day === dayIndex;
+                                                    const activities = dayData?.activities || [];
 
-                                        <button onClick={(e) => { e.stopPropagation(); copyWeek(weekIndex); }}
-                                            className="p-1.5 hover:bg-blue-50 rounded-lg transition-all text-slate-400 hover:text-blue-500" title="Duplicar semana">
-                                            <Copy className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta semana?')) removeWeek(weekIndex); }}
-                                            className="p-1.5 hover:bg-red-50 rounded-lg transition-all text-slate-400 hover:text-red-500" title="Eliminar semana">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                        <div className={`p-1.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                                        </div>
-                                    </div>
-                                </div>
+                                                    return (
+                                                        <div key={dayIndex} className="flex flex-col">
+                                                            {/* Day Header */}
+                                                            <div className="flex items-center justify-between px-1 mb-1.5">
+                                                                <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-brand-green' : 'text-slate-400'}`}>
+                                                                    {dayName}
+                                                                </span>
+                                                                {activities.length > 0 && (
+                                                                    <button
+                                                                        onClick={() => { if (window.confirm(`¿Limpiar ${DAY_NAMES_FULL[dayIndex]}?`)) clearDay(weekIndex, dayIndex); }}
+                                                                        className="p-0.5 hover:bg-red-50 rounded text-slate-300 hover:text-red-400 transition-colors"
+                                                                        title="Limpiar día"
+                                                                    >
+                                                                        <RotateCcw className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
 
-                                {/* Week Content - Days Grid */}
-                                {isExpanded && (
-                                    <div className="px-5 pb-5 pt-1 border-t border-slate-100">
-                                        <div className="grid grid-cols-7 gap-3">
-                                            {DAY_NAMES.map((dayName, dayIndex) => {
-                                                const dayNumInWeek = dayIndex + 1;
-                                                const dayData = days.find(d => d.week_number === (weekIndex + 1) && d.day_number === dayNumInWeek);
-                                                const isSelected = selectedDay?.week === weekIndex && selectedDay?.day === dayIndex;
-                                                const isAdding = addingToDay?.week === weekIndex && addingToDay?.day === dayIndex;
-                                                const activities = dayData?.activities || [];
-
-                                                return (
-                                                    <div key={dayIndex} className="flex flex-col">
-                                                        {/* Day Header */}
-                                                        <div className="flex items-center justify-between px-1 mb-1.5">
-                                                            <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-brand-green' : 'text-slate-400'}`}>
-                                                                {dayName}
-                                                            </span>
-                                                            {activities.length > 0 && (
-                                                                <button
-                                                                    onClick={() => { if (window.confirm(`¿Limpiar ${DAY_NAMES_FULL[dayIndex]}?`)) clearDay(weekIndex, dayIndex); }}
-                                                                    className="p-0.5 hover:bg-red-50 rounded text-slate-300 hover:text-red-400 transition-colors"
-                                                                    title="Limpiar día"
-                                                                >
-                                                                    <RotateCcw className="w-2.5 h-2.5" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Day Card */}
-                                                        <div
-                                                            onClick={() => {
-                                                                setSelectedDay({ week: weekIndex, day: dayIndex });
-                                                                setAddingToDay(null);
-                                                            }}
-                                                            className={`flex-1 min-h-[120px] rounded-xl border-2 p-2 transition-all cursor-pointer relative group
-                                                                ${isSelected
-                                                                    ? 'border-brand-green bg-brand-green/5 ring-2 ring-brand-green/10'
-                                                                    : 'border-slate-100 hover:border-slate-200 bg-slate-50/50 hover:bg-white'
-                                                                }`}
-                                                        >
-                                                            {/* Activities */}
-                                                            {activities.length > 0 ? (
-                                                                <div className="space-y-1.5">
-                                                                    {activities.map(activity => {
-                                                                        const Icon = getActivityIcon(activity.type);
-                                                                        return (
-                                                                            <div
-                                                                                key={activity.id}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    const absoluteDay = (weekIndex * 7) + dayIndex + 1;
-                                                                                    setEditingActivity({ dayNumber: absoluteDay, activity });
-                                                                                }}
-                                                                                className={`px-2 py-1.5 bg-gradient-to-r ${getActivityColor(activity.type)} text-white rounded-lg flex items-center gap-1.5 group/act shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer`}
-                                                                            >
-                                                                                <Icon className="w-3 h-3 opacity-80 shrink-0" />
-                                                                                <span className="text-[9px] font-bold truncate flex-1 leading-tight">
-                                                                                    {activity.title}
-                                                                                </span>
-                                                                                <button
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        removeActivity(weekIndex, dayIndex, activity.id);
-                                                                                    }}
-                                                                                    className="p-0.5 hover:bg-black/20 rounded transition-colors opacity-0 group-hover/act:opacity-100 shrink-0"
-                                                                                >
-                                                                                    <X className="w-2.5 h-2.5" />
-                                                                                </button>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="h-full flex items-center justify-center">
-                                                                    <div className="text-slate-200 group-hover:text-slate-300 transition-colors">
-                                                                        <Plus className="w-4 h-4" />
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Inline Add Button */}
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedDay({ week: weekIndex, day: dayIndex });
-                                                                    setAddingToDay(isAdding ? null : { week: weekIndex, day: dayIndex });
+                                                            {/* Day Card */}
+                                                            <div
+                                                                onClick={() => {
+                                                                    handleSelectDay(weekIndex, dayIndex);
+                                                                    setAddingToDay(null);
                                                                 }}
-                                                                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center shadow-md transition-all z-10
-                                                                    ${isAdding
-                                                                        ? 'bg-brand-green border-brand-green text-white scale-110'
-                                                                        : 'bg-white border-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 hover:border-brand-green hover:text-brand-green'
+                                                                className={`flex-1 min-h-[140px] rounded-xl border-2 p-2 transition-all cursor-pointer relative group
+                                                                ${isSelected
+                                                                        ? 'border-brand-green bg-brand-green/5 ring-2 ring-brand-green/10'
+                                                                        : 'border-slate-100 hover:border-slate-200 bg-slate-50/50 hover:bg-white'
                                                                     }`}
                                                             >
-                                                                {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                                            </button>
-                                                        </div>
+                                                                {/* Activities */}
+                                                                {activities.length > 0 ? (
+                                                                    <div className="space-y-1.5">
+                                                                        {activities.map(activity => {
+                                                                            const Icon = getActivityIcon(activity.type);
+                                                                            return (
+                                                                                <div
+                                                                                    key={activity.id}
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const absoluteDay = (weekIndex * 7) + dayIndex + 1;
+                                                                                        setEditingActivity({ dayNumber: absoluteDay, activity });
+                                                                                    }}
+                                                                                    className={`px-2 py-1.5 bg-gradient-to-r ${getActivityColor(activity.type)} text-white rounded-lg flex items-center gap-1.5 group/act shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer`}
+                                                                                >
+                                                                                    <Icon className="w-3 h-3 opacity-80 shrink-0" />
+                                                                                    <span className="text-[9px] font-bold truncate flex-1 leading-tight">
+                                                                                        {activity.title}
+                                                                                    </span>
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            removeActivity(weekIndex, dayIndex, activity.id);
+                                                                                        }}
+                                                                                        className="p-0.5 hover:bg-black/20 rounded transition-colors opacity-0 group-hover/act:opacity-100 shrink-0"
+                                                                                    >
+                                                                                        <X className="w-2.5 h-2.5" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="h-full flex items-center justify-center">
+                                                                        <div className="text-slate-200 group-hover:text-slate-300 transition-colors text-center">
+                                                                            <Plus className="w-5 h-5 mx-auto mb-1" />
+                                                                            <span className="text-[9px] font-bold">Vacio</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
 
-                                                        {/* Inline Quick Add Dropdown */}
-                                                        {isAdding && (
-                                                            <div className="mt-3 bg-white rounded-xl border border-slate-200 shadow-xl p-2 space-y-1 animate-scale-in z-30 relative">
-                                                                {QUICK_ACTIONS.filter(a => a.type !== 'workout').map(act => (
-                                                                    <button
-                                                                        key={act.type}
-                                                                        onClick={() => {
-                                                                            addActivityToDay(weekIndex, dayIndex, act.type);
-                                                                            setAddingToDay(null);
-                                                                        }}
-                                                                        className={`w-full px-2.5 py-1.5 rounded-lg border text-left flex items-center gap-2 transition-all text-xs font-bold ${act.bg}`}
-                                                                    >
-                                                                        <act.icon className="w-3.5 h-3.5 shrink-0" />
-                                                                        {act.label}
-                                                                    </button>
-                                                                ))}
-                                                                <div className="border-t border-slate-100 pt-1 mt-1">
-                                                                    <p className="text-[9px] font-black text-slate-400 uppercase px-2 py-1 tracking-wider">Workouts</p>
-                                                                    <div className="max-h-32 overflow-auto custom-scrollbar space-y-0.5">
-                                                                        {availableWorkouts.length > 0 ? availableWorkouts.map(w => (
+                                                                {/* Inline Add Button */}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSelectDay(weekIndex, dayIndex);
+                                                                        setAddingToDay(isAdding ? null : { week: weekIndex, day: dayIndex });
+                                                                    }}
+                                                                    className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center shadow-md transition-all z-10
+                                                                    ${isAdding
+                                                                            ? 'bg-brand-green border-brand-green text-white scale-110'
+                                                                            : 'bg-white border-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 hover:border-brand-green hover:text-brand-green'
+                                                                        }`}
+                                                                >
+                                                                    {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Inline Quick Add Dropdown */}
+                                                            {isAdding && (
+                                                                <div className="mt-3 bg-white rounded-xl border border-slate-200 shadow-xl p-2 space-y-1 animate-scale-in z-30 relative min-w-[140px]">
+                                                                    {QUICK_ACTIONS.filter(a => a.type !== 'workout').map(act => (
+                                                                        <button
+                                                                            key={act.type}
+                                                                            onClick={() => {
+                                                                                addActivityToDay(weekIndex, dayIndex, act.type);
+                                                                                setAddingToDay(null);
+                                                                            }}
+                                                                            className={`w-full px-2.5 py-1.5 rounded-lg border text-left flex items-center gap-2 transition-all text-xs font-bold ${act.bg}`}
+                                                                        >
+                                                                            <act.icon className="w-3.5 h-3.5 shrink-0" />
+                                                                            {act.label}
+                                                                        </button>
+                                                                    ))}
+                                                                    <div className="border-t border-slate-100 pt-1 mt-1">
+                                                                        <p className="text-[9px] font-black text-slate-400 uppercase px-2 py-1 tracking-wider text-center">Workouts</p>
+                                                                        <div className="max-h-40 overflow-auto custom-scrollbar space-y-0.5">
                                                                             <button
-                                                                                key={w.id}
-                                                                                onClick={() => {
-                                                                                    addActivityToDay(weekIndex, dayIndex, 'workout', w.id);
-                                                                                    setAddingToDay(null);
-                                                                                }}
-                                                                                className="w-full px-2.5 py-1.5 rounded-lg text-left flex items-center gap-2 hover:bg-orange-50 transition-colors text-[11px] font-bold text-slate-600"
+                                                                                onClick={() => handleCreateNewWorkout(weekIndex, dayIndex)}
+                                                                                className="w-full flex items-center gap-2 p-2 hover:bg-brand-mint/10 text-brand-green rounded-lg transition-colors group mb-1 border border-dashed border-brand-green/30"
                                                                             >
-                                                                                <Dumbbell className="w-3 h-3 text-orange-500 shrink-0" />
-                                                                                <span className="truncate">{w.name}</span>
+                                                                                <Plus className="w-3.5 h-3.5" />
+                                                                                <span className="text-[10px] font-bold">Nuevo Workout</span>
                                                                             </button>
-                                                                        )) : (
-                                                                            <p className="text-[10px] text-slate-400 px-2 py-1 italic">No hay workouts creados</p>
-                                                                        )}
+
+                                                                            {availableWorkouts.length > 0 ? availableWorkouts.map(w => (
+                                                                                <button
+                                                                                    key={w.id}
+                                                                                    onClick={() => {
+                                                                                        addActivityToDay(weekIndex, dayIndex, 'workout', w.id);
+                                                                                        setAddingToDay(null);
+                                                                                    }}
+                                                                                    className="w-full px-2.5 py-1.5 rounded-lg text-left flex items-center gap-2 hover:bg-orange-50 transition-colors text-[10px] font-bold text-slate-600"
+                                                                                >
+                                                                                    <Dumbbell className="w-3 h-3 text-orange-500 shrink-0" />
+                                                                                    <span className="truncate">{w.name}</span>
+                                                                                </button>
+                                                                            )) : (
+                                                                                <p className="text-[9px] text-slate-400 px-2 py-1 italic text-center">Sin workouts</p>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                </div>
+                            );
+                        })}
 
-                    {/* Add Week Button */}
-                    <button
-                        onClick={() => {
-                            const newIdx = weeksCount;
-                            setWeeksCount(prev => prev + 1);
-                            setExpandedWeeks(prev => new Set([...prev, newIdx]));
-                            setHasChanges(true);
-                        }}
-                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-sm uppercase tracking-wider hover:border-brand-green hover:text-brand-green hover:bg-brand-green/5 transition-all flex items-center justify-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" /> Añadir Semana {weeksCount + 1}
-                    </button>
+                        {/* Add Week Button */}
+                        <button
+                            onClick={() => {
+                                const newIdx = weeksCount;
+                                setWeeksCount(prev => prev + 1);
+                                setExpandedWeeks(prev => new Set([...prev, newIdx]));
+                                setHasChanges(true);
+                            }}
+                            className="w-full py-5 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-sm uppercase tracking-wider hover:border-brand-green hover:text-brand-green hover:bg-brand-green/5 transition-all flex items-center justify-center gap-2 mb-20"
+                        >
+                            <Plus className="w-4 h-4" /> Añadir Semana {weeksCount + 1}
+                        </button>
+                    </div>
                 </div>
 
-                {/* ─── RIGHT: Sidebar Library ─── */}
-                <aside className="w-72 bg-white border-l border-slate-200 flex flex-col shadow-lg z-20 shrink-0">
-                    {/* Sidebar Header */}
-                    <div className="p-5 border-b border-slate-100">
-                        <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-brand-green" />
-                            Biblioteca
-                        </h4>
+                {/* Right: Library Sidebar */}
+                <aside className="w-80 bg-white border-l border-slate-200 flex flex-col animate-slide-in">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Layout className="w-4 h-4 text-slate-400" />
+                            <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Biblioteca</h2>
+                        </div>
                         {selectedDay ? (
-                            <div className="flex items-center gap-2 mt-2">
-                                <div className="w-6 h-6 bg-brand-green rounded-md flex items-center justify-center">
+                            <div className="flex items-center gap-2 mt-2 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                                <div className="w-6 h-6 bg-brand-green rounded-md flex items-center justify-center shrink-0">
                                     <span className="text-[8px] font-black text-white">{DAY_NAMES[selectedDay.day]}</span>
                                 </div>
-                                <p className="text-[10px] font-bold text-slate-500">
-                                    S{selectedDay.week + 1} • {DAY_NAMES_FULL[selectedDay.day]}
-                                </p>
-                                <button onClick={() => setSelectedDay(null)} className="ml-auto p-1 hover:bg-slate-100 rounded">
-                                    <X className="w-3 h-3 text-slate-400" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-black text-slate-700 leading-tight">
+                                        Semana {selectedDay.week + 1}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-slate-400 lowercase">
+                                        {DAY_NAMES_FULL[selectedDay.day]}
+                                    </p>
+                                </div>
+                                <button onClick={() => setSelectedDay(null)} className="p-1 hover:bg-slate-100 rounded text-slate-300 hover:text-slate-500 transition-colors">
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         ) : (
-                            <p className="text-[10px] text-slate-400 font-bold mt-1 flex items-center gap-1">
-                                <MousePointer2 className="w-3 h-3" /> Selecciona un día
-                            </p>
+                            <div className="mt-2 py-3 px-3 bg-amber-50 rounded-lg border border-amber-100 flex items-center gap-2">
+                                <MousePointer2 className="w-3.5 h-3.5 text-amber-500" />
+                                <p className="text-[10px] text-amber-700 font-bold leading-tight">
+                                    Selecciona un día para añadir actividades
+                                </p>
+                            </div>
                         )}
                     </div>
 
                     {/* Quick Actions */}
                     <div className="p-4 border-b border-slate-100">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Acciones Rápidas</p>
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Acciones Rápidas</p>
+                        <div className="grid grid-cols-3 gap-2">
                             {QUICK_ACTIONS.filter(a => a.type !== 'workout').map(act => (
                                 <button
                                     key={act.type}
                                     disabled={!selectedDay}
                                     onClick={() => selectedDay && addActivityToDay(selectedDay.week, selectedDay.day, act.type)}
-                                    className={`p-2.5 rounded-xl border transition-all flex flex-col items-center gap-1.5 disabled:opacity-20 disabled:grayscale ${act.bg}`}
+                                    className={`p-2 rounded-xl border transition-all flex flex-col items-center gap-1.5 disabled:opacity-20 disabled:grayscale group
+                                    ${act.bg}`}
                                 >
-                                    <act.icon className="w-4 h-4" />
+                                    <act.icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                     <span className="text-[8px] font-black">{act.label}</span>
                                 </button>
                             ))}
@@ -527,46 +609,54 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
                     {/* Workouts List */}
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="px-4 pt-4 pb-2">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
-                                Workouts ({availableWorkouts.length})
-                            </p>
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    Workouts ({availableWorkouts.length})
+                                </p>
+                            </div>
                             <div className="relative">
                                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar..."
+                                    placeholder="Buscar workouts..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border-none rounded-lg text-xs focus:ring-2 focus:ring-brand-mint transition-all"
+                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition-all font-medium"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-auto px-4 pb-4 custom-scrollbar space-y-1">
+                        <div className="flex-1 overflow-auto px-4 pb-10 custom-scrollbar space-y-2">
                             {filteredWorkouts.map(workout => (
                                 <button
                                     key={workout.id}
                                     disabled={!selectedDay}
                                     onClick={() => selectedDay && addActivityToDay(selectedDay.week, selectedDay.day, 'workout', workout.id)}
-                                    className="w-full p-3 rounded-xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50 transition-all flex items-center gap-3 text-left group disabled:opacity-20 disabled:grayscale"
+                                    className="w-full p-2.5 rounded-xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/50 transition-all flex items-center gap-3 text-left group disabled:opacity-20 disabled:grayscale"
                                 >
-                                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                                    <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-md transition-all">
                                         <Dumbbell className="w-4 h-4 text-white" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-slate-700 text-xs truncate">{workout.name}</p>
-                                        <p className="text-[9px] text-slate-400 font-bold">
-                                            {workout.blocks?.length || 0} bloques • {workout.blocks?.reduce((s, b) => s + (b.exercises?.length || 0), 0) || 0} ej.
+                                        <p className="font-bold text-slate-700 text-xs truncate leading-tight">{workout.name}</p>
+                                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                                            {workout.blocks?.length || 0} bl • {workout.blocks?.reduce((s, b) => s + (b.exercises?.length || 0), 0) || 0} ej.
                                         </p>
                                     </div>
-                                    <ArrowRight className="w-3.5 h-3.5 text-brand-green opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                                    <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Plus className="w-3 h-3 text-orange-600" />
+                                    </div>
                                 </button>
                             ))}
                             {filteredWorkouts.length === 0 && (
-                                <div className="text-center py-8">
-                                    <Dumbbell className="w-6 h-6 text-slate-200 mx-auto mb-2" />
-                                    <p className="text-[10px] text-slate-400 font-bold">
-                                        {availableWorkouts.length === 0 ? 'Crea workouts primero' : 'Sin resultados'}
+                                <div className="text-center py-12 px-4">
+                                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                        <Dumbbell className="w-6 h-6 text-slate-200" />
+                                    </div>
+                                    <p className="text-xs text-slate-400 font-bold px-4">
+                                        {availableWorkouts.length === 0
+                                            ? 'No hay workouts disponibles. ¡Crea el primero!'
+                                            : 'No se encontraron workouts con ese nombre'}
                                     </p>
                                 </div>
                             )}
@@ -575,9 +665,9 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
                 </aside>
             </div>
 
-            {/* ─── EDITING ACTIVITY MODAL ─── */}
+            {/* Editing Activity Modal */}
             {editingActivity && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
                         <div className={`p-6 bg-gradient-to-br ${getActivityColor(editingActivity.activity.type)} text-white relative`}>
                             <button onClick={() => setEditingActivity(null)}
@@ -644,6 +734,7 @@ export function ProgramDesigner({ program, availableWorkouts, onSave, onClose }:
                     </div>
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
-}
+};

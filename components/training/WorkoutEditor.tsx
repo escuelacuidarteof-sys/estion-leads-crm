@@ -27,7 +27,7 @@ import { ExerciseEditor } from './ExerciseEditor';
 
 interface WorkoutEditorProps {
     workout: Workout | null;
-    onSave: (workout: Partial<Workout>) => Promise<void>;
+    onSave: (workout: Partial<Workout>) => Promise<void | Workout>;
     onClose: () => void;
     availableExercises: Exercise[];
     onSaveExercise: (exercise: Partial<Exercise>) => Promise<void>;

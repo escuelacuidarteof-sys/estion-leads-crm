@@ -57,14 +57,15 @@ export function TrainingManagement() {
         } catch (error) { console.error('Error saving exercise:', error); }
     };
 
-    const handleSaveWorkout = async (workout: Partial<Workout>) => {
+    const handleSaveWorkout = async (workout: Partial<Workout>): Promise<Workout> => {
         try {
-            await trainingService.saveWorkout(workout);
+            const saved = await trainingService.saveWorkout(workout);
             await fetchData();
             setSelectedWorkout(null);
+            return saved;
         } catch (error) {
             console.error('Error saving workout:', error);
-            throw error; // Re-throw so WorkoutEditor can show the error
+            throw error;
         }
     };
 
@@ -120,7 +121,10 @@ export function TrainingManagement() {
             <ProgramDesigner
                 program={selectedProgram}
                 availableWorkouts={workouts}
+                availableExercises={exercises}
                 onSave={handleSaveProgram}
+                onSaveWorkout={handleSaveWorkout}
+                onSaveExercise={handleSaveExercise}
                 onClose={() => setSelectedProgram(null)}
             />
         );
