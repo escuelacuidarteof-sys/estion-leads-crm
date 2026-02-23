@@ -406,15 +406,21 @@ export const trainingService = {
         startDate: string,
         assignedBy: string
     ): Promise<void> {
+        // Delete any existing assignment first, then insert fresh
+        await supabase
+            .from('client_training_assignments')
+            .delete()
+            .eq('client_id', clientId);
+
         const { error } = await supabase
             .from('client_training_assignments')
-            .upsert({
+            .insert({
                 client_id: clientId,
                 program_id: programId,
                 start_date: startDate,
                 assigned_by: assignedBy,
                 assigned_at: new Date().toISOString()
-            }, { onConflict: 'client_id' });
+            });
 
         if (error) throw error;
     },
