@@ -111,9 +111,9 @@ export function AIProgramImporter({ currentUser, onSuccess, onClose }: AIProgram
                     day_number: dayData.day_number,
                     activities: [{
                         type: dayData.activity.type,
+                        activity_id: workoutId,
                         title: dayData.activity.title,
                         description: dayData.activity.description,
-                        workout_id: workoutId,
                         position: 0
                     }] as any[]
                 });
