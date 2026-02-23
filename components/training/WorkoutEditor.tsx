@@ -172,10 +172,12 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
         }));
     };
 
-    const createSuperset = (blockId: string, exerciseId1: string, exerciseId2: string) => {
-        const supersetId = Math.random().toString(36).substring(2, 10);
+    const linkExercises = (blockId: string, exerciseId1: string, exerciseId2: string) => {
         setBlocks(prev => prev.map(block => {
             if (block.id === blockId) {
+                const ex1 = block.exercises.find(e => e.id === exerciseId1);
+                const ex2 = block.exercises.find(e => e.id === exerciseId2);
+                const supersetId = ex1?.superset_id || ex2?.superset_id || Math.random().toString(36).substring(2, 10);
                 return {
                     ...block,
                     exercises: block.exercises.map(ex =>
@@ -378,7 +380,18 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                 const isSupersetWithNext = !!item.superset_id && nextItem?.superset_id === item.superset_id;
                                                 const isSupersetWithPrev = !!item.superset_id && prevItem?.superset_id === item.superset_id;
                                                 const isFirstInSuperset = !!item.superset_id && !isSupersetWithPrev;
-                                                const canLinkWithNext = !item.superset_id && nextItem && !nextItem.superset_id;
+                                                // Show link button if:
+                                                // - both free (create new superset)
+                                                // - current ends superset and next is free (extend down)
+                                                // - current is free and next starts/is-in a superset (extend up)
+                                                const canLinkWithNext = !!nextItem && (
+                                                    (!item.superset_id && !nextItem.superset_id) ||
+                                                    (!!item.superset_id && !isSupersetWithNext && !nextItem.superset_id) ||
+                                                    (!item.superset_id && !!nextItem.superset_id)
+                                                );
+                                                const linkLabel = (!item.superset_id && !nextItem?.superset_id)
+                                                    ? 'Crear superserie'
+                                                    : 'Añadir a la superserie';
 
                                                 return (
                                                     <React.Fragment key={item.id}>
@@ -514,11 +527,11 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                         ) : canLinkWithNext ? (
                                                             <div className="flex justify-center my-1">
                                                                 <button
-                                                                    onClick={() => createSuperset(selectedBlock.id, item.id, nextItem!.id)}
+                                                                    onClick={() => linkExercises(selectedBlock.id, item.id, nextItem!.id)}
                                                                     className="flex items-center gap-1 text-[10px] text-slate-300 hover:text-amber-500 px-3 py-0.5 hover:bg-amber-50 rounded-full transition-all font-bold"
                                                                 >
                                                                     <Layers className="w-3 h-3" />
-                                                                    Crear superserie
+                                                                    {linkLabel}
                                                                 </button>
                                                             </div>
                                                         ) : null}
