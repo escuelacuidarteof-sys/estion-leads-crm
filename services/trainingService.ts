@@ -363,7 +363,6 @@ export const trainingService = {
                 day_id: savedDay.id,
                 type: act.type,
                 activity_id: act.activity_id,
-                workout_id: act.workout_id,
                 title: act.title,
                 description: act.description,
                 position: index,
