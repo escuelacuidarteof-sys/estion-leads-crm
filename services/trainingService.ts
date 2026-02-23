@@ -75,8 +75,7 @@ export const trainingService = {
         // Create new if not found
         return this.createExercise({
             name,
-            equipment: 'Gimnasio',
-            type: 'Fuerza',
+            equipment: ['Gimnasio'],
             muscle_main: 'Varios'
         });
     },
