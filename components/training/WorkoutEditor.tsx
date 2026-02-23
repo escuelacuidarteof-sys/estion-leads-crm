@@ -172,6 +172,37 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
         }));
     };
 
+    const createSuperset = (blockId: string, exerciseId1: string, exerciseId2: string) => {
+        const supersetId = Math.random().toString(36).substring(2, 10);
+        setBlocks(prev => prev.map(block => {
+            if (block.id === blockId) {
+                return {
+                    ...block,
+                    exercises: block.exercises.map(ex =>
+                        ex.id === exerciseId1 || ex.id === exerciseId2
+                            ? { ...ex, superset_id: supersetId }
+                            : ex
+                    )
+                };
+            }
+            return block;
+        }));
+    };
+
+    const breakSuperset = (blockId: string, supersetId: string) => {
+        setBlocks(prev => prev.map(block => {
+            if (block.id === blockId) {
+                return {
+                    ...block,
+                    exercises: block.exercises.map(ex =>
+                        ex.superset_id === supersetId ? { ...ex, superset_id: undefined } : ex
+                    )
+                };
+            }
+            return block;
+        }));
+    };
+
     const handleSave = async () => {
         if (!name.trim()) {
             setSaveError('Escribe un nombre para el workout');
@@ -340,105 +371,160 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-3">
-                                            {selectedBlock.exercises.map((item, index) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-lg transition-all group"
-                                                >
-                                                    <div className="flex items-start gap-4">
-                                                        {/* Reorder + Thumbnail */}
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <button
-                                                                    onClick={() => moveExercise(selectedBlock.id, item.id, 'up')}
-                                                                    disabled={index === 0}
-                                                                    className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30 transition-colors"
-                                                                >
-                                                                    <ChevronUp className="w-3.5 h-3.5" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => moveExercise(selectedBlock.id, item.id, 'down')}
-                                                                    disabled={index === selectedBlock.exercises.length - 1}
-                                                                    className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30 transition-colors"
-                                                                >
-                                                                    <ChevronDown className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-                                                            <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden">
-                                                                {ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '') ? (
-                                                                    <img
-                                                                        src={ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '')!}
-                                                                        alt=""
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center">
-                                                                        <Activity className="w-5 h-5 text-slate-300" />
+                                        <div className="flex flex-col">
+                                            {selectedBlock.exercises.map((item, index) => {
+                                                const nextItem = index < selectedBlock.exercises.length - 1 ? selectedBlock.exercises[index + 1] : null;
+                                                const prevItem = index > 0 ? selectedBlock.exercises[index - 1] : null;
+                                                const isSupersetWithNext = !!item.superset_id && nextItem?.superset_id === item.superset_id;
+                                                const isSupersetWithPrev = !!item.superset_id && prevItem?.superset_id === item.superset_id;
+                                                const isFirstInSuperset = !!item.superset_id && !isSupersetWithPrev;
+                                                const canLinkWithNext = !item.superset_id && nextItem && !nextItem.superset_id;
+
+                                                return (
+                                                    <React.Fragment key={item.id}>
+                                                        <div className={[
+                                                            'bg-white border p-4 transition-all group',
+                                                            item.superset_id
+                                                                ? 'border-amber-300 shadow-sm shadow-amber-50'
+                                                                : 'border-slate-100 hover:shadow-lg rounded-2xl mb-3',
+                                                            item.superset_id && isSupersetWithPrev && isSupersetWithNext ? 'rounded-none border-y-0' : '',
+                                                            item.superset_id && isFirstInSuperset && isSupersetWithNext ? 'rounded-t-2xl rounded-b-none border-b-0' : '',
+                                                            item.superset_id && isSupersetWithPrev && !isSupersetWithNext ? 'rounded-b-2xl rounded-t-none mb-3 hover:shadow-lg' : '',
+                                                            item.superset_id && !isSupersetWithPrev && !isSupersetWithNext ? 'rounded-2xl mb-3 hover:shadow-lg' : '',
+                                                        ].filter(Boolean).join(' ')}>
+                                                            {/* Superset Header */}
+                                                            {isFirstInSuperset && (
+                                                                <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-amber-100">
+                                                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 rounded-full">
+                                                                        <Zap className="w-3 h-3 text-amber-500" />
+                                                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Superserie</span>
                                                                     </div>
-                                                                )}
+                                                                    <button
+                                                                        onClick={() => breakSuperset(selectedBlock.id, item.superset_id!)}
+                                                                        className="ml-auto text-[10px] text-amber-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 hover:bg-red-50 rounded-full"
+                                                                    >
+                                                                        Separar
+                                                                    </button>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex items-start gap-4">
+                                                                {/* Reorder + Thumbnail */}
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <button
+                                                                            onClick={() => moveExercise(selectedBlock.id, item.id, 'up')}
+                                                                            disabled={index === 0}
+                                                                            className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30 transition-colors"
+                                                                        >
+                                                                            <ChevronUp className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => moveExercise(selectedBlock.id, item.id, 'down')}
+                                                                            disabled={index === selectedBlock.exercises.length - 1}
+                                                                            className="p-0.5 text-slate-300 hover:text-slate-600 disabled:opacity-30 transition-colors"
+                                                                        >
+                                                                            <ChevronDown className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden">
+                                                                        {ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '') ? (
+                                                                            <img
+                                                                                src={ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '')!}
+                                                                                alt=""
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                                <Activity className="w-5 h-5 text-slate-300" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Exercise Info */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center justify-between mb-3">
+                                                                        <div>
+                                                                            <h5 className="font-bold text-slate-800 text-sm">{item.exercise?.name}</h5>
+                                                                            <span className="text-[10px] font-bold text-slate-400 uppercase">{item.exercise?.muscle_main || 'General'}</span>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => removeExercise(selectedBlock.id, item.id)}
+                                                                            className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+
+                                                                    {/* Parameters Row */}
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase">Series</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={item.sets}
+                                                                                onChange={(e) => updateExercise(selectedBlock.id, item.id, { sets: parseInt(e.target.value) || 0 })}
+                                                                                className="w-10 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase">Reps</span>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={item.reps}
+                                                                                onChange={(e) => updateExercise(selectedBlock.id, item.id, { reps: e.target.value })}
+                                                                                className="w-16 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
+                                                                            <Clock className="w-3 h-3 text-slate-400" />
+                                                                            <input
+                                                                                type="number"
+                                                                                value={item.rest_seconds}
+                                                                                onChange={(e) => updateExercise(selectedBlock.id, item.id, { rest_seconds: parseInt(e.target.value) || 0 })}
+                                                                                className="w-12 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
+                                                                            />
+                                                                            <span className="text-[10px] text-slate-400 font-bold">s</span>
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={item.notes || ''}
+                                                                                onChange={(e) => updateExercise(selectedBlock.id, item.id, { notes: e.target.value })}
+                                                                                placeholder="Notas..."
+                                                                                className="w-full bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-600 placeholder:text-slate-300 border-none focus:ring-1 focus:ring-brand-mint outline-none"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
 
-                                                        {/* Exercise Info */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center justify-between mb-3">
-                                                                <div>
-                                                                    <h5 className="font-bold text-slate-800 text-sm">{item.exercise?.name}</h5>
-                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{item.exercise?.muscle_main || 'General'}</span>
+                                                        {/* Superset connector OR link button */}
+                                                        {isSupersetWithNext ? (
+                                                            <div className="flex items-center gap-2 bg-amber-50 border-x border-amber-300 px-4 py-1.5">
+                                                                <div className="flex-1 border-t border-amber-200 border-dashed" />
+                                                                <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 rounded-full shrink-0">
+                                                                    <Zap className="w-3 h-3 text-amber-500" />
+                                                                    <span className="text-[9px] font-black text-amber-600 uppercase tracking-wider">SS</span>
                                                                 </div>
+                                                                <div className="flex-1 border-t border-amber-200 border-dashed" />
+                                                            </div>
+                                                        ) : canLinkWithNext ? (
+                                                            <div className="flex justify-center my-1">
                                                                 <button
-                                                                    onClick={() => removeExercise(selectedBlock.id, item.id)}
-                                                                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                                    onClick={() => createSuperset(selectedBlock.id, item.id, nextItem!.id)}
+                                                                    className="flex items-center gap-1 text-[10px] text-slate-300 hover:text-amber-500 px-3 py-0.5 hover:bg-amber-50 rounded-full transition-all font-bold"
                                                                 >
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <Layers className="w-3 h-3" />
+                                                                    Crear superserie
                                                                 </button>
                                                             </div>
-
-                                                            {/* Parameters Row */}
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
-                                                                    <span className="text-[10px] font-black text-slate-400 uppercase">Series</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={item.sets}
-                                                                        onChange={(e) => updateExercise(selectedBlock.id, item.id, { sets: parseInt(e.target.value) || 0 })}
-                                                                        className="w-10 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
-                                                                    <span className="text-[10px] font-black text-slate-400 uppercase">Reps</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={item.reps}
-                                                                        onChange={(e) => updateExercise(selectedBlock.id, item.id, { reps: e.target.value })}
-                                                                        className="w-16 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-2">
-                                                                    <Clock className="w-3 h-3 text-slate-400" />
-                                                                    <input
-                                                                        type="number"
-                                                                        value={item.rest_seconds}
-                                                                        onChange={(e) => updateExercise(selectedBlock.id, item.id, { rest_seconds: parseInt(e.target.value) || 0 })}
-                                                                        className="w-12 bg-transparent border-none text-slate-800 text-center text-sm font-bold p-0 focus:ring-0 outline-none"
-                                                                    />
-                                                                    <span className="text-[10px] text-slate-400 font-bold">s</span>
-                                                                </div>
-                                                                <div className="flex-1">
-                                                                    <input
-                                                                        type="text"
-                                                                        value={item.notes || ''}
-                                                                        onChange={(e) => updateExercise(selectedBlock.id, item.id, { notes: e.target.value })}
-                                                                        placeholder="Notas..."
-                                                                        className="w-full bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-600 placeholder:text-slate-300 border-none focus:ring-1 focus:ring-brand-mint outline-none"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                        ) : null}
+                                                    </React.Fragment>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

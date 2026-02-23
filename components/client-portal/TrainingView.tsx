@@ -142,6 +142,32 @@ interface WorkoutDetailProps {
     workout: Workout;
 }
 
+type ExerciseSegment =
+    | { type: 'single'; exercise: any }
+    | { type: 'superset'; exercises: any[] };
+
+function groupExercises(exercises: any[]): ExerciseSegment[] {
+    const groups: ExerciseSegment[] = [];
+    let i = 0;
+    while (i < exercises.length) {
+        const ex = exercises[i];
+        if (ex.superset_id) {
+            const group: any[] = [ex];
+            let j = i + 1;
+            while (j < exercises.length && exercises[j].superset_id === ex.superset_id) {
+                group.push(exercises[j]);
+                j++;
+            }
+            groups.push({ type: 'superset', exercises: group });
+            i = j;
+        } else {
+            groups.push({ type: 'single', exercise: ex });
+            i++;
+        }
+    }
+    return groups;
+}
+
 function WorkoutDetail({ workout }: WorkoutDetailProps) {
     if (!workout.blocks || workout.blocks.length === 0) {
         return (
@@ -161,9 +187,24 @@ function WorkoutDetail({ workout }: WorkoutDetailProps) {
                         </p>
                     )}
                     <div>
-                        {(block.exercises || []).map((we) => (
-                            <ExerciseRow key={we.id} we={we} />
-                        ))}
+                        {groupExercises(block.exercises || []).map((segment, gi) => {
+                            if (segment.type === 'single') {
+                                return <ExerciseRow key={segment.exercise.id} we={segment.exercise} />;
+                            }
+                            return (
+                                <div key={`ss-${gi}`} className="border border-amber-200 rounded-xl overflow-hidden mb-2">
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border-b border-amber-100">
+                                        <Zap className="w-3 h-3 text-amber-500" />
+                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Superserie</span>
+                                    </div>
+                                    {segment.exercises.map((we, idx) => (
+                                        <div key={we.id} className={`px-1 ${idx < segment.exercises.length - 1 ? 'border-b border-amber-100' : ''}`}>
+                                            <ExerciseRow we={we} />
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ))}

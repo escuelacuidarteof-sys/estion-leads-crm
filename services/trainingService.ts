@@ -200,6 +200,7 @@ export const trainingService = {
                         reps: we.reps,
                         rest_seconds: we.rest_seconds,
                         notes: we.notes,
+                        superset_id: we.superset_id || null,
                         position: index
                     }));
 
