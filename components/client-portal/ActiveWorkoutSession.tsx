@@ -606,13 +606,13 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     placeholder="Ej: 120"
                                                     value={data.preWorkout.bp_systolic}
                                                     onChange={(e) => {
-                                                        handlePreWorkoutChange('bp_systolic', e.target.value);
-                                                        const sysVal = (e.target.value || '').trim();
-                                                        const diaVal = (data.preWorkout.bp_diastolic || '').trim();
-                                                        const sys = parseInt(sysVal);
-                                                        const dia = parseInt(diaVal);
-                                                        const sysValid = sysVal.length >= 2 && !isNaN(sys);
-                                                        const diaValid = diaVal.length >= 2 && !isNaN(dia);
+                                                        const sysParsed = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                                        handlePreWorkoutChange('bp_systolic', sysParsed);
+                                                        const sys = sysParsed === '' ? NaN : sysParsed;
+                                                        const diaVal = data.preWorkout.bp_diastolic;
+                                                        const dia = (diaVal === '' || diaVal == null) ? NaN : parseInt(String(diaVal), 10);
+                                                        const sysValid = !isNaN(sys) && String(sys).length >= 2;
+                                                        const diaValid = !isNaN(dia) && String(dia).length >= 2;
                                                         const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
                                                         handleExclusionChange('bp_uncontrolled', unsafe);
                                                     }}
@@ -626,13 +626,13 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     placeholder="Ej: 80"
                                                     value={data.preWorkout.bp_diastolic}
                                                     onChange={(e) => {
-                                                        handlePreWorkoutChange('bp_diastolic', e.target.value);
-                                                        const sysVal = (data.preWorkout.bp_systolic || '').trim();
-                                                        const diaVal = (e.target.value || '').trim();
-                                                        const sys = parseInt(sysVal);
-                                                        const dia = parseInt(diaVal);
-                                                        const sysValid = sysVal.length >= 2 && !isNaN(sys);
-                                                        const diaValid = diaVal.length >= 2 && !isNaN(dia);
+                                                        const diaParsed = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                                        handlePreWorkoutChange('bp_diastolic', diaParsed);
+                                                        const sysVal = data.preWorkout.bp_systolic;
+                                                        const sys = (sysVal === '' || sysVal == null) ? NaN : parseInt(String(sysVal), 10);
+                                                        const dia = diaParsed === '' ? NaN : diaParsed;
+                                                        const sysValid = !isNaN(sys) && String(sys).length >= 2;
+                                                        const diaValid = !isNaN(dia) && String(dia).length >= 2;
                                                         const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
                                                         handleExclusionChange('bp_uncontrolled', unsafe);
                                                     }}
@@ -774,7 +774,10 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                         type="number"
                                         placeholder="Ej: 120"
                                         value={data.preWorkout.bp_systolic}
-                                        onChange={(e) => handlePreWorkoutChange('bp_systolic', e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                            handlePreWorkoutChange('bp_systolic', val);
+                                        }}
                                         className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
                                     />
                                 </div>
@@ -784,7 +787,10 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                         type="number"
                                         placeholder="Ej: 80"
                                         value={data.preWorkout.bp_diastolic}
-                                        onChange={(e) => handlePreWorkoutChange('bp_diastolic', e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                            handlePreWorkoutChange('bp_diastolic', val);
+                                        }}
                                         className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
                                     />
                                 </div>

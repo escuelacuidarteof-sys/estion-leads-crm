@@ -1368,7 +1368,11 @@ export const mockDb = {
         responses: checkin.responses,
         rating: checkin.rating,
         status: 'pending_review',
-        coach_notes: checkin.coach_notes
+        coach_notes: checkin.coach_notes,
+        weight_log: checkin.weight_log,
+        body_fat_percentage: checkin.body_fat_percentage,
+        muscle_mass: checkin.muscle_mass,
+        visceral_fat_level: checkin.visceral_fat_level
       };
 
       mockCheckins.unshift(newCheckin);

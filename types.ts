@@ -34,6 +34,10 @@ export interface WeeklyCheckin {
   rating?: number;
   status: 'pending_review' | 'reviewed';
   coach_notes?: string;
+  weight_log?: string | number;
+  body_fat_percentage?: string | number;
+  muscle_mass?: string | number;
+  visceral_fat_level?: string | number;
 }
 
 export interface User {

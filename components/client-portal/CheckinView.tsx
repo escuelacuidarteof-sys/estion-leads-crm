@@ -87,6 +87,9 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
         coach_message: '',
         weekly_rating: 5,
         weight: '',
+        body_fat_percentage: '',
+        muscle_mass: '',
+        visceral_fat_level: '',
     });
 
     const handleChange = (field: string, value: any) => {
@@ -107,8 +110,15 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
                     question_6: answers.weekly_rating.toString(),
                     weight_log: answers.weight,
                     coach_message: answers.coach_message,
+                    body_fat_percentage: answers.body_fat_percentage,
+                    muscle_mass: answers.muscle_mass,
+                    visceral_fat_level: answers.visceral_fat_level,
                 },
                 rating: answers.weekly_rating,
+                weight_log: answers.weight,
+                body_fat_percentage: answers.body_fat_percentage,
+                muscle_mass: answers.muscle_mass,
+                visceral_fat_level: answers.visceral_fat_level,
             });
 
             if (answers.weight) {
@@ -364,6 +374,48 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
                                     <p className="text-[10px] text-slate-400 mt-1">
                                         Solo si quieres registrarlo. El peso puede variar mucho durante el tratamiento y no es el indicador más importante.
                                     </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="border border-slate-200 rounded-xl p-4">
+                                        <label className="block text-sm font-medium text-slate-500 mb-1">
+                                            Grasa Corporal (%)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={answers.body_fat_percentage}
+                                            onChange={e => handleChange('body_fat_percentage', e.target.value)}
+                                            className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 outline-none text-slate-700"
+                                            placeholder="Ej: 22.5"
+                                        />
+                                    </div>
+                                    <div className="border border-slate-200 rounded-xl p-4">
+                                        <label className="block text-sm font-medium text-slate-500 mb-1">
+                                            Masa Muscular (kg)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={answers.muscle_mass}
+                                            onChange={e => handleChange('muscle_mass', e.target.value)}
+                                            className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 outline-none text-slate-700"
+                                            placeholder="Ej: 45.0"
+                                        />
+                                    </div>
+                                    <div className="border border-slate-200 rounded-xl p-4">
+                                        <label className="block text-sm font-medium text-slate-500 mb-1">
+                                            Grasa Visceral
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={answers.visceral_fat_level}
+                                            onChange={e => handleChange('visceral_fat_level', e.target.value)}
+                                            className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-300 outline-none text-slate-700"
+                                            placeholder="Ej: 4"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="bg-emerald-50 p-4 rounded-xl flex items-start gap-3">
