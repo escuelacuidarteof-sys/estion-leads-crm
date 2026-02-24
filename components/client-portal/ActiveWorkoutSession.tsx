@@ -607,11 +607,10 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_systolic}
                                                     onChange={(e) => {
                                                         handlePreWorkoutChange('bp_systolic', e.target.value);
-                                                        const sysVal = e.target.value.trim();
-                                                        const diaVal = data.preWorkout.bp_diastolic.trim();
+                                                        const sysVal = (e.target.value || '').trim();
+                                                        const diaVal = (data.preWorkout.bp_diastolic || '').trim();
                                                         const sys = parseInt(sysVal);
                                                         const dia = parseInt(diaVal);
-                                                        // Solo evaluar cuando hay valores completos (>=2 dígitos)
                                                         const sysValid = sysVal.length >= 2 && !isNaN(sys);
                                                         const diaValid = diaVal.length >= 2 && !isNaN(dia);
                                                         const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
@@ -628,8 +627,8 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_diastolic}
                                                     onChange={(e) => {
                                                         handlePreWorkoutChange('bp_diastolic', e.target.value);
-                                                        const sysVal = data.preWorkout.bp_systolic.trim();
-                                                        const diaVal = e.target.value.trim();
+                                                        const sysVal = (data.preWorkout.bp_systolic || '').trim();
+                                                        const diaVal = (e.target.value || '').trim();
                                                         const sys = parseInt(sysVal);
                                                         const dia = parseInt(diaVal);
                                                         const sysValid = sysVal.length >= 2 && !isNaN(sys);
