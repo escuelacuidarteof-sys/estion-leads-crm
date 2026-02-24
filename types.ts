@@ -923,6 +923,8 @@ export interface ClientDayLog {
   pre_rpe_type?: string;
   pre_oxygen?: string;
   pre_pulse?: string;
+  pre_bp_systolic?: string;
+  pre_bp_diastolic?: string;
   safety_exclusion_data?: any;
   safety_sequelae_data?: any;
 }

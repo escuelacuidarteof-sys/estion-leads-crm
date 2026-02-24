@@ -50,7 +50,9 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             fatigue: 5,
             rpe_type: 'verde',
             oxygen: '',
-            pulse: ''
+            pulse: '',
+            bp_systolic: '',
+            bp_diastolic: ''
         },
         sequelae: {
             tingling: false,
@@ -150,6 +152,8 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                 pre_rpe_type: safetyPassData.preWorkout.rpe_type,
                 pre_oxygen: safetyPassData.preWorkout.oxygen,
                 pre_pulse: safetyPassData.preWorkout.pulse,
+                pre_bp_systolic: safetyPassData.preWorkout.bp_systolic,
+                pre_bp_diastolic: safetyPassData.preWorkout.bp_diastolic,
                 safety_exclusion_data: safetyPassData.exclusion,
                 safety_sequelae_data: safetyPassData.sequelae
             };
@@ -592,11 +596,51 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                         checked={data.exclusion.blood_test}
                                         onChange={(c) => handleExclusionChange('blood_test', c)}
                                     />
-                                    <ExclusionCheck
-                                        label="¿Tensión descontrolada? (Dolor punzante o visión borrosa)"
-                                        checked={data.exclusion.bp_uncontrolled}
-                                        onChange={(c) => handleExclusionChange('bp_uncontrolled', c)}
-                                    />
+                                    <div className="bg-white/80 rounded-2xl p-4 border border-red-100 space-y-3">
+                                        <p className="text-sm font-bold text-red-800">Presión Arterial</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sistólica</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="Ej: 120"
+                                                    value={data.preWorkout.bp_systolic}
+                                                    onChange={(e) => {
+                                                        handlePreWorkoutChange('bp_systolic', e.target.value);
+                                                        const sys = parseInt(e.target.value);
+                                                        const dia = parseInt(data.preWorkout.bp_diastolic);
+                                                        const unsafe = (sys > 160) || (sys < 90);
+                                                        handleExclusionChange('bp_uncontrolled', unsafe || (dia > 100));
+                                                    }}
+                                                    className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Diastólica</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="Ej: 80"
+                                                    value={data.preWorkout.bp_diastolic}
+                                                    onChange={(e) => {
+                                                        handlePreWorkoutChange('bp_diastolic', e.target.value);
+                                                        const sys = parseInt(data.preWorkout.bp_systolic);
+                                                        const dia = parseInt(e.target.value);
+                                                        const unsafe = (sys > 160) || (sys < 90) || (dia > 100);
+                                                        handleExclusionChange('bp_uncontrolled', unsafe);
+                                                    }}
+                                                    className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-red-600 leading-tight">
+                                            Si tu tensión es mayor de <b>160/100</b> o menor de <b>90</b> (con mareo), hoy el ejercicio no es seguro. Reporta estos valores y descansa.
+                                        </p>
+                                        {data.exclusion.bp_uncontrolled && (
+                                            <div className="bg-red-100 border border-red-200 rounded-xl p-2 text-xs font-bold text-red-700 text-center">
+                                                Tensión fuera de rango seguro
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -694,7 +738,7 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                 </button>
                             </div>
 
-                            {/* Oxygen & Pulse */}
+                            {/* Oxygen, Pulse & Blood Pressure */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white rounded-2xl border border-slate-100 p-4">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Oxígeno (%)</label>
@@ -713,6 +757,26 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                         placeholder="Ej: 72"
                                         value={data.preWorkout.pulse}
                                         onChange={(e) => handlePreWorkoutChange('pulse', e.target.value)}
+                                        className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
+                                    />
+                                </div>
+                                <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Tensión Sistólica</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Ej: 120"
+                                        value={data.preWorkout.bp_systolic}
+                                        onChange={(e) => handlePreWorkoutChange('bp_systolic', e.target.value)}
+                                        className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
+                                    />
+                                </div>
+                                <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Tensión Diastólica</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Ej: 80"
+                                        value={data.preWorkout.bp_diastolic}
+                                        onChange={(e) => handlePreWorkoutChange('bp_diastolic', e.target.value)}
                                         className="w-full bg-transparent text-xl font-bold border-none p-0 focus:ring-0 text-brand-dark"
                                     />
                                 </div>
