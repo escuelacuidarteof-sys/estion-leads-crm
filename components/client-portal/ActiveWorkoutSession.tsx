@@ -607,10 +607,15 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_systolic}
                                                     onChange={(e) => {
                                                         handlePreWorkoutChange('bp_systolic', e.target.value);
-                                                        const sys = parseInt(e.target.value);
-                                                        const dia = parseInt(data.preWorkout.bp_diastolic);
-                                                        const unsafe = (sys > 160) || (sys < 90);
-                                                        handleExclusionChange('bp_uncontrolled', unsafe || (dia > 100));
+                                                        const sysVal = e.target.value.trim();
+                                                        const diaVal = data.preWorkout.bp_diastolic.trim();
+                                                        const sys = parseInt(sysVal);
+                                                        const dia = parseInt(diaVal);
+                                                        // Solo evaluar cuando hay valores completos (>=2 dígitos)
+                                                        const sysValid = sysVal.length >= 2 && !isNaN(sys);
+                                                        const diaValid = diaVal.length >= 2 && !isNaN(dia);
+                                                        const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
+                                                        handleExclusionChange('bp_uncontrolled', unsafe);
                                                     }}
                                                     className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
                                                 />
@@ -623,9 +628,13 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_diastolic}
                                                     onChange={(e) => {
                                                         handlePreWorkoutChange('bp_diastolic', e.target.value);
-                                                        const sys = parseInt(data.preWorkout.bp_systolic);
-                                                        const dia = parseInt(e.target.value);
-                                                        const unsafe = (sys > 160) || (sys < 90) || (dia > 100);
+                                                        const sysVal = data.preWorkout.bp_systolic.trim();
+                                                        const diaVal = e.target.value.trim();
+                                                        const sys = parseInt(sysVal);
+                                                        const dia = parseInt(diaVal);
+                                                        const sysValid = sysVal.length >= 2 && !isNaN(sys);
+                                                        const diaValid = diaVal.length >= 2 && !isNaN(dia);
+                                                        const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
                                                         handleExclusionChange('bp_uncontrolled', unsafe);
                                                     }}
                                                     className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
