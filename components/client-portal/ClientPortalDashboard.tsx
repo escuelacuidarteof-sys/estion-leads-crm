@@ -63,11 +63,18 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
 
-    // Today's Tasks
+    // Today's Tasks & Weekly Calendar
     const [todayProgramDay, setTodayProgramDay] = useState<any | null>(null);
     const [todayWorkout, setTodayWorkout] = useState<any | null>(null);
     const [todayActivityLogs, setTodayActivityLogs] = useState<any[]>([]);
     const [isTodayTasksLoading, setIsTodayTasksLoading] = useState(false);
+    const [weekProgram, setWeekProgram] = useState<any | null>(null);
+    const [weekAssignment, setWeekAssignment] = useState<any | null>(null);
+    const [completedDayIds, setCompletedDayIds] = useState<Set<string>>(new Set());
+    const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+    const [selectedDayActivities, setSelectedDayActivities] = useState<any[]>([]);
+    const [selectedDayActivityLogs, setSelectedDayActivityLogs] = useState<any[]>([]);
+    const [todaySteps, setTodaySteps] = useState<number | null>(null);
 
     // Unread badges
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
@@ -147,7 +154,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         setLoading(false);
     }
 
-    // Load today tasks
+    // Load today tasks + weekly calendar data
     useEffect(() => {
         const loadTodayTasks = async () => {
             setIsTodayTasksLoading(true);
@@ -156,6 +163,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 if (!asgn) return;
                 const prog = await trainingService.getProgramById(asgn.program_id);
                 if (!prog) return;
+
+                setWeekProgram(prog);
+                setWeekAssignment(asgn);
 
                 const startDate = new Date(asgn.start_date);
                 const now = new Date();
@@ -180,6 +190,27 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         }
                     }
                 }
+
+                // Load completed day IDs for visual indicators
+                const [dayLogs, actLogs] = await Promise.all([
+                    supabase.from('training_client_day_logs').select('day_id').eq('client_id', client.id),
+                    supabase.from('training_client_activity_logs').select('day_id').eq('client_id', client.id).then(r => r).catch(() => ({ data: null }))
+                ]);
+                const ids = new Set<string>();
+                (dayLogs.data || []).forEach((d: any) => ids.add(d.day_id));
+                (actLogs.data || []).forEach((d: any) => ids.add(d.day_id));
+                setCompletedDayIds(ids);
+
+                // Load today's steps
+                const today = now.toISOString().split('T')[0];
+                const { data: stepsData } = await supabase
+                    .from('steps_history')
+                    .select('steps')
+                    .eq('client_id', client.id)
+                    .eq('date', today)
+                    .single();
+                if (stepsData) setTodaySteps(stepsData.steps);
+
             } catch (err) {
                 console.error("Error loading today tasks:", err);
             } finally {
@@ -769,6 +800,75 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
 
+    // Calendar helpers
+    const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const ACTIVITY_META_MAP: Record<string, { label: string, icon: any, color: string, bg: string }> = {
+        workout: { label: 'Entrenamiento', icon: Dumbbell, color: 'text-brand-green', bg: 'bg-brand-mint/40' },
+        walking: { label: 'Caminata', icon: Footprints, color: 'text-pink-600', bg: 'bg-pink-100' },
+        metrics: { label: 'Métricas', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-100' },
+        photo: { label: 'Foto progreso', icon: Camera, color: 'text-cyan-500', bg: 'bg-cyan-100' },
+        form: { label: 'Check-in', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-100' },
+        custom: { label: 'Tarea', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-100' },
+    };
+
+    const getCalendarWeekDates = () => {
+        if (!weekAssignment || !weekProgram) return null;
+        const startDate = new Date(weekAssignment.start_date);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
+        const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
+        const clampedWeek = Math.min(calculatedWeek, weekProgram.weeks_count);
+
+        const weekStartDate = new Date(startDate);
+        weekStartDate.setDate(weekStartDate.getDate() + (clampedWeek - 1) * 7);
+
+        return { week: clampedWeek, days: Array.from({ length: 7 }, (_, i) => {
+            const date = new Date(weekStartDate);
+            date.setDate(date.getDate() + i);
+            const dayNumber = i + 1;
+            const dayData = weekProgram.days?.find(
+                (d: any) => d.week_number === clampedWeek && d.day_number === dayNumber
+            );
+            return {
+                dayNumber,
+                date,
+                dayData,
+                isToday: date.toDateString() === now.toDateString(),
+                isCompleted: dayData ? completedDayIds.has(dayData.id) : false,
+                hasActivities: !!(dayData?.activities?.length),
+                activities: dayData?.activities || [],
+            };
+        })};
+    };
+
+    const handleCalendarDayClick = async (dayNumber: number, dayData: any) => {
+        if (selectedCalendarDay === dayNumber) {
+            setSelectedCalendarDay(null);
+            return;
+        }
+        setSelectedCalendarDay(dayNumber);
+        if (dayData) {
+            setSelectedDayActivities(dayData.activities || []);
+            try {
+                const logs = await trainingService.getClientActivityLogs(client.id, dayData.id);
+                setSelectedDayActivityLogs(logs);
+            } catch { setSelectedDayActivityLogs([]); }
+        } else {
+            setSelectedDayActivities([]);
+            setSelectedDayActivityLogs([]);
+        }
+    };
+
+    const calendarData = getCalendarWeekDates();
+    const weeklyStats = (() => {
+        if (!calendarData) return null;
+        const activeDays = calendarData.days.filter(d => d.hasActivities);
+        const completedCount = activeDays.filter(d => d.isCompleted).length;
+        return { week: calendarData.week, completed: completedCount, total: activeDays.length };
+    })();
+
+    const clientGoals = cAny.goals || {};
+
     // Banner prioritario
     const needsCheckin = shouldShowCheckinReminder;
     const hasNewReviews = unreadReviewsCount > 0;
@@ -788,13 +888,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     // --- TAB CONTENT ---
 
     const HomeTab = () => (
-        <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Extended Hero Card */}
+        <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* === HERO CARD === */}
             <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-dark via-[#1a2e1a] to-[#0a140a] p-8 md:p-10 shadow-2xl">
-                {/* Decorative background elements */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-brand-green/20 blur-[120px] -mr-32 -mt-32 rounded-full pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-mint/10 blur-[100px] -ml-32 -mb-32 rounded-full pointer-events-none" />
-
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div className="space-y-4 flex-1">
                         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg mb-2">
@@ -815,26 +913,17 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 </div>
                                 {activeContract.startDate && (
                                     <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-white/50 text-[10px] font-bold">
-                                            {new Date(activeContract.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </span>
+                                        <span className="text-white/50 text-[10px] font-bold">{new Date(activeContract.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                         <span className="text-white/30 text-[10px]">→</span>
                                         <span className="text-brand-mint/70 text-[10px] font-bold">
-                                            {activeContract.endDate
-                                                ? new Date(activeContract.endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
-                                                : activeContract.duration
-                                                    ? new Date(new Date(activeContract.startDate).getTime() + activeContract.duration * 30 * 86400000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
-                                                    : '—'
-                                            }
+                                            {activeContract.endDate ? new Date(activeContract.endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : activeContract.duration ? new Date(new Date(activeContract.startDate).getTime() + activeContract.duration * 30 * 86400000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                                         </span>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
-
                     <div className="flex flex-col items-center justify-center bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border border-white/10 min-w-[200px] shadow-2xl ring-1 ring-white/5 relative group cursor-default">
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
                         <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-3">Valoración Semanal</p>
                         <div className="relative w-28 h-28 flex items-center justify-center">
                             <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
@@ -850,243 +939,302 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
             </div>
 
-            {/* Daily Tasks Section */}
+            {/* === WEEKLY CALENDAR WITH REAL DATES === */}
             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-                <div className="flex items-center justify-between mb-5 px-2">
-                    <h3 className="text-xl font-heading font-black text-brand-dark flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-brand-green" /> Tareas de Hoy
+                <div className="flex items-center justify-between mb-4 px-2">
+                    <h3 className="text-lg font-heading font-black text-brand-dark flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-brand-green" /> Tu Semana
                     </h3>
-                    <button onClick={() => setActiveTab('program')} className="text-xs font-bold text-brand-green hover:text-brand-green-dark hover:underline transition-all">Ver programa completo</button>
+                    <div className="flex items-center gap-3">
+                        {calendarData && <span className="text-xs font-bold text-slate-400">Semana {calendarData.week}</span>}
+                        <button onClick={() => setActiveView('training')} className="text-xs font-bold text-brand-green hover:underline transition-all">Ver programa</button>
+                    </div>
                 </div>
 
                 {isTodayTasksLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="h-28 bg-slate-100 animate-pulse rounded-[2rem]" />
-                        <div className="h-28 bg-slate-100 animate-pulse rounded-[2rem]" />
+                    <div className="grid grid-cols-7 gap-2">
+                        {Array.from({ length: 7 }).map((_, i) => <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-2xl" />)}
                     </div>
-                ) : todayProgramDay && todayProgramDay.activities && todayProgramDay.activities.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {todayProgramDay.activities.map((activity: any) => {
-                            const isCompleted = todayActivityLogs.some((l: any) => l.activity_id === activity.id);
-                            const ACTIVITY_META: Record<string, { label: string, icon: any, color: string, bg: string, ring: string }> = {
-                                workout: { label: 'Entrenamiento', icon: Dumbbell, color: 'text-brand-green', bg: 'bg-brand-mint/40', ring: 'group-hover:ring-brand-green/30' },
-                                walking: { label: 'Caminata', icon: Footprints, color: 'text-pink-600', bg: 'bg-pink-100', ring: 'group-hover:ring-pink-300' },
-                                metrics: { label: 'Métricas', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-100', ring: 'group-hover:ring-amber-300' },
-                                photo: { label: 'Foto progreso', icon: Camera, color: 'text-cyan-500', bg: 'bg-cyan-100', ring: 'group-hover:ring-cyan-300' },
-                                form: { label: 'Check-in', icon: FileText, color: 'text-teal-600', bg: 'bg-teal-100', ring: 'group-hover:ring-teal-300' },
-                                custom: { label: 'Tarea', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-100', ring: 'group-hover:ring-violet-300' },
-                            };
-                            const type = activity.type || 'custom';
-                            const meta = ACTIVITY_META[type] || ACTIVITY_META.custom;
-                            const Icon = meta.icon;
+                ) : calendarData ? (
+                    <>
+                        <div className="grid grid-cols-7 gap-1.5">
+                            {calendarData.days.map((day) => {
+                                const isSelected = selectedCalendarDay === day.dayNumber;
+                                return (
+                                    <button
+                                        key={day.dayNumber}
+                                        onClick={() => day.hasActivities ? handleCalendarDayClick(day.dayNumber, day.dayData) : undefined}
+                                        className={`relative flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-h-[80px] ${
+                                            isSelected ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30 scale-105' :
+                                            day.isToday ? 'bg-white border-2 border-brand-green shadow-md' :
+                                            day.hasActivities ? 'bg-white border border-slate-200 hover:border-brand-mint hover:shadow-sm' :
+                                            'bg-slate-50 border border-slate-100 opacity-50'
+                                        }`}
+                                    >
+                                        {day.isCompleted && !isSelected && (
+                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-green rounded-full flex items-center justify-center shadow-sm z-10">
+                                                <Check className="w-2.5 h-2.5 text-white" />
+                                            </div>
+                                        )}
+                                        <span className={`text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-white/80' : day.isToday ? 'text-brand-green' : 'text-slate-400'}`}>
+                                            {DAY_NAMES_SHORT[day.dayNumber - 1]}
+                                        </span>
+                                        <span className={`text-lg font-black ${isSelected ? 'text-white' : day.isToday ? 'text-brand-dark' : 'text-slate-600'}`}>
+                                            {day.date.getDate()}
+                                        </span>
+                                        <div className="flex items-center gap-0.5 min-h-[16px]">
+                                            {day.hasActivities ? (
+                                                day.activities.slice(0, 3).map((act: any, idx: number) => {
+                                                    const meta = ACTIVITY_META_MAP[act.type || 'custom'] || ACTIVITY_META_MAP.custom;
+                                                    const Icon = meta.icon;
+                                                    return <Icon key={idx} className={`w-3 h-3 ${isSelected ? 'text-white/80' : meta.color}`} />;
+                                                })
+                                            ) : (
+                                                <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/40' : 'bg-slate-200'}`} />
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
 
-                            return (
-                                <button
-                                    key={activity.id}
-                                    onClick={() => setActiveView('training')}
-                                    className={`bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200/40 border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl text-left flex items-center justify-between group flex-row ${isCompleted ? 'border-brand-green/30 opacity-80' : 'border-transparent hover:border-brand-mint/50'}`}
-                                >
-                                    <div className="flex gap-4 items-center">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all ring-4 ring-transparent ${meta.ring} ${isCompleted ? 'bg-brand-green/10' : meta.bg}`}>
-                                            {isCompleted ? <CheckCircle className="w-6 h-6 text-brand-green drop-shadow-sm" /> : <Icon className={`w-6 h-6 ${meta.color}`} />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-heading font-black text-brand-dark text-lg leading-tight">{activity.title || meta.label}</p>
-                                            {activity.description && <p className="text-xs text-slate-500 mt-1 line-clamp-1 font-medium">{activity.description}</p>}
-                                        </div>
-                                    </div>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isCompleted ? 'bg-brand-green/10' : 'bg-slate-50 group-hover:bg-slate-100'}`}>
-                                        <ChevronRight className={`w-5 h-5 ${isCompleted ? 'text-brand-green' : 'text-slate-300 group-hover:text-slate-500'}`} />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                        {/* Expanded day activities */}
+                        {selectedCalendarDay !== null && selectedDayActivities.length > 0 && (
+                            <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                {selectedDayActivities.map((activity: any) => {
+                                    const isCompleted = selectedDayActivityLogs.some((l: any) => l.activity_id === activity.id);
+                                    const meta = ACTIVITY_META_MAP[activity.type || 'custom'] || ACTIVITY_META_MAP.custom;
+                                    const Icon = meta.icon;
+                                    return (
+                                        <button
+                                            key={activity.id}
+                                            onClick={() => setActiveView('training')}
+                                            className={`w-full bg-white rounded-2xl p-4 shadow-sm border transition-all hover:shadow-md text-left flex items-center gap-4 ${isCompleted ? 'border-brand-green/30' : 'border-slate-100'}`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-brand-green/10' : meta.bg}`}>
+                                                {isCompleted ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Icon className={`w-5 h-5 ${meta.color}`} />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-brand-dark text-sm">{activity.title || meta.label}</p>
+                                                {activity.description && <p className="text-xs text-slate-400 truncate">{activity.description}</p>}
+                                            </div>
+                                            {isCompleted && <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Hecho</span>}
+                                            <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </>
                 ) : (
-                    <div className="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 text-center shadow-inner relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-mint/20 rounded-full blur-[40px] -mr-10 -mt-10" />
-                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 rotate-3 transform relative z-10">
-                            <CheckCircle className="w-10 h-10 text-brand-mint" />
-                        </div>
-                        <h4 className="text-xl font-heading font-black text-brand-dark relative z-10">¡Todo cubierto por hoy!</h4>
-                        <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto relative z-10 font-medium leading-relaxed">Hoy no tienes tareas programadas. Aprovecha para descansar, desconectar y recuperarte bien.</p>
+                    <div className="bg-white rounded-2xl border border-brand-mint/40 p-8 text-center">
+                        <Calendar className="w-10 h-10 text-brand-mint mx-auto mb-3" />
+                        <p className="text-sm font-bold text-slate-500">Tu programa se asignará pronto</p>
+                        <p className="text-xs text-slate-400 mt-1">Cuando tu coach asigne un programa, verás aquí tu calendario semanal</p>
                     </div>
                 )}
             </div>
 
-            {/* Priority Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                {/* Priority Banners */}
-                {hasRenewal && (
-                    <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-[2rem] p-6 flex flex-col justify-between shadow-xl shadow-amber-500/20 group hover:scale-[1.02] transition-transform">
-                        <div className="flex items-start gap-4 mb-5">
-                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                                <Award className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-white font-black text-lg italic leading-tight">Nueva Etapa</p>
-                                <p className="text-white/80 text-sm font-medium mt-1">Renovación ya disponible</p>
-                            </div>
+            {/* === TU ESTADO ACTUAL === */}
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+                <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-brand-mint/40 rounded-xl">
+                            <Heart className="w-5 h-5 text-brand-green" />
                         </div>
-                        <button onClick={() => setActiveTab('profile')} className="w-full bg-white text-amber-600 font-black py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider">Continuar Progreso</button>
+                        <h3 className="text-lg font-black text-brand-dark">Tu estado actual</h3>
                     </div>
-                )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {/* Peso */}
+                    <button onClick={() => setActiveTab('health')} className="bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors">
+                        <Scale className="w-5 h-5 text-slate-500 mx-auto mb-2" />
+                        <p className="text-xl font-black text-brand-dark">{latestWeight || '—'}</p>
+                        {weightDelta !== null && (
+                            <div className="flex items-center justify-center gap-1 mt-0.5">
+                                {weightDelta > 0 ? <TrendingUp className="w-3 h-3 text-slate-400" /> : weightDelta < 0 ? <TrendingDown className="w-3 h-3 text-slate-400" /> : null}
+                                <span className="text-[10px] text-slate-400">{weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg</span>
+                            </div>
+                        )}
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Peso</p>
+                    </button>
 
-                {hasNewReviews && (
-                    <div className="bg-gradient-to-br from-brand-green to-[#2DA061] rounded-[2rem] p-6 flex flex-col justify-between shadow-xl shadow-brand-green/20 group hover:scale-[1.02] transition-transform">
-                        <div className="flex items-start gap-4 mb-5">
-                            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                                <MessageCircle className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-white font-black text-lg italic leading-tight">Nueva Revisión</p>
-                                <p className="text-white/80 text-sm font-medium mt-1">Feedback personalizado listo</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setActiveView('reviews')} className="w-full bg-white text-brand-green-dark font-black py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider">Ver Respuesta</button>
-                    </div>
-                )}
+                    {/* Pasos */}
+                    <button onClick={() => setActiveTab('health')} className="bg-orange-50 rounded-2xl p-4 text-center hover:bg-orange-100 transition-colors">
+                        <Footprints className="w-5 h-5 text-orange-500 mx-auto mb-2" />
+                        <p className="text-xl font-black text-orange-600">{todaySteps !== null ? todaySteps.toLocaleString() : '—'}</p>
+                        <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider mt-1">Pasos hoy</p>
+                    </button>
 
-                {!hasRenewal && !hasNewReviews && needsCheckin && (
-                    <div className="bg-white rounded-[2rem] p-6 border-2 border-brand-mint flex flex-col justify-between shadow-xl shadow-brand-mint/20 group hover:scale-[1.02] transition-transform relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-mint/30 rounded-full blur-[30px] -mr-8 -mt-8" />
-                        <div className="flex items-start gap-4 mb-5 relative z-10">
-                            <div className="w-14 h-14 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center">
-                                <Calendar className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <p className="text-brand-dark font-black text-lg italic leading-tight">Check-in Semanal</p>
-                                <p className="text-slate-500 text-sm font-medium mt-1">Cuéntanos cómo vas</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setActiveView('checkin')} className="w-full bg-brand-green text-white font-black py-3.5 rounded-xl shadow-lg hover:shadow-brand-green/30 hover:scale-[1.02] active:scale-95 transition-all text-sm uppercase tracking-wider relative z-10">Completar ahora</button>
+                    {/* Sueño */}
+                    <div className="bg-blue-50 rounded-2xl p-4 text-center">
+                        <Moon className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+                        {sleepVal !== null ? (
+                            <p className="text-xl font-black text-blue-600">{sleepVal}<span className="text-[10px] opacity-40">/10</span></p>
+                        ) : (
+                            <button onClick={() => setActiveView('checkin')} className="text-xs font-bold text-blue-500 hover:underline">Registrar</button>
+                        )}
+                        <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mt-1">Sueño</p>
                     </div>
-                )}
+
+                    {/* Energía */}
+                    <div className="bg-emerald-50 rounded-2xl p-4 text-center">
+                        <Zap className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
+                        {fatigueVal !== null ? (
+                            <p className="text-xl font-black text-emerald-600">{10 - fatigueVal}<span className="text-[10px] opacity-40">/10</span></p>
+                        ) : (
+                            <button onClick={() => setActiveView('checkin')} className="text-xs font-bold text-emerald-500 hover:underline">Registrar</button>
+                        )}
+                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1">Energía</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Dashboard Grid 2nd Level */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Stats & Progress */}
-                <div className="space-y-6">
-                    {/* Bienestar Card */}
-                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-brand-mint/40 rounded-xl">
-                                    <Heart className="w-5 h-5 text-brand-green" />
-                                </div>
-                                <h3 className="text-lg font-black text-brand-dark">Tus Métricas</h3>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Estado Actual</span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                            {[
-                                { label: 'Sueño', val: sleepVal, icon: Moon, color: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-500' },
-                                { label: 'Fatiga', val: fatigueVal !== null ? 10 - fatigueVal : null, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
-                                { label: 'Ánimo', val: energyVal, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
-                            ].map(({ label, val, icon: Icon, color, bg, bar }) => (
-                                <div key={label} className={`${bg} rounded-3xl p-4 text-center border border-transparent hover:border-white transition-all`}>
-                                    <div className={`w-8 h-8 ${bg} brightness-95 rounded-xl flex items-center justify-center mx-auto mb-2`}>
-                                        <Icon className={`w-4 h-4 ${color}`} />
-                                    </div>
-                                    <p className={`text-xl font-black ${color}`}>{val !== null ? val : '—'}<span className="text-[10px] opacity-40">/10</span></p>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-1">{label}</p>
-                                </div>
-                            ))}
-                        </div>
+            {/* === WEEKLY PROGRESS === */}
+            {weeklyStats && weeklyStats.total > 0 && (
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-5 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-3xl bg-brand-mint/30 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-7 h-7 text-brand-green" />
                     </div>
-
-                    {/* Weight Brief */}
-                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-brand-mint/20 rounded-3xl flex items-center justify-center">
-                                <Scale className="w-7 h-7 text-brand-green" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Peso más reciente</p>
-                                <p className="text-2xl font-black text-brand-dark">{latestWeight || '--'} <span className="text-sm font-medium text-slate-400">kg</span></p>
-                            </div>
+                    <div className="flex-1">
+                        <p className="font-black text-brand-dark text-sm">
+                            Semana {weeklyStats.week}: {weeklyStats.completed} de {weeklyStats.total} actividades
+                        </p>
+                        <div className="h-2.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-brand-mint to-brand-green rounded-full transition-all duration-700" style={{ width: `${weeklyStats.total > 0 ? (weeklyStats.completed / weeklyStats.total) * 100 : 0}%` }} />
                         </div>
-                        <button onClick={() => setActiveTab('health')} className="p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors group">
-                            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-brand-green transition-colors" />
-                        </button>
+                        {weeklyStats.completed === weeklyStats.total && (
+                            <p className="text-xs text-brand-green mt-1.5 font-bold">¡Semana completada! Genial 💚</p>
+                        )}
                     </div>
+                </div>
+            )}
 
-                    {/* Próxima Cita Premium */}
-                    {nextAppt && apptLabel && (
-                        <div className="bg-gradient-to-br from-slate-50 to-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-8 rotate-12 opacity-[0.03] group-hover:rotate-0 transition-transform duration-700">
-                                <Calendar className="w-32 h-32 text-brand-dark" />
-                            </div>
-                            <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-gold/20">
-                                        Próxima Sesión
-                                    </div>
-                                    <span className="text-xs font-black text-brand-gold">{apptLabel}</span>
+            {/* === OBJECTIVES === */}
+            {(clientGoals.goal_3_months || clientGoals.goal_6_months || clientGoals.goal_1_year) && (
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 bg-amber-50 rounded-xl">
+                            <Target className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <h3 className="text-lg font-black text-brand-dark">Tus Objetivos</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {[
+                            { label: '3 meses', text: clientGoals.goal_3_months, status: clientGoals.goal_3_months_status },
+                            { label: '6 meses', text: clientGoals.goal_6_months, status: clientGoals.goal_6_months_status },
+                            { label: '1 año', text: clientGoals.goal_1_year, status: clientGoals.goal_1_year_status },
+                        ].filter(g => g.text).map((goal) => (
+                            <div key={goal.label} className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${goal.status === 'achieved' ? 'bg-green-100' : goal.status === 'failed' ? 'bg-red-100' : 'bg-amber-100'}`}>
+                                    {goal.status === 'achieved' ? <CheckCircle className="w-4 h-4 text-green-600" /> :
+                                     goal.status === 'failed' ? <X className="w-4 h-4 text-red-500" /> :
+                                     <Hourglass className="w-4 h-4 text-amber-500" />}
                                 </div>
-                                <h4 className="text-xl font-black text-brand-dark mb-1">Consulta Médica</h4>
-                                <p className="text-slate-500 text-sm mb-4">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} {nextAppt.time && `· ${nextAppt.time}`}</p>
-                                {nextAppt.videoUrl && (
-                                    <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-dark text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg shadow-black/10">
-                                        <Video className="w-4 h-4" /> Unirme a la videollamada
-                                    </a>
-                                )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{goal.label}</p>
+                                    <p className="text-sm text-brand-dark font-medium mt-0.5">{goal.text}</p>
+                                </div>
                             </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* === COACH COMPACT === */}
+            {coachData && (
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-5 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shadow-lg flex-shrink-0">
+                        {coachData.photo_url ? (
+                            <img src={coachData.photo_url} className="w-full h-full object-cover" alt={coachData.name} />
+                        ) : (
+                            <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300 font-heading text-xl">{(coachData.name || '?')[0]}</div>
+                        )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-black text-brand-dark text-sm truncate">{coachData.name}</p>
+                        <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">{coachData.specialty || 'Tu Mentor'}</p>
+                        {cAny.weeklyCoachMessage && (
+                            <p className="text-xs text-slate-500 italic mt-1 line-clamp-2">"{cAny.weeklyCoachMessage}"</p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {coachData.calendar_url && (
+                            <a href={coachData.calendar_url} target="_blank" rel="noopener noreferrer" className="bg-brand-dark text-white px-4 py-2.5 rounded-xl text-[11px] font-black hover:bg-black transition-all whitespace-nowrap">Reservar</a>
+                        )}
+                        {coachData.instagram && (
+                            <a href={`https://instagram.com/${coachData.instagram}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-50 text-pink-600 border border-pink-100"><Instagram className="w-4 h-4" /></a>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* === NEXT APPOINTMENT === */}
+            {nextAppt && apptLabel && (
+                <div className="bg-gradient-to-br from-slate-50 to-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 rotate-12 opacity-[0.03] group-hover:rotate-0 transition-transform duration-700">
+                        <Calendar className="w-32 h-32 text-brand-dark" />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-gold/20">Próxima Sesión</div>
+                            <span className="text-xs font-black text-brand-gold">{apptLabel}</span>
+                        </div>
+                        <h4 className="text-xl font-black text-brand-dark mb-1">Consulta Médica</h4>
+                        <p className="text-slate-500 text-sm mb-4">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} {nextAppt.time && `· ${nextAppt.time}`}</p>
+                        {nextAppt.videoUrl && (
+                            <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-dark text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg shadow-black/10">
+                                <Video className="w-4 h-4" /> Unirme a la videollamada
+                            </a>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* === PRIORITY ACTIONS === */}
+            {(hasRenewal || hasNewReviews || needsCheckin) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {hasRenewal && (
+                        <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-[2rem] p-5 flex items-center gap-4 shadow-xl shadow-amber-500/20">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0"><Award className="w-6 h-6 text-white" /></div>
+                            <div className="flex-1">
+                                <p className="text-white font-black text-sm">Nueva Etapa</p>
+                                <p className="text-white/80 text-xs">Renovación disponible</p>
+                            </div>
+                            <button onClick={() => setActiveTab('profile')} className="bg-white text-amber-600 font-black px-4 py-2 rounded-xl text-xs">Ver</button>
+                        </div>
+                    )}
+                    {hasNewReviews && (
+                        <div className="bg-gradient-to-br from-brand-green to-[#2DA061] rounded-[2rem] p-5 flex items-center gap-4 shadow-xl shadow-brand-green/20">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0"><MessageCircle className="w-6 h-6 text-white" /></div>
+                            <div className="flex-1">
+                                <p className="text-white font-black text-sm">Nueva Revisión</p>
+                                <p className="text-white/80 text-xs">Feedback listo</p>
+                            </div>
+                            <button onClick={() => setActiveView('reviews')} className="bg-white text-brand-green-dark font-black px-4 py-2 rounded-xl text-xs">Ver</button>
+                        </div>
+                    )}
+                    {needsCheckin && (
+                        <div className="bg-white rounded-[2rem] p-5 border-2 border-brand-mint flex items-center gap-4 shadow-xl">
+                            <div className="w-12 h-12 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center flex-shrink-0"><Calendar className="w-6 h-6" /></div>
+                            <div className="flex-1">
+                                <p className="text-brand-dark font-black text-sm">Check-in Semanal</p>
+                                <p className="text-slate-500 text-xs">Cuéntanos cómo vas</p>
+                            </div>
+                            <button onClick={() => setActiveView('checkin')} className="bg-brand-green text-white font-black px-4 py-2 rounded-xl text-xs">Ir</button>
                         </div>
                     )}
                 </div>
+            )}
 
-                {/* Feed & Coach */}
-                <div className="space-y-6">
-                    {/* Coach Card */}
-                    {coachData && (
-                        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-2 bg-brand-green" />
-                            <div className="relative mb-6 inline-block">
-                                <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white shadow-xl relative z-10">
-                                    {coachData.photo_url ? (
-                                        <img src={coachData.photo_url} className="w-full h-full object-cover" alt={coachData.name} />
-                                    ) : (
-                                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300 font-heading text-3xl">{(coachData.name || '?')[0]}</div>
-                                    )}
-                                </div>
-                                <div className="absolute -bottom-2 -right-2 bg-brand-gold p-2 rounded-xl shadow-lg border-2 border-white z-20">
-                                    <Check className="w-3.5 h-3.5 text-white" />
-                                </div>
-                            </div>
-                            <h4 className="text-xl font-black text-brand-dark leading-tight">{coachData.name}</h4>
-                            <p className="text-brand-green text-xs font-bold uppercase tracking-widest mt-1 mb-4">{coachData.specialty || 'Tu Mentor Principal'}</p>
-
-                            {cAny.weeklyCoachMessage && (
-                                <div className="bg-slate-50 italic rounded-3xl p-5 text-slate-600 text-sm leading-relaxed relative">
-                                    <div className="absolute top-2 left-4 text-4xl text-slate-200 serif opacity-50 select-none">“</div>
-                                    <p className="relative z-10">"{cAny.weeklyCoachMessage}"</p>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-center gap-3 mt-6">
-                                {coachData.calendar_url && (
-                                    <a href={coachData.calendar_url} target="_blank" rel="noopener noreferrer" className="flex-1 bg-brand-dark text-white py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider hover:bg-black transition-all">Reservar Sesión</a>
-                                )}
-                                {coachData.instagram && (
-                                    <a href={`https://instagram.com/${coachData.instagram}`} target="_blank" rel="noopener noreferrer" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-pink-50 text-pink-600 border border-pink-100"><Instagram className="w-5 h-5" /></a>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Announcements */}
-                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
-                            <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
-                            <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
-                        </div>
-                        <div className="p-2">
-                            <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
-                        </div>
-                    </div>
+            {/* === ANNOUNCEMENTS === */}
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                    <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
+                    <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+                </div>
+                <div className="p-2">
+                    <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
                 </div>
             </div>
         </div>
