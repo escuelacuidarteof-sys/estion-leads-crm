@@ -607,14 +607,18 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_systolic}
                                                     onChange={(e) => {
                                                         const sysParsed = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                                                        handlePreWorkoutChange('bp_systolic', sysParsed);
                                                         const sys = sysParsed === '' ? NaN : sysParsed;
                                                         const diaVal = data.preWorkout.bp_diastolic;
                                                         const dia = (diaVal === '' || diaVal == null) ? NaN : parseInt(String(diaVal), 10);
                                                         const sysValid = !isNaN(sys) && String(sys).length >= 2;
                                                         const diaValid = !isNaN(dia) && String(dia).length >= 2;
                                                         const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
-                                                        handleExclusionChange('bp_uncontrolled', unsafe);
+
+                                                        onUpdate({
+                                                            ...data,
+                                                            preWorkout: { ...data.preWorkout, bp_systolic: sysParsed },
+                                                            exclusion: { ...data.exclusion, bp_uncontrolled: unsafe }
+                                                        });
                                                     }}
                                                     className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
                                                 />
@@ -627,14 +631,18 @@ function SafetyPassModal({ data, onUpdate, onCancel, onConfirm }: {
                                                     value={data.preWorkout.bp_diastolic}
                                                     onChange={(e) => {
                                                         const diaParsed = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                                                        handlePreWorkoutChange('bp_diastolic', diaParsed);
                                                         const sysVal = data.preWorkout.bp_systolic;
                                                         const sys = (sysVal === '' || sysVal == null) ? NaN : parseInt(String(sysVal), 10);
                                                         const dia = diaParsed === '' ? NaN : diaParsed;
                                                         const sysValid = !isNaN(sys) && String(sys).length >= 2;
                                                         const diaValid = !isNaN(dia) && String(dia).length >= 2;
                                                         const unsafe = (sysValid && (sys > 160 || sys < 90)) || (diaValid && dia > 100);
-                                                        handleExclusionChange('bp_uncontrolled', unsafe);
+
+                                                        onUpdate({
+                                                            ...data,
+                                                            preWorkout: { ...data.preWorkout, bp_diastolic: diaParsed },
+                                                            exclusion: { ...data.exclusion, bp_uncontrolled: unsafe }
+                                                        });
                                                     }}
                                                     className="w-full px-3 py-2.5 bg-white rounded-xl border border-red-200 text-lg font-bold text-brand-dark focus:ring-2 focus:ring-red-300 outline-none"
                                                 />
