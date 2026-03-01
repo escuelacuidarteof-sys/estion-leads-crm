@@ -59,17 +59,61 @@ export function NutritionPdfGenerator({ client, plan, recipes, planId }: Nutriti
                 return false;
             };
 
+            // Preload logo
+            let logoDataUrl: string | null = null;
+            try {
+                const logoResp = await fetch('/logo.png');
+                const logoBlob = await logoResp.blob();
+                logoDataUrl = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(logoBlob);
+                });
+            } catch (e) {
+                console.warn('Could not load logo for PDF', e);
+            }
+
+            // Helper: add mini logo to secondary headers (20px height)
+            const addMiniLogo = (xPos: number) => {
+                if (logoDataUrl) {
+                    try {
+                        const s = 8;
+                        doc.setFillColor(255, 255, 255);
+                        doc.circle(xPos + s / 2, 6 + s / 2, s / 2 + 0.5, 'F');
+                        doc.addImage(logoDataUrl, 'PNG', xPos, 6, s, s);
+                        return xPos + s + 3;
+                    } catch { /* ignore */ }
+                }
+                return xPos;
+            };
+
             // ====== PAGE 1: Header + Weekly Plan ======
             // Header bar
             doc.setFillColor(22, 163, 74); // green-600
             doc.rect(0, 0, pageW, 35, 'F');
+
+            // Logo
+            const logoX = margin;
+            const logoSize = 12;
+            if (logoDataUrl) {
+                try {
+                    // White circle behind logo
+                    doc.setFillColor(255, 255, 255);
+                    doc.circle(logoX + logoSize / 2, 10 + logoSize / 2, logoSize / 2 + 1, 'F');
+                    doc.addImage(logoDataUrl, 'PNG', logoX, 10, logoSize, logoSize);
+                } catch (e) {
+                    console.warn('Could not add logo to PDF', e);
+                }
+            }
+
+            const textX = logoDataUrl ? logoX + logoSize + 4 : margin;
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('Escuela Cuid-Arte', margin, 15);
+            doc.text('Escuela Cuid-Arte', textX, 15);
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Plan Nutricional Personalizado', margin, 23);
+            doc.text('Plan Nutricional Personalizado', textX, 23);
 
             // Client info
             doc.setFontSize(10);
@@ -225,10 +269,11 @@ export function NutritionPdfGenerator({ client, plan, recipes, planId }: Nutriti
                 // Header
                 doc.setFillColor(22, 163, 74);
                 doc.rect(0, 0, pageW, 20, 'F');
+                const compraTextX = addMiniLogo(margin);
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Lista de la Compra', margin, 14);
+                doc.text('Lista de la Compra', compraTextX, 14);
                 y = 28;
 
                 // Aggregate ingredients
@@ -333,10 +378,11 @@ export function NutritionPdfGenerator({ client, plan, recipes, planId }: Nutriti
             // Header
             doc.setFillColor(22, 163, 74);
             doc.rect(0, 0, pageW, 20, 'F');
+            const recetarioTextX = addMiniLogo(margin);
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text('Recetario', margin, 14);
+            doc.text('Recetario', recetarioTextX, 14);
             y = 28;
 
             const categoryOrder: RecipeCategory[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -466,10 +512,11 @@ export function NutritionPdfGenerator({ client, plan, recipes, planId }: Nutriti
                 // Header
                 doc.setFillColor(22, 163, 74);
                 doc.rect(0, 0, pageW, 20, 'F');
+                const detallesTextX = addMiniLogo(margin);
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Detalles del Plan', margin, 14);
+                doc.text('Detalles del Plan', detallesTextX, 14);
                 y = 30;
 
                 const renderTextBlock = (title: string, content: string | undefined, color: [number, number, number]) => {
