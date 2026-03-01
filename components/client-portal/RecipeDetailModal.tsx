@@ -41,6 +41,18 @@ export function RecipeDetailModal({ recipe, onClose }: RecipeDetailModalProps) {
           <h2 className="text-2xl font-black leading-tight">{recipe.name}</h2>
         </div>
 
+        {/* Recipe Image */}
+        {recipe.image_url && (
+          <div className="w-full max-h-48 overflow-hidden">
+            <img
+              src={recipe.image_url}
+              alt={recipe.name}
+              className="w-full h-48 object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Macros */}

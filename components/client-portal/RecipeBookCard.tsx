@@ -51,8 +51,21 @@ export function RecipeBookCard({ recipe, onClick }: RecipeBookCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left bg-white rounded-2xl border ${config.borderColor} p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group`}
+      className={`w-full text-left bg-white rounded-2xl border ${config.borderColor} shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group overflow-hidden`}
     >
+      {/* Recipe Image */}
+      {recipe.image_url && (
+        <div className="w-full h-28 overflow-hidden">
+          <img
+            src={recipe.image_url}
+            alt={recipe.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+          />
+        </div>
+      )}
+
+      <div className="p-4">
       {/* Category Icon + Name */}
       <div className="flex items-start gap-3 mb-3">
         <div className={`w-10 h-10 rounded-xl ${config.bgColor} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
@@ -89,6 +102,7 @@ export function RecipeBookCard({ recipe, onClick }: RecipeBookCardProps) {
             G: {recipe.fat}g
           </span>
         )}
+      </div>
       </div>
     </button>
   );
