@@ -25,9 +25,10 @@ interface Announcement {
 interface ClientAnnouncementsProps {
     clientId: string;
     coachId?: string;
+    inline?: boolean;
 }
 
-export function ClientAnnouncements({ clientId, coachId }: ClientAnnouncementsProps) {
+export function ClientAnnouncements({ clientId, coachId, inline = false }: ClientAnnouncementsProps) {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [showModal, setShowModal] = useState(false);
@@ -38,7 +39,7 @@ export function ClientAnnouncements({ clientId, coachId }: ClientAnnouncementsPr
 
     const isRelevantForClient = (announcement: Announcement) => {
         // 1. Global announcements (Admin/System wide)
-        if (announcement.target_audience === 'all_active_clients') {
+        if (announcement.target_audience === 'all_active_clients' || announcement.target_audience === 'all_active') {
             return true;
         }
 
@@ -211,6 +212,87 @@ export function ClientAnnouncements({ clientId, coachId }: ClientAnnouncementsPr
         return styles[announcement.announcement_type] || styles.info;
     };
 
+    const renderAnnouncementList = () => (
+        announcements.length === 0 ? (
+            <div className="p-6 text-center text-slate-400">
+                <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                <p className="text-xs">No hay novedades</p>
+            </div>
+        ) : (
+            <div className="divide-y divide-slate-100">
+                {announcements.map((announcement) => {
+                    const style = getAnnouncementStyle(announcement);
+                    return (
+                        <div
+                            key={announcement.id}
+                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() => markAsRead(announcement.id)}
+                        >
+                            <div className="flex gap-3">
+                                <div className={`p-2 ${style.bg} rounded-lg ${style.text} shrink-0`}>
+                                    {style.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-slate-800 text-sm mb-0.5">
+                                        {announcement.title}
+                                    </h4>
+                                    <p className="text-xs text-slate-600 whitespace-pre-line line-clamp-2">
+                                        {announcement.message}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        {new Date(announcement.created_at).toLocaleDateString('es-ES', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        )
+    );
+
+    if (inline) {
+        return (
+            <>
+                {renderAnnouncementList()}
+                {/* Modal for Important Announcements */}
+                {showModal && modalAnnouncement && typeof document !== 'undefined' && createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            {(() => {
+                                const style = getAnnouncementStyle(modalAnnouncement);
+                                return (
+                                    <>
+                                        <div className={`p-6 ${style.bg} ${style.text} border-b ${style.border}`}>
+                                            <div className="flex items-start gap-4">
+                                                <div className="p-3 bg-white/50 rounded-xl">{style.icon}</div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-xl font-bold mb-1">{modalAnnouncement.title}</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-6">
+                                            <p className="text-slate-700 whitespace-pre-line leading-relaxed">{modalAnnouncement.message}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                                            <button onClick={dismissModal} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2">
+                                                <CheckCircle2 className="w-5 h-5" /> Entendido
+                                            </button>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </>
+        );
+    }
+
     return (
         <>
             {/* Notification Bell Button */}
@@ -247,59 +329,7 @@ export function ClientAnnouncements({ clientId, coachId }: ClientAnnouncementsPr
                     </div>
 
                     <div className="overflow-y-auto max-h-[500px]">
-                        {announcements.length === 0 ? (
-                            <div className="p-8 text-center text-slate-500">
-                                <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                <p>No hay anuncios nuevos</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-slate-100">
-                                {announcements.map((announcement) => {
-                                    const style = getAnnouncementStyle(announcement);
-                                    return (
-                                        <div
-                                            key={announcement.id}
-                                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
-                                            onClick={() => markAsRead(announcement.id)}
-                                        >
-                                            <div className="flex gap-3">
-                                                <div className={`p-2 ${style.bg} rounded-lg ${style.text} shrink-0`}>
-                                                    {announcement.icon || style.icon}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-slate-800 mb-1">
-                                                        {announcement.title}
-                                                    </h4>
-                                                    <p className="text-sm text-slate-600 whitespace-pre-line">
-                                                        {announcement.message}
-                                                    </p>
-                                                    {announcement.action_url && (
-                                                        <button className="mt-2 text-sm text-purple-600 font-semibold flex items-center gap-1 hover:gap-2 transition-all">
-                                                            {announcement.action_label || 'Ver más'}
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                    <p className="text-xs text-slate-400 mt-2 flex items-center justify-between">
-                                                        <span>
-                                                            {new Date(announcement.created_at).toLocaleDateString('es-ES', {
-                                                                day: 'numeric',
-                                                                month: 'long',
-                                                                hour: '2-digit',
-                                                                minute: '2-digit'
-                                                            })}
-                                                        </span>
-                                                        {/* Read Indicator (Clients usually mark as read explicitly only via click, so unread ones are bold in logic, here just show Read check if clicked) */}
-                                                        <span className="flex items-center gap-1 text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <CheckCircle2 className="w-3 h-3" /> Click para marcar
-                                                        </span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        {renderAnnouncementList()}
                     </div>
                 </div>
             )}

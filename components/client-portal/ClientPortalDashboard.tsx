@@ -1243,7 +1243,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
                 </div>
                 <div className="p-2">
-                    <ClientAnnouncements clientId={client.id} coachId={client.coach_id} />
+                    <ClientAnnouncements clientId={client.id} coachId={client.coach_id} inline />
                 </div>
             </div>
         </div>
