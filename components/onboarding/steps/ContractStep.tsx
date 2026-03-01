@@ -54,28 +54,17 @@ export function ContractStep({ formData, updateField, contractDuration, template
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
 
-        let clientX, clientY;
+        // Always use clientX/clientY - rect to get CSS-pixel coordinates
+        // This works correctly with ctx.scale(dpr, dpr) applied in resizeCanvas
         if ('touches' in e) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
             return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
             };
         } else {
-            // For mouse events, use native offsetX/offsetY which are relative to the content area
-            const mouseEvent = e as React.MouseEvent;
-            const native = mouseEvent.nativeEvent;
-
-            // If offsetX is available, it's the most precise as it's relative to the element
-            if (typeof native.offsetX === 'number') {
-                return { x: native.offsetX, y: native.offsetY };
-            }
-
-            // Fallback to manual calculation
             return {
-                x: mouseEvent.clientX - rect.left,
-                y: mouseEvent.clientY - rect.top
+                x: (e as React.MouseEvent).clientX - rect.left,
+                y: (e as React.MouseEvent).clientY - rect.top
             };
         }
     };
@@ -264,10 +253,10 @@ export function ContractStep({ formData, updateField, contractDuration, template
                                 onMouseUp={stopDrawing}
                                 onMouseOut={stopDrawing}
                                 onMouseMove={draw}
-                                touch-action="none"
                                 onTouchStart={startDrawing}
                                 onTouchEnd={stopDrawing}
                                 onTouchMove={draw}
+                                style={{ touchAction: 'none' }}
                                 className="w-full h-full block cursor-crosshair"
                             />
                         </div>

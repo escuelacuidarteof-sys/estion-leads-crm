@@ -133,7 +133,7 @@ export function generateContractHTML(data: ContractData): string {
               <p style="font-size: 10px; color: #64748b; margin-bottom: 5px;">POR LA EMPRESA:</p>
               <p style="font-weight: 700; font-size: 12px; color: #0f172a;">NEIKO HEALTH, S.L.</p>
               <div style="margin-top: 10px;">
-                <img src="/signature_neiko.png" alt="Sello Empresa" style="width: 100px; height: auto; opacity: 0.8;" onerror="this.style.display='none'" />
+                <img src="/firma_neiko.jpeg" alt="Sello Empresa" style="width: 100px; height: auto; opacity: 0.8;" onerror="this.style.display='none'" />
               </div>
             </td>
             <td style="width: 50%; vertical-align: top; text-align: right;">

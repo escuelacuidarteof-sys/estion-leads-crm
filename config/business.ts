@@ -20,7 +20,7 @@ export const BUSINESS_CONFIG = {
     secondaryColor: '#CDE8CD',
     accentColor: '#D4AF37',
     logoUrl: '/logo.png',
-    signatureUrl: '/firma.png',
+    signatureUrl: '/firma_neiko.jpeg',
     themeColor: '#6BA06B',
   },
 

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { PenTool, RotateCcw, CheckCircle } from 'lucide-react';
+import { PenTool, RotateCcw, CircleCheck } from 'lucide-react';
 
 interface SignaturePadProps {
     onSignatureCapture: (dataUrl: string) => void;
@@ -18,23 +18,34 @@ export function SignaturePad({ onSignatureCapture, onClear, disabled }: Signatur
             const resizeCanvas = () => {
                 const rect = canvas.getBoundingClientRect();
                 const dpr = window.devicePixelRatio || 1;
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.scale(dpr, dpr);
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 2.5;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
+
+                // Only resize if we have actual dimensions
+                if (rect.width > 0 && rect.height > 0) {
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.scale(dpr, dpr);
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 2.5;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                    }
                 }
             };
+
+            // Immediate resize
             resizeCanvas();
-            const timer = setTimeout(resizeCanvas, 200);
+
+            // Multiple attempts to handle dynamic layout/loading
+            const timer1 = setTimeout(resizeCanvas, 100);
+            const timer2 = setTimeout(resizeCanvas, 500);
+
             window.addEventListener('resize', resizeCanvas);
             return () => {
                 window.removeEventListener('resize', resizeCanvas);
-                clearTimeout(timer);
+                clearTimeout(timer1);
+                clearTimeout(timer2);
             };
         }
     }, []);
@@ -43,21 +54,28 @@ export function SignaturePad({ onSignatureCapture, onClear, disabled }: Signatur
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
+
+        let clientX, clientY;
         if ('touches' in e) {
-            return {
-                x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top
-            };
-        } else {
-            const native = (e as React.MouseEvent).nativeEvent;
-            if (typeof native.offsetX === 'number') {
-                return { x: native.offsetX, y: native.offsetY };
+            if (e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if ((e as any).changedTouches && (e as any).changedTouches.length > 0) {
+                clientX = (e as any).changedTouches[0].clientX;
+                clientY = (e as any).changedTouches[0].clientY;
+            } else {
+                return { x: 0, y: 0 };
             }
-            return {
-                x: (e as React.MouseEvent).clientX - rect.left,
-                y: (e as React.MouseEvent).clientY - rect.top
-            };
+        } else {
+            clientX = (e as React.MouseEvent).clientX;
+            clientY = (e as React.MouseEvent).clientY;
         }
+
+        // Return coordinates relative to the canvas in CSS pixels
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
     };
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -125,7 +143,7 @@ export function SignaturePad({ onSignatureCapture, onClear, disabled }: Signatur
                     ref={canvasRef}
                     onMouseDown={startDrawing}
                     onMouseUp={stopDrawing}
-                    onMouseOut={stopDrawing}
+                    onMouseLeave={stopDrawing}
                     onMouseMove={draw}
                     onTouchStart={startDrawing}
                     onTouchEnd={stopDrawing}
@@ -137,10 +155,11 @@ export function SignaturePad({ onSignatureCapture, onClear, disabled }: Signatur
                 <p className="text-[10px] text-slate-400 text-center">Usa el dedo o el ratón para firmar dentro del recuadro</p>
             ) : (
                 <div className="flex items-center justify-center gap-2 text-emerald-600 text-xs font-bold bg-emerald-50 py-2 rounded-lg border border-emerald-100">
-                    <CheckCircle className="w-4 h-4" />
+                    <CircleCheck className="w-4 h-4" />
                     Firma capturada con éxito
                 </div>
             )}
         </div>
     );
 }
+

@@ -30,29 +30,37 @@ export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
     const program = client.program || {} as any;
     const meses = getMesesList();
     const contractDate = program.contract_date || '';
-    const parsedDate = contractDate ? new Date(contractDate + 'T00:00:00') : null;
+    // Fallback: contract_date → contract_signed_at → today
+    const resolvedDate = contractDate
+        ? new Date(contractDate + 'T00:00:00')
+        : (program.contract_signed_at
+            ? new Date(program.contract_signed_at)
+            : new Date());
+    const parsedDate = resolvedDate;
 
     const duracionMeses = client.program_duration_months || 3;
+    const clientName = `${client.firstName || ''} ${client.surname || ''}`.trim();
+    const clientDni = client.idNumber || '';
+    const clientAddress = client.address || '';
+    const importeTotal = program.contract_amount || 0;
+    const finPlazos = program.contract_financing_installments || 0;
+    const finImporte = program.contract_financing_amount || 0;
+
     const contractData: ContractData = {
-        fechaDia: parsedDate ? parsedDate.getDate().toString() : '____',
-        fechaMes: parsedDate ? meses[parsedDate.getMonth()] : '________',
-        fechaAno: parsedDate ? parsedDate.getFullYear().toString() : '202_',
-        nombreCliente: `${client.firstName || ''} ${client.surname || ''}`.trim(),
-        dniCliente: client.idNumber || '',
-        domicilioCliente: client.address || '',
+        fechaDia: parsedDate.getDate().toString(),
+        fechaMes: meses[parsedDate.getMonth()],
+        fechaAno: parsedDate.getFullYear().toString(),
+        nombreCliente: clientName,
+        dniCliente: clientDni,
+        domicilioCliente: clientAddress,
         duracionMeses: duracionMeses,
         duracionDias: calculateDaysFromMonths(duracionMeses),
-        importe: program.contract_amount || 0,
-        financiacionPlazos: program.contract_financing_installments || 0,
-        financiacionImporte: program.contract_financing_amount || 0
+        importe: importeTotal,
+        financiacionPlazos: finPlazos,
+        financiacionImporte: finImporte
     };
 
     const contractHTML = generateContractHTML(contractData);
-
-    const getContractPlainText = (): string => {
-        // Strip HTML tags for PDF generation
-        return contractHTML.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    };
 
     const handleSign = async () => {
         if (!signatureData) {
@@ -108,79 +116,348 @@ export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
             const doc = new jsPDF('p', 'mm', 'a4');
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();
-            const margin = 15;
-            const contentW = pageW - 2 * margin;
-            let y = margin;
+            const marginL = 20;
+            const marginR = 20;
+            const marginTop = 15;
+            const marginBottom = 20;
+            const contentW = pageW - marginL - marginR;
+            let y = marginTop;
+            let pageNum = 1;
 
             const addNewPageIfNeeded = (requiredSpace: number) => {
-                if (y + requiredSpace > pageH - margin) {
+                if (y + requiredSpace > pageH - marginBottom) {
+                    // Footer on current page
+                    addFooter();
                     doc.addPage();
-                    y = margin;
+                    pageNum++;
+                    y = marginTop;
                 }
             };
 
+            const addFooter = () => {
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(160, 160, 160);
+                doc.text('Escuela Cuid-Arte — Contrato de Prestación de Servicios', marginL, pageH - 10);
+                doc.text(`Página ${pageNum}`, pageW - marginR, pageH - 10, { align: 'right' });
+            };
+
+            // Helper for paragraph text
+            const addParagraph = (text: string, fontSize: number = 9, indent: number = 0) => {
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(51, 65, 85); // slate-700
+                const lines = doc.splitTextToSize(text, contentW - indent);
+                for (let i = 0; i < lines.length; i++) {
+                    addNewPageIfNeeded(5);
+                    doc.text(lines[i], marginL + indent, y);
+                    y += fontSize * 0.5;
+                }
+                y += 2;
+            };
+
+            // Helper for section title
+            const addSectionTitle = (text: string) => {
+                addNewPageIfNeeded(14);
+                y += 4;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(15, 23, 42); // slate-900
+                doc.text(text, marginL, y);
+                y += 1;
+                // Underline
+                doc.setDrawColor(226, 232, 240); // slate-200
+                doc.setLineWidth(0.3);
+                doc.line(marginL, y, marginL + contentW, y);
+                y += 5;
+            };
+
+            // Helper for bullet points
+            const addBullet = (text: string) => {
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(51, 65, 85);
+                const bulletIndent = 8;
+                const lines = doc.splitTextToSize(text, contentW - bulletIndent - 4);
+                addNewPageIfNeeded(lines.length * 4.5 + 2);
+                // Bullet dot
+                doc.setFillColor(16, 185, 129); // emerald-500
+                doc.circle(marginL + bulletIndent - 2, y - 1.2, 0.8, 'F');
+                for (let i = 0; i < lines.length; i++) {
+                    doc.text(lines[i], marginL + bulletIndent + 2, y);
+                    y += 4.5;
+                }
+                y += 1;
+            };
+
+            // ============================================
+            // PAGE 1 — HEADER
+            // ============================================
+
             // Header bar
-            doc.setFillColor(16, 185, 129);
-            doc.rect(0, 0, pageW, 30, 'F');
+            doc.setFillColor(16, 185, 129); // emerald-500
+            doc.rect(0, 0, pageW, 28, 'F');
+            // Subtle gradient overlay
+            doc.setFillColor(13, 148, 103);
+            doc.rect(0, 22, pageW, 6, 'F');
+
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(16);
+            doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('Escuela Cuid-Arte', margin, 13);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Contrato de Prestacion de Servicios', margin, 21);
-
-            const clientName = `${client.firstName || ''} ${client.surname || ''}`.trim();
-            doc.setFontSize(9);
-            doc.text(clientName, pageW - margin, 13, { align: 'right' });
-
-            y = 38;
-
-            // Contract text
-            doc.setTextColor(30, 41, 59);
+            doc.text('Escuela Cuid-Arte', marginL, 12);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-
-            const contractText = getContractPlainText();
-            const lines = doc.splitTextToSize(contractText, contentW);
-
-            for (let i = 0; i < lines.length; i++) {
-                addNewPageIfNeeded(6);
-                doc.text(lines[i], margin, y);
-                y += 4.5;
-            }
-
-            // Signature section
-            addNewPageIfNeeded(60);
-            y += 10;
-            doc.setDrawColor(200, 200, 200);
-            doc.line(margin, y, margin + contentW / 2 - 10, y);
-            doc.line(margin + contentW / 2 + 10, y, margin + contentW, y);
+            doc.text('Contrato de Prestación de Servicios', marginL, 19);
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'bold');
-            doc.text('Empresa (Sello/Firma)', margin + contentW / 4 - 10, y + 6, { align: 'center' });
-            doc.text('Cliente (Firma Digital)', margin + contentW * 3 / 4 + 10, y + 6, { align: 'center' });
+            doc.text(clientName, pageW - marginR, 12, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            const signedDateStr = signedAt ? new Date(signedAt).toLocaleDateString('es-ES') : parsedDate.toLocaleDateString('es-ES');
+            doc.text(`Fecha: ${signedDateStr}`, pageW - marginR, 18, { align: 'right' });
 
-            try {
-                doc.addImage('/firma.png', 'PNG', margin + 5, y - 25, 45, 22);
-            } catch (e) {
-                console.warn('Could not add signature to PDF', e);
+            y = 38;
+
+            // ============================================
+            // TITLE
+            // ============================================
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(6, 95, 70); // emerald-900
+            doc.text('DOCUMENTO DE ADHESIÓN AL PROGRAMA', pageW / 2, y, { align: 'center' });
+            y += 7;
+            doc.text('ESCUELA CUIDARTE', pageW / 2, y, { align: 'center' });
+            y += 3;
+            // Decorative line under title
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(0.5);
+            const titleLineW = 60;
+            doc.line(pageW / 2 - titleLineW / 2, y, pageW / 2 + titleLineW / 2, y);
+            y += 10;
+
+            // ============================================
+            // DATE & PARTIES
+            // ============================================
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(51, 65, 85);
+
+            const fechaText = `En España, a ${contractData.fechaDia} de ${contractData.fechaMes} de ${contractData.fechaAno}`;
+            doc.text(fechaText, marginL, y);
+            y += 8;
+
+            // REUNIDOS section
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42);
+            doc.text('REUNIDOS', marginL, y);
+            y += 6;
+
+            // De una parte
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(51, 65, 85);
+            doc.text('De una parte:', marginL, y);
+            y += 5;
+
+            doc.setFont('helvetica', 'normal');
+            const empresaLines = doc.splitTextToSize(
+                'NEIKO HEALTH, S.L., con NIF: B22928311 y domicilio social en C/ Princesa 31, 2º puerta 2, 28008 Madrid. Entidad mercantil que presta, gestiona y factura los servicios del programa Escuela CUIDARTE (en adelante, LA EMPRESA).',
+                contentW - 10
+            );
+            for (const line of empresaLines) {
+                addNewPageIfNeeded(5);
+                doc.text(line, marginL + 10, y);
+                y += 4.5;
             }
+            y += 3;
+
+            // Y de otra parte
+            doc.setFont('helvetica', 'bold');
+            doc.text('Y de otra parte:', marginL, y);
+            y += 5;
+
+            doc.setFont('helvetica', 'normal');
+            const clienteText = `El/la participante, ${clientName || '________________________'} con DNI ${clientDni || '____________'} y domicilio en ${clientAddress || '__________________________________________'} (en adelante EL/LA PARTICIPANTE).`;
+            const clienteLines = doc.splitTextToSize(clienteText, contentW - 10);
+            for (const line of clienteLines) {
+                addNewPageIfNeeded(5);
+                doc.text(line, marginL + 10, y);
+                y += 4.5;
+            }
+            y += 4;
+
+            addParagraph('Ambas partes, reconociéndose capacidad legal suficiente para contratar, acuerdan suscribir el presente Contrato de Prestación de Servicios, que se regirá por las siguientes:');
+
+            // ============================================
+            // CONTRACT CLAUSES
+            // ============================================
+
+            addSectionTitle('1. OBJETO DEL CONTRATO');
+            addParagraph('El presente contrato tiene por objeto regular la participación voluntaria del/la participante en el programa Escuela CUIDARTE, consistente en un servicio integral de acompañamiento personalizado en nutrición, ejercicio físico y bienestar, desarrollado en modalidad online, y prestado y facturado por LA EMPRESA.');
+
+            addSectionTitle('2. NATURALEZA DEL SERVICIO');
+            addParagraph('El/la participante ha sido informado, reconoce y acepta que:');
+            addBullet('La Escuela CUIDARTE es un programa de educación, formación, acompañamiento y apoyo en hábitos de vida saludable.');
+            addBullet('NO constituye un acto médico, psicológico ni terapéutico.');
+            addBullet('NO realiza ni sustituye diagnósticos, tratamientos médicos, quirúrgicos o farmacológicos prescritos por profesionales sanitarios.');
+            addBullet('La información que se proporciona a través del programa tiene carácter general y orientativo.');
+            addBullet('La participación en el programa no genera relación clínica ni asistencial con LA EMPRESA.');
+
+            addSectionTitle('3. NO SUSTITUCIÓN DEL TRATAMIENTO MÉDICO');
+            addParagraph('El/la participante ha sido informado, reconoce y acepta que:');
+            addBullet('El programa NO sustituye en ningún caso a la atención médica, quirúrgica, farmacológica u oncológica indicada por su equipo sanitario.');
+            addBullet('Debe mantener sus controles médicos habituales durante toda su participación en el programa.');
+            addBullet('Cualquier decisión relacionada con tratamientos médicos debe ser consultada con su oncólogo/a o profesional sanitario de referencia.');
+
+            addSectionTitle('4. AUSENCIA DE SERVICIO DE URGENCIAS');
+            addParagraph('La Escuela CUIDARTE NO es un servicio de urgencias. No se ofrece atención inmediata ante situaciones de emergencia. Ante cualquier empeoramiento clínico, síntoma grave o urgencia, deberá acudir a los servicios sanitarios correspondientes.');
+
+            addSectionTitle('5. NO GARANTÍA DE RESULTADOS NI CURACIÓN');
+            addParagraph('El programa no garantiza resultados médicos, clínicos ni terapéuticos. No asegura o promete ningún tipo de curación, mejoría clínica específica ni evolución determinada de la enfermedad.');
+
+            addSectionTitle('6. PARTICIPACIÓN VOLUNTARIA Y AUTORRESPONSABILIDAD');
+            addParagraph('El/la participante acepta que su participación es voluntaria y bajo su propia responsabilidad. La aplicación de las recomendaciones es una decisión personal.');
+
+            addSectionTitle('7. DESCRIPCIÓN DEL PROGRAMA Y CONTENIDOS');
+            addParagraph('El programa incluye: acompañamiento nutricional personalizado, entrenamientos personalizados, formación en autocuidado y bienestar, y resolución de dudas.');
+
+            addSectionTitle('8. ACCESO AL PROGRAMA');
+            addParagraph('El acceso es vía plataforma online privada. LA EMPRESA facilitará las credenciales personales tras la aceptación de este contrato.');
+
+            addSectionTitle('9. OBLIGACIONES DE LA EMPRESA');
+            addParagraph('LA EMPRESA se obliga a facilitar los servicios señalados y cumplir las obligaciones estipuladas en este contrato.');
+
+            addSectionTitle('10. PRECIO DEL PROGRAMA');
+            const precioText = finPlazos > 1
+                ? `El precio pactado es de ${importeTotal || '500,00'} € (IVA no incluido) en ${finPlazos} plazos de ${finImporte} €. El pago debe realizarse en un máximo de 2 días naturales tras la aceptación.`
+                : `El precio pactado es de ${importeTotal || '500,00'} € (IVA no incluido) en un único pago. El pago debe realizarse en un máximo de 2 días naturales tras la aceptación.`;
+            addParagraph(precioText);
+
+            addSectionTitle('11. DURACIÓN Y BAJA');
+            addParagraph(`Duración mínima de ${duracionMeses} meses (${calculateDaysFromMonths(duracionMeses)} días). Renovable automáticamente por períodos iguales. El participante puede abandonar en cualquier momento notificándolo por escrito.`);
+
+            addSectionTitle('12. LIMITACIÓN DE RESPONSABILIDAD');
+            addParagraph('LA EMPRESA no será responsable de decisiones personales basadas en los contenidos del programa ni de la evolución clínica del participante.');
+
+            addSectionTitle('13. CONFIDENCIALIDAD Y PROTECCIÓN DE DATOS');
+            addParagraph('Tratamiento conforme al RGPD (UE) 2016/679. Los datos se utilizarán exclusivamente para la gestión y mejora del programa.');
+
+            addSectionTitle('14. LEGISLACIÓN Y JURISDICCIÓN');
+            addParagraph('El contrato se rige por la legislación española. Ambas partes se someten a los Tribunales de Madrid.');
+
+            // ============================================
+            // SIGNATURES SECTION
+            // ============================================
+            addNewPageIfNeeded(80);
+            y += 10;
+
+            // Decorative top border
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(0.5);
+            doc.line(marginL, y, marginL + contentW, y);
+            y += 8;
+
+            // Two-column signature layout
+            const colW = contentW / 2 - 5;
+            const colLeft = marginL;
+            const colRight = marginL + contentW / 2 + 5;
+            const sigBoxH = 30;
+
+            // === LEFT: Empresa ===
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 116, 139); // slate-500
+            doc.text('POR LA EMPRESA:', colLeft, y);
+
+            // === RIGHT: Cliente ===
+            doc.text('EL/LA PARTICIPANTE:', colRight, y);
+            y += 5;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42);
+            doc.text('NEIKO HEALTH, S.L.', colLeft, y);
+            doc.text(clientName || '________________', colRight, y);
+            y += 4;
+
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 116, 139);
+            doc.text('NIF: B22928311', colLeft, y);
+            doc.text(`DNI: ${clientDni || '________________'}`, colRight, y);
+            y += 6;
+
+            // Signature boxes
+            const sigBoxY = y;
+
+            // Company signature box
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.2);
+            doc.roundedRect(colLeft, sigBoxY, colW, sigBoxH, 2, 2, 'S');
+
+            // Try to embed company signature
+            try {
+                // Preload image
+                const imgResponse = await fetch('/firma_neiko.jpeg');
+                const imgBlob = await imgResponse.blob();
+                const imgDataUrl = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(imgBlob);
+                });
+                doc.addImage(imgDataUrl, 'JPEG', colLeft + 5, sigBoxY + 3, colW - 10, sigBoxH - 6);
+            } catch (e) {
+                console.warn('Could not add company signature to PDF', e);
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text('Firma Digital', colLeft + colW / 2, sigBoxY + sigBoxH / 2, { align: 'center' });
+            }
+
+            // Client signature box
+            doc.roundedRect(colRight, sigBoxY, colW, sigBoxH, 2, 2, 'S');
 
             if (signatureImage || signatureData) {
                 const sigImg = signatureImage || signatureData;
                 try {
-                    doc.addImage(sigImg, 'PNG', margin + contentW / 2 + 15, y - 30, 50, 25);
+                    doc.addImage(sigImg, 'PNG', colRight + 5, sigBoxY + 3, colW - 10, sigBoxH - 6);
                 } catch { /* ignore */ }
+            } else {
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text('Pendiente de Firma', colRight + colW / 2, sigBoxY + sigBoxH / 2, { align: 'center' });
             }
 
-            y += 12;
+            y = sigBoxY + sigBoxH + 6;
+
+            // Labels under signature boxes
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(100, 116, 139);
+            doc.text('Empresa (Sello/Firma)', colLeft + colW / 2, y, { align: 'center' });
+            doc.text('Cliente (Firma Digital)', colRight + colW / 2, y, { align: 'center' });
+            y += 6;
+
+            // Signed electronically note
+            if (isSigned) {
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(148, 163, 184);
+                const signedDateFull = signedAt ? new Date(signedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha no registrada';
+                doc.text(`Firmado electrónicamente por ${clientName} — ${signedDateFull}`, colRight + colW / 2, y, { align: 'center' });
+            }
+
+            y += 10;
+
+            // Final document note
             doc.setFontSize(7);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(150, 150, 150);
-            const signedDate = signedAt ? new Date(signedAt).toLocaleDateString('es-ES') : 'Pendiente';
-            doc.text(`Firmado electronicamente por ${clientName} - ${signedDate}`, margin + contentW * 3 / 4 + 10, y, { align: 'center' });
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(148, 163, 184);
+            doc.text('Documento generado electrónicamente. Fecha de aceptación registrada en el sistema.', pageW / 2, y, { align: 'center' });
+
+            // Add footer to last page
+            addFooter();
 
             doc.save(`Contrato_${clientName.replace(/\s+/g, '_')}.pdf`);
             toast.success('PDF descargado');
@@ -244,7 +521,7 @@ export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
                         <div className="text-center space-y-4">
                             <div className="h-32 border-b border-slate-300 flex items-center justify-center p-2">
                                 <img
-                                    src="/firma.png"
+                                    src="/firma_neiko.jpeg"
                                     alt="Firma empresa"
                                     className="max-h-full max-w-full object-contain mix-blend-multiply"
                                     onError={(e) => {

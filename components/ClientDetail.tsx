@@ -4824,10 +4824,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
                      // Contract field values with defaults
                      const contractDate = program.contract_date || (program.contract_signed_at ? program.contract_signed_at.split('T')[0] : '');
-                     const parsedDate = contractDate ? new Date(contractDate.includes('T') ? contractDate : contractDate + 'T12:00:00') : null;
-                     const cDia = parsedDate ? parsedDate.getDate().toString() : '';
-                     const cMes = parsedDate ? meses[parsedDate.getMonth()] : '';
-                     const cAno = parsedDate ? parsedDate.getFullYear().toString() : '';
+                     const parsedDate = contractDate
+                        ? new Date(contractDate.includes('T') ? contractDate : contractDate + 'T12:00:00')
+                        : new Date(); // Fallback to today
+                     const cDia = parsedDate.getDate().toString();
+                     const cMes = meses[parsedDate.getMonth()];
+                     const cAno = parsedDate.getFullYear().toString();
                      const cNombre = `${formData.firstName || ''} ${formData.surname || ''}`.trim();
                      const cDni = formData.idNumber || '';
                      const cDomicilio = formData.address || '';
@@ -4838,9 +4840,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      const cFinImporte = program.contract_financing_amount || 0;
 
                      const contractData: ContractData = {
-                        fechaDia: cDia || '____',
-                        fechaMes: cMes || '________',
-                        fechaAno: cAno || '202_',
+                        fechaDia: cDia,
+                        fechaMes: cMes,
+                        fechaAno: cAno,
                         nombreCliente: cNombre,
                         dniCliente: cDni,
                         domicilioCliente: cDomicilio,
@@ -5187,7 +5189,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  <div className="mt-12 grid grid-cols-2 gap-12">
                                     <div className="text-center space-y-4">
                                        <div className="h-32 border-b border-slate-300 flex items-center justify-center p-2">
-                                          <img src="/firma.png" alt="Firma empresa" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                                          <img src="/firma_neiko.jpeg" alt="Firma empresa" className="max-h-full max-w-full object-contain mix-blend-multiply" />
                                        </div>
                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Empresa (Sello/Firma)</p>
                                     </div>
@@ -5243,7 +5245,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                                 onClick={() => {
                                                    const w = window.open('', '_blank');
                                                    if (w) {
-                                                      w.document.write(`<!DOCTYPE html><html><head><title>Contrato</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;font-size:13px;line-height:1.6;text-align:justify}h2,h3{text-align:center}img{max-width:150px}</style></head><body>${record.contract_html}<div style="display:flex;justify-content:space-around;margin-top:60px"><div style="text-align:center"><img src="/firma.png" /><p><small>Empresa (Sello/Firma)</small></p></div><div style="text-align:center">${record.signature_image ? `<img src="${record.signature_image}" />` : '<p>Sin firma</p>'}<p><small>Cliente (Firma Digital)</small></p></div></div></body></html>`);
+                                                      w.document.write(`<!DOCTYPE html><html><head><title>Contrato</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;font-size:13px;line-height:1.6;text-align:justify}h2,h3{text-align:center}img{max-width:150px}</style></head><body>${record.contract_html}<div style="display:flex;justify-content:space-around;margin-top:60px"><div style="text-align:center"><img src="/firma_neiko.jpeg" /><p><small>Empresa (Sello/Firma)</small></p></div><div style="text-align:center">${record.signature_image ? `<img src="${record.signature_image}" />` : '<p>Sin firma</p>'}<p><small>Cliente (Firma Digital)</small></p></div></div></body></html>`);
                                                       w.document.close();
                                                    }
                                                 }}
