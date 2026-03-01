@@ -801,7 +801,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
 
     // Calendar helpers
-    const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const ACTIVITY_META_MAP: Record<string, { label: string, icon: any, color: string, bg: string }> = {
         workout: { label: 'Entrenamiento', icon: Dumbbell, color: 'text-brand-green', bg: 'bg-brand-mint/40' },
         walking: { label: 'Caminata', icon: Footprints, color: 'text-pink-600', bg: 'bg-pink-100' },
@@ -815,22 +815,31 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         if (!weekAssignment || !weekProgram) return null;
         const startDate = new Date(weekAssignment.start_date);
         const now = new Date();
-        const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
-        const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
+
+        // Calcular el lunes de la semana actual (real)
+        const todayDay = now.getDay(); // 0=dom, 1=lun...
+        const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
+        const weekMonday = new Date(now);
+        weekMonday.setDate(now.getDate() + mondayOffset);
+        weekMonday.setHours(0, 0, 0, 0);
+
+        // Calcular qué semana del programa es
+        const startMs = new Date(startDate).setHours(0, 0, 0, 0);
+        const diffDays = Math.floor((weekMonday.getTime() - startMs) / 86400000);
+        const calculatedWeek = Math.max(1, Math.floor(diffDays / 7) + 1);
         const clampedWeek = Math.min(calculatedWeek, weekProgram.weeks_count);
 
-        const weekStartDate = new Date(startDate);
-        weekStartDate.setDate(weekStartDate.getDate() + (clampedWeek - 1) * 7);
-
         return { week: clampedWeek, days: Array.from({ length: 7 }, (_, i) => {
-            const date = new Date(weekStartDate);
+            const date = new Date(weekMonday);
             date.setDate(date.getDate() + i);
-            const dayNumber = i + 1;
+            // Mapear fecha real a día del programa: días transcurridos desde start_date + 1
+            const daysSinceStart = Math.floor((date.getTime() - startMs) / 86400000);
+            const programDayNumber = daysSinceStart + 1;
             const dayData = weekProgram.days?.find(
-                (d: any) => d.week_number === clampedWeek && d.day_number === dayNumber
+                (d: any) => d.week_number === clampedWeek && d.day_number === programDayNumber - (clampedWeek - 1) * 7
             );
             return {
-                dayNumber,
+                dayNumber: i + 1,
                 date,
                 dayData,
                 isToday: date.toDateString() === now.toDateString(),
@@ -977,7 +986,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             </div>
                                         )}
                                         <span className={`text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-white/80' : day.isToday ? 'text-brand-green' : 'text-slate-400'}`}>
-                                            {DAY_NAMES_SHORT[day.dayNumber - 1]}
+                                            {DAY_NAMES_SHORT[day.date.getDay()]}
                                         </span>
                                         <span className={`text-lg font-black ${isSelected ? 'text-white' : day.isToday ? 'text-brand-dark' : 'text-slate-600'}`}>
                                             {day.date.getDate()}
