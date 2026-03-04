@@ -14,18 +14,14 @@ interface MealItem {
   grams: number;
 }
 
-const KEY_NUTRIENTS = [
-  'Calorías',
-  'Proteína',
-  'Grasa',
-  'Carbohidratos',
-  'Fibra',
-  'Sodio (mg)',
-  'Potasio (mg)',
-  'Calcio (mg)',
-  'Hierro (mg)',
-  'Vitamina C (mg)',
-];
+interface CompareItem {
+  id: string;
+  foodName: string;
+  grams: number;
+}
+
+const DEFAULT_NUTRIENTS = ['Calorías', 'Proteína', 'Grasa', 'Carbohidratos', 'Fibra'];
+const MAX_COMPARE_ITEMS = 3;
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
@@ -78,8 +74,16 @@ function scaleNutrients(nutrients: NutrientMap, grams: number): NutrientMap {
   return out;
 }
 
+function uid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function FoodDatabaseCalculator() {
   const [foods, setFoods] = useState<FoodRow[]>([]);
+  const [nutrientKeys, setNutrientKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,8 +91,8 @@ export function FoodDatabaseCalculator() {
   const [selectedFoodName, setSelectedFoodName] = useState('');
   const [selectedGrams, setSelectedGrams] = useState(100);
 
-  const [compareFoodName, setCompareFoodName] = useState('');
-  const [compareGrams, setCompareGrams] = useState(100);
+  const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
+  const [selectedNutrients, setSelectedNutrients] = useState<string[]>(DEFAULT_NUTRIENTS);
 
   const [mealItems, setMealItems] = useState<MealItem[]>([]);
 
@@ -111,24 +115,36 @@ export function FoodDatabaseCalculator() {
           throw new Error('CSV sin contenido suficiente.');
         }
 
-        const nutrientHeaders = rows[1].map(v => v.trim());
-        const parsed: FoodRow[] = rows.slice(2).map((row) => {
-          const nutrients: NutrientMap = {};
-          for (let i = 1; i < nutrientHeaders.length; i++) {
-            const key = nutrientHeaders[i] || `Nutriente_${i}`;
-            nutrients[key] = parseNumber(row[i] || '');
-          }
-          return {
-            name: (row[0] || '').trim(),
-            nutrients,
-          };
-        }).filter(r => r.name);
+        const headers = rows[1].map(v => v.trim());
+        const nutrientHeaders = headers.slice(1);
+
+        const parsed: FoodRow[] = rows
+          .slice(2)
+          .map((row) => {
+            const nutrients: NutrientMap = {};
+            for (let i = 1; i < headers.length; i++) {
+              const key = headers[i] || `Nutriente_${i}`;
+              nutrients[key] = parseNumber(row[i] || '');
+            }
+            return {
+              name: (row[0] || '').trim(),
+              nutrients,
+            };
+          })
+          .filter(r => r.name);
 
         if (mounted) {
           setFoods(parsed);
+          setNutrientKeys(nutrientHeaders);
+
+          const safeDefaultNutrients = DEFAULT_NUTRIENTS.filter(n => nutrientHeaders.includes(n));
+          setSelectedNutrients(safeDefaultNutrients.length > 0 ? safeDefaultNutrients : nutrientHeaders.slice(0, 5));
+
           if (parsed.length > 0) {
             setSelectedFoodName(parsed[0].name);
-            setCompareFoodName(parsed.length > 1 ? parsed[1].name : '');
+          }
+          if (parsed.length > 1) {
+            setCompareItems([{ id: uid(), foodName: parsed[1].name, grams: 100 }]);
           }
         }
       } catch (e: any) {
@@ -156,19 +172,31 @@ export function FoodDatabaseCalculator() {
     () => foods.find(f => f.name === selectedFoodName) || null,
     [foods, selectedFoodName]
   );
-  const compareFood = useMemo(
-    () => foods.find(f => f.name === compareFoodName) || null,
-    [foods, compareFoodName]
-  );
 
   const selectedScaled = useMemo(
     () => (selectedFood ? scaleNutrients(selectedFood.nutrients, selectedGrams) : null),
     [selectedFood, selectedGrams]
   );
-  const compareScaled = useMemo(
-    () => (compareFood ? scaleNutrients(compareFood.nutrients, compareGrams) : null),
-    [compareFood, compareGrams]
-  );
+
+  const compareResolved = useMemo(() => {
+    return compareItems
+      .map(item => {
+        const food = foods.find(f => f.name === item.foodName) || null;
+        return {
+          ...item,
+          food,
+          scaled: food ? scaleNutrients(food.nutrients, item.grams) : null,
+        };
+      })
+      .filter(item => Boolean(item.food));
+  }, [compareItems, foods]);
+
+  const allComparedFoods = useMemo(() => {
+    const main = selectedFood
+      ? [{ id: 'main', foodName: selectedFood.name, grams: selectedGrams, scaled: selectedScaled }]
+      : [];
+    return [...main, ...compareResolved.map(i => ({ id: i.id, foodName: i.foodName, grams: i.grams, scaled: i.scaled }))];
+  }, [selectedFood, selectedGrams, selectedScaled, compareResolved]);
 
   const mealTotals = useMemo(() => {
     const totals: NutrientMap = {};
@@ -184,12 +212,35 @@ export function FoodDatabaseCalculator() {
     return totals;
   }, [mealItems, foods]);
 
+  const toggleNutrient = (key: string) => {
+    setSelectedNutrients(prev => {
+      if (prev.includes(key)) {
+        if (prev.length === 1) return prev;
+        return prev.filter(k => k !== key);
+      }
+      return [...prev, key];
+    });
+  };
+
+  const addCompareItem = () => {
+    if (compareItems.length >= MAX_COMPARE_ITEMS) return;
+    setCompareItems(prev => [...prev, { id: uid(), foodName: '', grams: 100 }]);
+  };
+
+  const updateCompareItem = (id: string, patch: Partial<CompareItem>) => {
+    setCompareItems(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
+  };
+
+  const removeCompareItem = (id: string) => {
+    setCompareItems(prev => prev.filter(item => item.id !== id));
+  };
+
   const addSelectedToMeal = () => {
     if (!selectedFood) return;
     setMealItems(prev => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: uid(),
         foodName: selectedFood.name,
         grams: selectedGrams,
       },
@@ -225,7 +276,7 @@ export function FoodDatabaseCalculator() {
           <div className="p-2 rounded-xl bg-white/20"><Calculator className="w-6 h-6" /></div>
           <div>
             <h1 className="text-2xl font-black">Calculadora de Alimentos</h1>
-            <p className="text-sm text-white/90 mt-1">Base de datos nutricional interna para coaches y admin ({foods.length} alimentos).</p>
+            <p className="text-sm text-white/90 mt-1">Consulta completa y comparador avanzado ({foods.length} alimentos).</p>
           </div>
         </div>
       </div>
@@ -237,7 +288,7 @@ export function FoodDatabaseCalculator() {
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar alimento..."
+              placeholder="Buscar alimento y tocar para seleccionarlo..."
               className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-brand-mint"
             />
           </div>
@@ -247,6 +298,20 @@ export function FoodDatabaseCalculator() {
           </div>
         </div>
 
+        {searchTerm.trim() && (
+          <div className="flex flex-wrap gap-2">
+            {filteredFoods.slice(0, 8).map(food => (
+              <button
+                key={food.name}
+                onClick={() => setSelectedFoodName(food.name)}
+                className="px-2.5 py-1 text-xs rounded-full border border-slate-200 bg-slate-50 hover:bg-brand-mint/40 text-slate-700"
+              >
+                {food.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Alimento principal</label>
@@ -255,7 +320,7 @@ export function FoodDatabaseCalculator() {
               onChange={(e) => setSelectedFoodName(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm"
             >
-              {filteredFoods.map(food => (
+              {foods.map(food => (
                 <option key={food.name} value={food.name}>{food.name}</option>
               ))}
             </select>
@@ -280,51 +345,147 @@ export function FoodDatabaseCalculator() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Comparar con</label>
-            <select
-              value={compareFoodName}
-              onChange={(e) => setCompareFoodName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm"
-            >
-              <option value="">Sin comparacion</option>
-              {filteredFoods.map(food => (
-                <option key={food.name} value={food.name}>{food.name}</option>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Comparadores (hasta 4 alimentos total)</label>
+              <button
+                onClick={addCompareItem}
+                disabled={compareItems.length >= MAX_COMPARE_ITEMS}
+                className="text-xs font-bold text-brand-green disabled:text-slate-400"
+              >
+                + Anadir comparador
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {compareItems.length === 0 && (
+                <p className="text-xs text-slate-500">Sin comparadores. Puedes anadir hasta 3.</p>
+              )}
+
+              {compareItems.map((item, idx) => (
+                <div key={item.id} className="border border-slate-200 rounded-xl p-2.5 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase">Comparador {idx + 1}</span>
+                    <button onClick={() => removeCompareItem(item.id)} className="text-slate-400 hover:text-rose-600">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <select
+                    value={item.foodName}
+                    onChange={(e) => updateCompareItem(item.id, { foodName: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm"
+                  >
+                    <option value="">Selecciona alimento</option>
+                    {foods.map(food => (
+                      <option key={food.name} value={food.name}>{food.name}</option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={item.grams}
+                      onChange={(e) => updateCompareItem(item.id, { grams: Math.max(1, Number(e.target.value) || 100) })}
+                      className="w-28 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm"
+                    />
+                    <span className="text-sm text-slate-500">gramos</span>
+                  </div>
+                </div>
               ))}
-            </select>
-            <div className="flex items-center gap-2">
-              <Scale className="w-4 h-4 text-slate-400" />
-              <input
-                type="number"
-                min={1}
-                value={compareGrams}
-                onChange={(e) => setCompareGrams(Math.max(1, Number(e.target.value) || 100))}
-                className="w-32 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-              />
-              <span className="text-sm text-slate-500">gramos</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm overflow-x-auto">
-        <table className="w-full text-sm min-w-[760px]">
-          <thead>
-            <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
-              <th className="py-2 pr-3">Nutriente</th>
-              <th className="py-2 pr-3">{selectedFood?.name || 'Selecciona alimento'}</th>
-              <th className="py-2">{compareFood?.name || 'Comparacion'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {KEY_NUTRIENTS.map((key) => (
-              <tr key={key} className="border-b border-slate-100 last:border-0">
-                <td className="py-2.5 pr-3 font-semibold text-slate-700">{key}</td>
-                <td className="py-2.5 pr-3 text-slate-800">{selectedScaled ? round(selectedScaled[key] ?? null) : '-'}</td>
-                <td className="py-2.5 text-slate-800">{compareScaled ? round(compareScaled[key] ?? null) : '-'}</td>
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-black text-slate-800">Comparador avanzado</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedNutrients(DEFAULT_NUTRIENTS.filter(n => nutrientKeys.includes(n)))}
+              className="text-xs font-bold text-slate-600 hover:text-brand-dark"
+            >
+              Nutrientes clave
+            </button>
+            <button
+              onClick={() => setSelectedNutrients(nutrientKeys)}
+              className="text-xs font-bold text-slate-600 hover:text-brand-dark"
+            >
+              Seleccionar todo
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+          {nutrientKeys.map((key) => {
+            const active = selectedNutrients.includes(key);
+            return (
+              <button
+                key={key}
+                onClick={() => toggleNutrient(key)}
+                className={`text-left px-2.5 py-2 rounded-lg border text-xs transition-colors ${active ? 'bg-brand-mint/50 border-brand-green text-brand-dark font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+              >
+                {key}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
+            <thead>
+              <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                <th className="py-2 pr-3">Nutriente</th>
+                {allComparedFoods.map((food) => (
+                  <th key={food.id} className="py-2 pr-3">
+                    {food.foodName}
+                    <span className="block normal-case text-[11px] text-slate-400 font-medium mt-0.5">{food.grams} g</span>
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {selectedNutrients.map((key) => (
+                <tr key={key} className="border-b border-slate-100 last:border-0">
+                  <td className="py-2.5 pr-3 font-semibold text-slate-700">{key}</td>
+                  {allComparedFoods.map((food) => (
+                    <td key={`${food.id}-${key}`} className="py-2.5 pr-3 text-slate-800">
+                      {food.scaled ? round(food.scaled[key] ?? null) : '-'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+        <h2 className="text-base font-black text-slate-800">Ficha completa del alimento</h2>
+        <p className="text-xs text-slate-500">Consulta todos los valores por 100 g y por la porcion seleccionada.</p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[760px]">
+            <thead>
+              <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                <th className="py-2 pr-3">Nutriente</th>
+                <th className="py-2 pr-3">Por 100 g</th>
+                <th className="py-2">Por {selectedGrams} g</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nutrientKeys.map((key) => (
+                <tr key={`full-${key}`} className="border-b border-slate-100 last:border-0">
+                  <td className="py-2.5 pr-3 font-semibold text-slate-700">{key}</td>
+                  <td className="py-2.5 pr-3 text-slate-800">{selectedFood ? round(selectedFood.nutrients[key] ?? null) : '-'}</td>
+                  <td className="py-2.5 text-slate-800">{selectedScaled ? round(selectedScaled[key] ?? null) : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
