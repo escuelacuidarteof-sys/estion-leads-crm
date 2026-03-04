@@ -4850,9 +4850,60 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
                                  <SectionTitle title="Plan de acción por áreas" icon={<ClipboardCheck className="w-4 h-4 text-blue-500" />} />
                                  <p className="text-sm text-slate-600">Este plan es el operativo actual del equipo. Cada cambio importante se documenta en Revisiones.</p>
-                                 <DataField label="Nutrición (acciones concretas)" value={formData.action_plan_nutrition} path="action_plan_nutrition" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                 <DataField label="Hábitos (acciones concretas)" value={formData.action_plan_habits} path="action_plan_habits" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                 <DataField label="Entrenamiento (acciones concretas)" value={formData.action_plan_training} path="action_plan_training" isTextArea isEditing={isEditing} onUpdate={updateField} />
+
+                                 <div className="space-y-4">
+                                    {[
+                                       {
+                                          key: 'nutrition',
+                                          title: 'Nutrición',
+                                          subtitle: 'Acciones concretas de alimentación terapéutica',
+                                          value: formData.action_plan_nutrition,
+                                          path: 'action_plan_nutrition',
+                                          icon: <Utensils className="w-4 h-4 text-emerald-600" />,
+                                          tone: 'border-emerald-200 bg-emerald-50/50'
+                                       },
+                                       {
+                                          key: 'habits',
+                                          title: 'Hábitos',
+                                          subtitle: 'Rutinas diarias, adherencia y regulación',
+                                          value: formData.action_plan_habits,
+                                          path: 'action_plan_habits',
+                                          icon: <HeartPulse className="w-4 h-4 text-amber-600" />,
+                                          tone: 'border-amber-200 bg-amber-50/50'
+                                       },
+                                       {
+                                          key: 'training',
+                                          title: 'Entrenamiento',
+                                          subtitle: 'Movimiento, carga y recuperación',
+                                          value: formData.action_plan_training,
+                                          path: 'action_plan_training',
+                                          icon: <Dumbbell className="w-4 h-4 text-sky-600" />,
+                                          tone: 'border-sky-200 bg-sky-50/50'
+                                       }
+                                    ].map((area) => (
+                                       <div key={area.key} className={`rounded-xl border p-4 ${area.tone}`}>
+                                          <div className="flex items-center gap-2 mb-2">
+                                             <div className="w-7 h-7 rounded-lg bg-white border border-white/70 shadow-sm flex items-center justify-center">{area.icon}</div>
+                                             <div>
+                                                <p className="text-sm font-black text-slate-800 uppercase tracking-wide">{area.title}</p>
+                                                <p className="text-[11px] text-slate-500 font-semibold">{area.subtitle}</p>
+                                             </div>
+                                          </div>
+
+                                          {isEditing ? (
+                                             <DataField label={`${area.title} (acciones concretas)`} value={area.value} path={area.path} isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                          ) : (
+                                             <div className="rounded-lg border border-white/80 bg-white/80 p-3">
+                                                {area.value ? (
+                                                   <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{area.value}</p>
+                                                ) : (
+                                                   <p className="text-sm text-slate-400 italic">Sin acciones definidas todavía para esta área.</p>
+                                                )}
+                                             </div>
+                                          )}
+                                       </div>
+                                    ))}
+                                 </div>
 
                                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                     <div className="text-xs text-slate-500">
