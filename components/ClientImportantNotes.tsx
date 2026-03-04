@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { FileText, Calendar, AlertTriangle, MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Calendar, AlertTriangle, MessageCircle, ChevronDown, ChevronUp, Pencil, Trash2, Save, X } from 'lucide-react';
 
 interface WellnessNote {
     id: string;
@@ -29,6 +29,10 @@ export function ClientImportantNotes({ clientId, clientName, onSendFeedback }: C
     const [notes, setNotes] = useState<WellnessNote[]>([]);
     const [loading, setLoading] = useState(true);
     const [isExpanded, setIsExpanded] = useState(true);
+    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [editingText, setEditingText] = useState('');
+    const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+    const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
     useEffect(() => {
         loadNotes();
@@ -86,6 +90,69 @@ export function ClientImportantNotes({ clientId, clientName, onSendFeedback }: C
             return 'warning';
         }
         return 'normal';
+    };
+
+    const startEditingNote = (note: WellnessNote) => {
+        setEditingNoteId(note.id);
+        setEditingText(note.notes || '');
+    };
+
+    const cancelEditing = () => {
+        setEditingNoteId(null);
+        setEditingText('');
+    };
+
+    const saveNote = async (noteId: string) => {
+        const trimmedText = editingText.trim();
+        if (!trimmedText) {
+            alert('La nota no puede quedar vacia.');
+            return;
+        }
+
+        setSavingNoteId(noteId);
+        try {
+            const { error } = await supabase
+                .from('wellness_logs')
+                .update({ notes: trimmedText })
+                .eq('id', noteId)
+                .eq('client_id', clientId);
+
+            if (error) throw error;
+
+            setNotes(prev => prev.map(n => n.id === noteId ? { ...n, notes: trimmedText } : n));
+            cancelEditing();
+        } catch (error) {
+            console.error('Error updating note:', error);
+            alert('No se pudo actualizar la nota. Intenta de nuevo.');
+        } finally {
+            setSavingNoteId(null);
+        }
+    };
+
+    const deleteNote = async (noteId: string) => {
+        const confirmed = window.confirm('¿Seguro que quieres eliminar esta nota? Esta accion no se puede deshacer.');
+        if (!confirmed) return;
+
+        setDeletingNoteId(noteId);
+        try {
+            const { error } = await supabase
+                .from('wellness_logs')
+                .update({ notes: null })
+                .eq('id', noteId)
+                .eq('client_id', clientId);
+
+            if (error) throw error;
+
+            setNotes(prev => prev.filter(n => n.id !== noteId));
+            if (editingNoteId === noteId) {
+                cancelEditing();
+            }
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            alert('No se pudo eliminar la nota. Intenta de nuevo.');
+        } finally {
+            setDeletingNoteId(null);
+        }
     };
 
     if (loading) {
@@ -187,12 +254,55 @@ export function ClientImportantNotes({ clientId, clientName, onSendFeedback }: C
                                                 Energía: {note.energy_level}/5
                                             </span>
                                         )}
+                                        <button
+                                            onClick={() => startEditingNote(note)}
+                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
+                                            title="Editar nota"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteNote(note.id)}
+                                            disabled={deletingNoteId === note.id}
+                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Eliminar nota"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
 
-                                <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
-                                    {note.notes}
-                                </p>
+                                {editingNoteId === note.id ? (
+                                    <div className="space-y-2">
+                                        <textarea
+                                            value={editingText}
+                                            onChange={(e) => setEditingText(e.target.value)}
+                                            className="w-full min-h-[90px] p-3 rounded-lg border border-indigo-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => saveNote(note.id)}
+                                                disabled={savingNoteId === note.id}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                            >
+                                                <Save className="w-3.5 h-3.5" />
+                                                {savingNoteId === note.id ? 'Guardando...' : 'Guardar'}
+                                            </button>
+                                            <button
+                                                onClick={cancelEditing}
+                                                disabled={savingNoteId === note.id}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
+                                        {note.notes}
+                                    </p>
+                                )}
 
                                 {onSendFeedback && (
                                     <button
