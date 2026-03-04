@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, MedicalReview, UserRole } from '../types';
 import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
-import { MessageCircle, FileText, Send, Clock, CheckCircle2, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { MessageCircle, FileText, Send, Clock, CheckCircle2, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MedicalReviewsProps {
     client: Client;
@@ -12,7 +12,6 @@ interface MedicalReviewsProps {
 const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole }) => {
     const [reviews, setReviews] = useState<MedicalReview[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isCheckingBucket, setIsCheckingBucket] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -20,8 +19,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
         oncology_status: client.medical?.oncology_status || '',
         treatment_details: client.medical?.currentTreatment || '',
         medication: client.medical?.medication,
-        insulin_usage: client.medical?.insulin_usage || false,
-        insulin_dose: client.medical?.insulin_dose || '',
+        active_treatments: client.medical?.currentTreatment ? 'Sí' : 'No especificado',
         comments: '',
         report_type: 'Compartir Analítica',
         file_urls: []
@@ -37,42 +35,6 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
             loadReviews();
         }
     }, [client?.id]);
-
-    const runDiagnostic = async () => {
-        setIsCheckingBucket(true);
-        console.log('🧪 Iniciando diagnóstico de conexión...');
-
-        try {
-            // 1. Check REST / Tables (406 debug)
-            const { error: restError } = await supabase.from('medical_reviews').select('count', { count: 'exact', head: true });
-            if (restError) {
-                console.error('❌ Error REST (medical_reviews):', restError);
-            } else {
-                console.log('✅ Conexión REST a medical_reviews estable.');
-            }
-
-            // 2. Check Storage / Bucket (400 debug)
-            const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-            if (bucketError) {
-                console.error('❌ Error Storage (listBuckets):', bucketError);
-                alert(`Error al verificar buckets: ${bucketError.message}`);
-            } else {
-                const medicalBucket = buckets?.find(b => b.id === 'medical-reports');
-                if (medicalBucket) {
-                    console.log('✅ Bucket "medical-reports" encontrado y accesible.');
-                    alert('Conexión Correcta: El bucket "medical-reports" existe y es accesible.');
-                } else {
-                    console.error('❌ Bucket "medical-reports" NO ENCONTRADO.');
-                    alert('Error Grave: El bucket "medical-reports" no existe en Supabase. Debes crearlo manualmente.');
-                }
-            }
-        } catch (err: any) {
-            console.error('❌ Error inesperado en diagnóstico:', err);
-            alert(`Error inesperado: ${err.message}`);
-        } finally {
-            setIsCheckingBucket(false);
-        }
-    };
 
     const loadReviews = async () => {
         setLoading(true);
@@ -112,8 +74,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 oncology_status: client.medical?.oncology_status || '',
                 treatment_details: client.medical?.currentTreatment || '',
                 medication: client.medical?.medication,
-                insulin_usage: client.medical?.insulin_usage || false,
-                insulin_dose: client.medical?.insulin_dose || '',
+                active_treatments: client.medical?.currentTreatment ? 'Sí' : 'No especificado',
                 comments: '',
                 report_type: 'Compartir Analítica',
                 file_urls: []
@@ -148,14 +109,6 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={runDiagnostic}
-                        disabled={isCheckingBucket}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors text-xs font-bold"
-                    >
-                        <Zap className={`w-4 h-4 ${isCheckingBucket ? 'animate-pulse text-amber-500' : ''}`} />
-                        {isCheckingBucket ? 'Verificando...' : 'Verificar Conexión'}
-                    </button>
                     {!showForm && (
                         <button
                             onClick={() => setShowForm(true)}
@@ -231,34 +184,18 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                     />
                                 </div>
 
-                                <div className="space-y-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Zap size={16} className="text-amber-500" />
-                                            <span className="text-sm font-bold text-slate-700">¿Utilizas Insulina?</span>
-                                        </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="sr-only peer"
-                                                checked={formData.insulin_usage || false}
-                                                onChange={e => setFormData({ ...formData, insulin_usage: e.target.checked })}
-                                            />
-                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                                        </label>
-                                    </div>
-                                    {formData.insulin_usage && (
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500">Dosis / Pauta</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Ej: 15 UI Basal, 5 UI Rápida..."
-                                                className="w-full p-2 bg-white border border-amber-200 rounded-xl outline-none text-sm"
-                                                value={formData.insulin_dose || ''}
-                                                onChange={e => setFormData({ ...formData, insulin_dose: e.target.value })}
-                                            />
-                                        </div>
-                                    )}
+                                <div className="space-y-2 bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
+                                    <label className="text-sm font-bold text-slate-700">¿Tratamiento oncológico activo?</label>
+                                    <select
+                                        className="w-full p-3 bg-white border border-rose-200 rounded-xl outline-none"
+                                        value={formData.active_treatments || 'No especificado'}
+                                        onChange={e => setFormData({ ...formData, active_treatments: e.target.value })}
+                                    >
+                                        <option value="Sí">Sí</option>
+                                        <option value="No">No</option>
+                                        <option value="En pausa">En pausa</option>
+                                        <option value="No especificado">No especificado</option>
+                                    </select>
                                 </div>
 
                                 <div className="space-y-2">
@@ -467,11 +404,6 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
                                         {review.medication && (
                                             <div className="flex items-center gap-1.5">
                                                 <span className="font-bold text-slate-700">Medicación:</span> {review.medication}
-                                            </div>
-                                        )}
-                                        {review.insulin_usage && (
-                                            <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">
-                                                <Zap size={10} /> <span className="font-bold">Insulina:</span> {review.insulin_dose || 'SÍ'}
                                             </div>
                                         )}
                                     </div>

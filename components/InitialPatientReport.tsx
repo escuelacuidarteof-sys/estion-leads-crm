@@ -102,9 +102,6 @@ const InitialPatientReport: React.FC<InitialPatientReportProps> = ({ client }) =
           <InfoField label="Estado Oncológico" value={m.oncology_status} icon={<Activity className="w-4 h-4" />} />
           <InfoField label="Tratamiento Actual" value={m.currentTreatment || m.active_treatments} />
           <InfoField label="Medicación" value={m.medication} icon={<Pill className="w-4 h-4" />} />
-          {m.insulin_usage && (
-            <InfoField label="Uso de Insulina" value={m.insulin_dose || 'Sí'} icon={<Activity className="w-4 h-4 text-amber-500" />} />
-          )}
         </div>
 
         <div className="mt-5 pt-4 border-t border-slate-100 space-y-4">

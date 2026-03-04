@@ -4,7 +4,7 @@ import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
 import { checkPermission, PERMISSIONS } from '../utils/permissions';
 import { normalizeRole } from '../utils/roleUtils';
-import { Stethoscope, Search, Clock, CheckCircle2, Video, User as UserIcon, Save, X, Lock, FileText, Image, ExternalLink, Download, ClipboardList, Zap } from 'lucide-react';
+import { Stethoscope, Search, Clock, CheckCircle2, Video, User as UserIcon, Save, X, Lock, FileText, Image, ExternalLink, Download, ClipboardList } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import InitialPatientReport from './InitialPatientReport';
 
@@ -350,14 +350,10 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ currentUser, onNaviga
                                     <span className="text-slate-500">Tipo Informe:</span>
                                     <span className="font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">{review.report_type}</span>
                                 </div>
-                                {review.insulin_usage && (
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-slate-500">Insulina:</span>
-                                        <span className="font-bold text-amber-600 flex items-center gap-1">
-                                            <Zap size={12} /> {review.insulin_dose || 'SÍ'}
-                                        </span>
-                                    </div>
-                                )}
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-500">Tratamiento oncológico activo:</span>
+                                    <span className="font-semibold text-slate-800">{review.active_treatments || 'No especificado'}</span>
+                                </div>
                             </div>
                             <p className="text-sm text-slate-600 line-clamp-2 bg-slate-50 p-3 rounded-lg italic border border-slate-100">
                                 "{review.comments}"
@@ -459,14 +455,10 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ currentUser, onNaviga
                                             <label className="text-xs text-slate-500 block mb-1">Medicación</label>
                                             <p className="font-semibold text-slate-800">{selectedReview.medication || 'No reportada'}</p>
                                         </div>
-                                        {selectedReview.insulin_usage && (
-                                            <div>
-                                                <label className="text-xs text-slate-500 block mb-1">Uso de Insulina</label>
-                                                <p className="font-bold text-amber-600 flex items-center gap-1">
-                                                    <Zap size={14} /> {selectedReview.insulin_dose || 'SÍ'}
-                                                </p>
-                                            </div>
-                                        )}
+                                        <div>
+                                            <label className="text-xs text-slate-500 block mb-1">Tratamiento oncológico activo</label>
+                                            <p className="font-semibold text-slate-800">{selectedReview.active_treatments || 'No especificado'}</p>
+                                        </div>
                                         <div className="col-span-2 pt-4 border-t border-slate-200">
                                             <label className="text-xs text-slate-500 block mb-1">Comentarios / Síntomas</label>
                                             <p className="text-slate-700 italic leading-relaxed">"{selectedReview.comments}"</p>
