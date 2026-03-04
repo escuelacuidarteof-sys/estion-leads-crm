@@ -3341,44 +3341,60 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                {/* --- INITIAL ASSESSMENT TAB --- */}
                {activeTab === 'assessment' && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                     <div className="bg-gradient-to-r from-indigo-50 via-white to-blue-50 rounded-2xl border border-indigo-200 p-5">
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                           <div>
-                              <p className="text-xs font-bold uppercase tracking-wider text-indigo-500">Documento clínico</p>
-                              <h3 className="text-xl font-black text-slate-800">Valoración inicial del caso</h3>
-                              <p className="text-sm text-slate-600 mt-1">Lectura compartida para oncología, nutrición, entrenamiento y seguimiento.</p>
-                           </div>
-                           <div className="flex flex-wrap gap-2">
-                              {formData.onboarding_call_url && (
-                                 <a
-                                    href={formData.onboarding_call_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                     <div className="relative overflow-hidden rounded-2xl border border-indigo-200 shadow-lg shadow-indigo-100/50">
+                        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 p-6 text-white">
+                           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                              <div className="flex items-start gap-4">
+                                 <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                                    <FileText className="w-7 h-7" />
+                                 </div>
+                                 <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Documento clínico</p>
+                                    <h3 className="text-xl font-black">Valoración inicial del caso</h3>
+                                    <p className="text-sm text-indigo-100 mt-1">Lectura compartida para oncología, nutrición, entrenamiento y seguimiento.</p>
+                                 </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                 {formData.onboarding_call_url && (
+                                    <a
+                                       href={formData.onboarding_call_url}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 shadow-lg transition-all hover:scale-105"
+                                    >
+                                       <Video className="w-4 h-4" /> Abrir llamada inicial
+                                    </a>
+                                 )}
+                                 <button
+                                    onClick={() => navigator.clipboard?.writeText(initialAssessmentText || '')}
+                                    className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white/20 text-white border border-white/30 hover:bg-white/30 backdrop-blur-sm transition-all"
                                  >
-                                    <Video className="w-4 h-4" /> Abrir llamada inicial
-                                 </a>
-                              )}
-                              <button
-                                 onClick={() => navigator.clipboard?.writeText(initialAssessmentText || '')}
-                                 className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                              >
-                                 <FileText className="w-4 h-4" /> Copiar valoración
-                              </button>
+                                    <FileText className="w-4 h-4" /> Copiar valoración
+                                 </button>
+                              </div>
                            </div>
                         </div>
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
-                              <p className="text-slate-400 font-semibold">Última actualización</p>
-                              <p className="text-slate-700 font-bold">{formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
+                        <div className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
+                              <div className="p-2 bg-indigo-100 rounded-lg"><Calendar className="w-4 h-4 text-indigo-600" /></div>
+                              <div>
+                                 <p className="text-slate-400 font-semibold">Última actualización</p>
+                                 <p className="text-slate-800 font-bold">{formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
+                              </div>
                            </div>
-                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
-                              <p className="text-slate-400 font-semibold">Actualizado por</p>
-                              <p className="text-slate-700 font-bold">{formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
+                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
+                              <div className="p-2 bg-purple-100 rounded-lg"><User className="w-4 h-4 text-purple-600" /></div>
+                              <div>
+                                 <p className="text-slate-400 font-semibold">Actualizado por</p>
+                                 <p className="text-slate-800 font-bold">{formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
+                              </div>
                            </div>
-                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
-                              <p className="text-slate-400 font-semibold">Secciones detectadas</p>
-                              <p className="text-slate-700 font-bold">{assessmentSections.length || 0}</p>
+                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
+                              <div className="p-2 bg-blue-100 rounded-lg"><FileText className="w-4 h-4 text-blue-600" /></div>
+                              <div>
+                                 <p className="text-slate-400 font-semibold">Secciones detectadas</p>
+                                 <p className="text-slate-800 font-bold">{assessmentSections.length || 0}</p>
+                              </div>
                            </div>
                         </div>
                      </div>
@@ -3397,33 +3413,36 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            }}
                         />
 
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                           <div className="flex items-center justify-between gap-3 mb-3">
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista equipo (rápida)</p>
+                        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
+                           <div className="flex items-center justify-between gap-3 mb-4">
+                              <div className="flex items-center gap-2">
+                                 <div className="p-1.5 bg-indigo-100 rounded-lg"><Eye className="w-3.5 h-3.5 text-indigo-600" /></div>
+                                 <p className="text-xs font-black text-slate-700 uppercase tracking-wider">Vista equipo</p>
+                              </div>
                               <button
                                  onClick={() => setShowFullAssessmentDoc(prev => !prev)}
-                                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                                 className="text-xs font-bold px-4 py-2 rounded-xl border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm"
                               >
-                                 {showFullAssessmentDoc ? 'Ocultar documento completo' : 'Ver documento completo'}
+                                 {showFullAssessmentDoc ? 'Ocultar documento' : 'Ver documento completo'}
                               </button>
                            </div>
 
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Resumen clínico</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.summary}</p>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="rounded-xl border border-blue-100 bg-white p-4 border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Resumen clínico</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.summary || <span className="text-slate-300 italic">Sin datos</span>}</p>
                               </div>
-                              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Riesgos / contraindicaciones</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.risks}</p>
+                              <div className="rounded-xl border border-red-100 bg-white p-4 border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Riesgos / contraindicaciones</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.risks || <span className="text-slate-300 italic">Sin datos</span>}</p>
                               </div>
-                              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Prioridad actual</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.priority}</p>
+                              <div className="rounded-xl border border-amber-100 bg-white p-4 border-l-4 border-l-amber-500 shadow-sm hover:shadow-md transition-shadow">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Prioridad actual</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.priority || <span className="text-slate-300 italic">Sin datos</span>}</p>
                               </div>
-                              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Próxima acción del equipo</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.nextAction}</p>
+                              <div className="rounded-xl border border-emerald-100 bg-white p-4 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Próxima acción del equipo</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.nextAction || <span className="text-slate-300 italic">Sin datos</span>}</p>
                               </div>
                            </div>
                         </div>
