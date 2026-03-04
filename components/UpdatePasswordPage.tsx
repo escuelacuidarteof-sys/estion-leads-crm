@@ -7,23 +7,59 @@ export const UpdatePasswordPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [checkingSession, setCheckingSession] = useState(true);
+    const [hasRecoverySession, setHasRecoverySession] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
+        let isMounted = true;
+
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            if (!isMounted) return;
+
+            if (session) {
+                setHasRecoverySession(true);
+                setError(null);
+            } else {
+                setHasRecoverySession(false);
                 setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
             }
+
+            setCheckingSession(false);
         };
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (!isMounted) return;
+
+            if (event === 'PASSWORD_RECOVERY' || session) {
+                setHasRecoverySession(true);
+                setError(null);
+            } else if (!session) {
+                setHasRecoverySession(false);
+            }
+
+            setCheckingSession(false);
+        });
+
         checkSession();
+
+        return () => {
+            isMounted = false;
+            authListener.subscription.unsubscribe();
+        };
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        if (!hasRecoverySession) {
+            setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+            return;
+        }
 
         if (password.length < 6) {
             setError('La contraseña debe tener al menos 6 caracteres.');
@@ -88,6 +124,13 @@ export const UpdatePasswordPage: React.FC = () => {
                                 </div>
                             )}
 
+                            {checkingSession && (
+                                <div className="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm rounded-2xl flex items-center gap-3">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <p className="font-medium">Validando enlace de recuperación...</p>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                                     Nueva Contraseña
@@ -124,7 +167,7 @@ export const UpdatePasswordPage: React.FC = () => {
 
                             <button
                                 type="submit"
-                                disabled={loading || (!!error && error.includes('enlace'))}
+                                disabled={loading || checkingSession || !hasRecoverySession}
                                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-70 shadow-xl shadow-blue-600/20 active:scale-95"
                             >
                                 {loading ? (
@@ -137,7 +180,7 @@ export const UpdatePasswordPage: React.FC = () => {
                                 )}
                             </button>
 
-                            {error && error.includes('enlace') && (
+                            {!checkingSession && !hasRecoverySession && (
                                 <a href="/#/forgot-password" className="w-full bg-white/5 border border-white/10 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-white/10">
                                     <ArrowLeft className="w-5 h-5" />
                                     Solicitar nuevo enlace
