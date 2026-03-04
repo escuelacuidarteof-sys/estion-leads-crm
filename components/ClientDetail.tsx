@@ -763,6 +763,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    // Sub-tabs for consolidated views
    const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal'>('medical');
    const [programSubTab, setProgramSubTab] = useState<'objetivos' | 'testimonios'>('objetivos');
+   const [contractSubTab, setContractSubTab] = useState<'contrato' | 'renovaciones'>('contrato');
 
    // Appointment Modal State
    const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -4672,13 +4673,22 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  <SectionTitle title="Motivación" icon={<Target className="w-4 h-4 text-indigo-500" />} />
                                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50/30 p-5 rounded-2xl border border-indigo-100/80 shadow-sm relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                                    <div className="relative z-10 space-y-4">
-                                       <DataField label="Motivo Confianza" value={formData.goals.motivation} path="goals.motivation" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       <DataField label="Notas Adicionales" value={formData.general_notes} path="general_notes" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       <DataField label="Recordatorio 24h" value={formData.nutrition.lastRecallMeal} path="nutrition.lastRecallMeal" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                    </div>
-                                 </div>
-                              </div>
+                                     <div className="relative z-10 space-y-4">
+                                        <DataField label="Motivo Confianza" value={formData.goals.motivation} path="goals.motivation" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                        <DataField label="Notas Adicionales" value={formData.general_notes} path="general_notes" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                        <div className="rounded-xl border border-indigo-100 bg-white/70 px-3 py-2">
+                                           <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">Recordatorio 24h</p>
+                                           <p className="text-xs text-slate-600 mt-1">Se gestiona en Salud Detallada &gt; Nutrición para evitar duplicados.</p>
+                                           <button
+                                              onClick={() => { setActiveTab('health'); setHealthSubTab('nutrition'); }}
+                                              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                           >
+                                              Ir a Nutrición
+                                           </button>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
 
                               <div className="space-y-4">
                                  <SectionTitle title="Objetivos Temporales (Largo Plazo)" icon={<Clock className="w-4 h-4 text-green-500" />} />
@@ -5067,60 +5077,62 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            <div className="flex justify-between items-center">
                               <SectionTitle title="Contrato de Prestación de Servicios" icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
                               <div className="flex items-center gap-3 no-print">
-                                 <button
-                                    onClick={() => window.print()}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all text-sm font-bold shadow-lg shadow-slate-900/20 group"
-                                 >
-                                    <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                    Imprimir / PDF
-                                 </button>
+                                 {contractSubTab === 'contrato' && (
+                                    <button
+                                       onClick={() => window.print()}
+                                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all text-sm font-bold shadow-lg shadow-slate-900/20 group"
+                                    >
+                                       <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                       Imprimir / PDF
+                                    </button>
+                                 )}
                               </div>
                            </div>
 
-                           {/* Signed Status */}
-                           {formData.program?.contract_signed && (
-                              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between no-print">
-                                 <div className="flex items-center gap-3">
-                                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                                    <div>
-                                       <p className="font-bold text-emerald-900 text-sm">Contrato Firmado</p>
-                                       <p className="text-xs text-emerald-700">
-                                          {formData.program?.contract_signed_at
-                                             ? `Firmado el ${new Date(formData.program.contract_signed_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                                             : 'Fecha no registrada'}
-                                       </p>
+                           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit no-print">
+                              <button
+                                 onClick={() => setContractSubTab('contrato')}
+                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${contractSubTab === 'contrato' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                              >
+                                 <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Contrato</span>
+                              </button>
+                              <button
+                                 onClick={() => setContractSubTab('renovaciones')}
+                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${contractSubTab === 'renovaciones' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                              >
+                                 <span className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> Renovaciones</span>
+                              </button>
+                           </div>
+
+                           {contractSubTab === 'contrato' && (
+                              <>
+                                 {/* Signed Status */}
+                                 {formData.program?.contract_signed && (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between no-print">
+                                       <div className="flex items-center gap-3">
+                                          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                                          <div>
+                                             <p className="font-bold text-emerald-900 text-sm">Contrato Firmado</p>
+                                             <p className="text-xs text-emerald-700">
+                                                {formData.program?.contract_signed_at
+                                                   ? `Firmado el ${new Date(formData.program.contract_signed_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                                   : 'Fecha no registrada'}
+                                             </p>
+                                          </div>
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                          <button onClick={handleSaveToHistory} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 font-bold transition-colors">
+                                             <History className="w-3 h-3" /> Guardar en Historial
+                                          </button>
+                                          <button onClick={handleResetSignature} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-bold border border-red-200 transition-colors">
+                                             <RotateCcw className="w-3 h-3" /> Nueva Firma
+                                          </button>
+                                       </div>
                                     </div>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                    <button onClick={handleSaveToHistory} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 font-bold transition-colors">
-                                       <History className="w-3 h-3" /> Guardar en Historial
-                                    </button>
-                                    <button onClick={handleResetSignature} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-bold border border-red-200 transition-colors">
-                                       <RotateCcw className="w-3 h-3" /> Nueva Firma
-                                    </button>
-                                 </div>
-                              </div>
-                           )}
+                                 )}
 
-                           <div className="no-print">
-                              <div className="mb-3">
-                                 <SectionTitle title="Renovaciones y continuidad" icon={<Briefcase className="w-4 h-4 text-violet-500" />} />
-                              </div>
-                              <RenewalTimeline
-                                 client={client}
-                                 formData={formData}
-                                 isEditing={isEditing}
-                                 paymentLinks={paymentLinks}
-                                 paymentMethods={paymentMethods}
-                                 onUpdate={updateField}
-                                 onAutoActivate={async (phase: string) => {
-                                    await handleAutoActivateRenewal(phase);
-                                 }}
-                              />
-                           </div>
-
-                           {/* === EDITABLE FIELDS === */}
-                           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print space-y-5">
+                                 {/* === EDITABLE FIELDS === */}
+                                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print space-y-5">
                               <div className="flex items-center justify-between">
                                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Datos del Contrato</h4>
                                  {/* Visibility Toggle */}
@@ -5272,10 +5284,10 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     <AlertCircle className="w-3 h-3" /> El cliente aún no ha firmado este contrato.
                                  </p>
                               )}
-                           </div>
+                                 </div>
 
-                           {/* === CONTRACT PREVIEW === */}
-                           <div id="contract-document" className="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-8 shadow-lg shadow-slate-200/50 print:p-0 print:border-none print:shadow-none max-w-4xl mx-auto relative overflow-hidden">
+                                 {/* === CONTRACT PREVIEW === */}
+                                 <div id="contract-document" className="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-8 shadow-lg shadow-slate-200/50 print:p-0 print:border-none print:shadow-none max-w-4xl mx-auto relative overflow-hidden">
                               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 opacity-80"></div>
                               <div className="prose prose-slate prose-sm max-w-none text-justify leading-relaxed">
                                  <div dangerouslySetInnerHTML={{ __html: contractHTML }} />
@@ -5306,10 +5318,10 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     </div>
                                  </div>
                               </div>
-                           </div>
+                                 </div>
 
-                           {/* === CONTRACT HISTORY === */}
-                           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print">
+                                 {/* === CONTRACT HISTORY === */}
+                                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print">
                               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                  <History className="w-4 h-4" /> Contratos Anteriores
                               </h4>
@@ -5359,7 +5371,28 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     ))}
                                  </div>
                               )}
-                           </div>
+                                 </div>
+                              </>
+                           )}
+
+                           {contractSubTab === 'renovaciones' && (
+                              <div className="no-print">
+                                 <div className="mb-3">
+                                    <SectionTitle title="Renovaciones y continuidad" icon={<Briefcase className="w-4 h-4 text-violet-500" />} />
+                                 </div>
+                                 <RenewalTimeline
+                                    client={client}
+                                    formData={formData}
+                                    isEditing={isEditing}
+                                    paymentLinks={paymentLinks}
+                                    paymentMethods={paymentMethods}
+                                    onUpdate={updateField}
+                                    onAutoActivate={async (phase: string) => {
+                                       await handleAutoActivateRenewal(phase);
+                                    }}
+                                 />
+                              </div>
+                           )}
                         </div>
                      );
                   })()
