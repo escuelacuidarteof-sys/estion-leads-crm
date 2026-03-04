@@ -758,10 +758,11 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
    // Actions Modal State
    const [showActionsModal, setShowActionsModal] = useState(false);
+   const [showFullAssessmentDoc, setShowFullAssessmentDoc] = useState(false);
 
    // Sub-tabs for consolidated views
    const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal'>('medical');
-   const [programSubTab, setProgramSubTab] = useState<'renovaciones' | 'objetivos' | 'testimonios'>('renovaciones');
+   const [programSubTab, setProgramSubTab] = useState<'objetivos' | 'testimonios'>('objetivos');
 
    // Appointment Modal State
    const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -866,6 +867,52 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
       return alerts;
    }, [formData.medical]);
+
+   const assessmentTeamView = useMemo(() => {
+      const truncate = (text: string, max = 260) => {
+         const clean = (text || '').replace(/\s+/g, ' ').trim();
+         if (!clean) return '';
+         return clean.length > max ? `${clean.slice(0, max)}...` : clean;
+      };
+
+      const firstParagraph = initialAssessmentText
+         .split(/\n\s*\n/)
+         .map(block => block.trim())
+         .find(Boolean) || '';
+
+      const findByTitle = (keywords: string[]) => {
+         const regex = new RegExp(keywords.join('|'), 'i');
+         return assessmentSections.find(section => regex.test(section.title))?.content || '';
+      };
+
+      const summary = truncate(
+         findByTitle(['resumen', 'perfil', 'contexto', 'situaci[oó]n']) || firstParagraph,
+         320
+      ) || 'Pendiente de completar valoración inicial.';
+
+      const risksFromSections = truncate(
+         findByTitle(['riesgo', 'seguridad', 'contraind', 'alerg', 'linfedema', 'neuropat', 'oncolog', 'tensi[oó]n']),
+         260
+      );
+
+      const risksFromAlerts = clinicalAlerts.length > 0
+         ? clinicalAlerts.map(alert => `${alert.label}: ${alert.value}`).join(' - ')
+         : '';
+
+      const risks = truncate(risksFromSections || risksFromAlerts, 260) || 'Sin riesgos críticos destacados en la ficha.';
+
+      const priority = truncate(
+         formData.main_priority_notes || findByTitle(['prioridad', 'objetivo', 'necesidad']),
+         260
+      ) || 'Sin prioridad clínica definida.';
+
+      const nextAction = truncate(
+         formData.concerns_fears_notes || findByTitle(['plan', 'siguiente', 'recomend', 'observaci[oó]n', 'acci[oó]n']),
+         260
+      ) || 'Definir próxima acción del equipo.';
+
+      return { summary, risks, priority, nextAction };
+   }, [assessmentSections, clinicalAlerts, formData.concerns_fears_notes, formData.main_priority_notes, initialAssessmentText]);
 
    const medicalCompleteness = useMemo(() => {
       const medical = formData.medical || {} as any;
@@ -3183,50 +3230,60 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 lg:col-span-1">
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Navegación rápida</p>
-                           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                              {assessmentSections.length > 0 ? assessmentSections.map((section, index) => {
-                                 const sectionId = `assessment-section-${index}`;
-                                 return (
-                                    <button
-                                       key={sectionId}
-                                       onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                                       className="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
-                                    >
-                                       <p className="text-[11px] font-bold text-slate-700 truncate">{section.title}</p>
-                                    </button>
-                                 );
-                              }) : (
-                                 <p className="text-sm text-slate-400">Todavía no hay secciones en la valoración.</p>
-                              )}
+                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+                        <DataField
+                           label="URL llamada inicial"
+                           value={formData.onboarding_call_url}
+                           path="onboarding_call_url"
+                           isEditing={isEditing}
+                           onUpdate={updateField}
+                           onChange={(val) => {
+                              updateField('onboarding_call_url', val);
+                              updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                              if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                           }}
+                        />
+
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                           <div className="flex items-center justify-between gap-3 mb-3">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista equipo (rápida)</p>
+                              <button
+                                 onClick={() => setShowFullAssessmentDoc(prev => !prev)}
+                                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                              >
+                                 {showFullAssessmentDoc ? 'Ocultar documento completo' : 'Ver documento completo'}
+                              </button>
+                           </div>
+
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Resumen clínico</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.summary}</p>
+                              </div>
+                              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Riesgos / contraindicaciones</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.risks}</p>
+                              </div>
+                              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Prioridad actual</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.priority}</p>
+                              </div>
+                              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Próxima acción del equipo</p>
+                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.nextAction}</p>
+                              </div>
                            </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 lg:col-span-2 space-y-5">
-                           <DataField
-                              label="URL llamada inicial"
-                              value={formData.onboarding_call_url}
-                              path="onboarding_call_url"
-                              isEditing={isEditing}
-                              onUpdate={updateField}
-                              onChange={(val) => {
-                                 updateField('onboarding_call_url', val);
-                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                              }}
-                           />
+                        {showFullAssessmentDoc && (
+                           <div className="space-y-4 border border-slate-200 rounded-xl p-4 bg-slate-50">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                 <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                 <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                              </div>
 
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                              <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                           </div>
-
-                           <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Documento completo</p>
                               <DataField
-                                 label="Valoración inicial (lectura profesional)"
+                                 label="Valoración inicial (documento completo)"
                                  value={formData.onboarding_initial_assessment}
                                  path="onboarding_initial_assessment"
                                  isTextArea
@@ -3239,22 +3296,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  }}
                               />
                            </div>
-
-                           {!!initialAssessmentText && (
-                              <div className="space-y-3">
-                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista estructurada</p>
-                                 {assessmentSections.map((section, index) => {
-                                    const sectionId = `assessment-section-${index}`;
-                                    return (
-                                       <div key={sectionId} id={sectionId} className="rounded-xl border border-slate-200 bg-white p-4">
-                                          <h4 className="text-sm font-black text-slate-800 mb-2">{section.title}</h4>
-                                          <p className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{section.content}</p>
-                                       </div>
-                                    );
-                                 })}
-                              </div>
-                           )}
-                        </div>
+                        )}
                      </div>
                   </div>
                )}
@@ -4610,12 +4652,6 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         {/* Sub-tabs for Program */}
                         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
                            <button
-                              onClick={() => setProgramSubTab('renovaciones')}
-                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'renovaciones' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                           >
-                              <span className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> Renovaciones</span>
-                           </button>
-                           <button
                               onClick={() => setProgramSubTab('objetivos')}
                               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'objetivos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                            >
@@ -4628,21 +4664,6 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <span className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Testimonios</span>
                            </button>
                         </div>
-
-                        {/* Renovaciones Sub-tab */}
-                        {programSubTab === 'renovaciones' && (
-                           <RenewalTimeline
-                              client={client}
-                              formData={formData}
-                              isEditing={isEditing}
-                              paymentLinks={paymentLinks}
-                              paymentMethods={paymentMethods}
-                              onUpdate={updateField}
-                              onAutoActivate={async (phase: string) => {
-                                 await handleAutoActivateRenewal(phase);
-                              }}
-                           />
-                        )}
 
                         {/* Objetivos Sub-tab */}
                         {programSubTab === 'objetivos' && (
@@ -5080,6 +5101,23 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  </div>
                               </div>
                            )}
+
+                           <div className="no-print">
+                              <div className="mb-3">
+                                 <SectionTitle title="Renovaciones y continuidad" icon={<Briefcase className="w-4 h-4 text-violet-500" />} />
+                              </div>
+                              <RenewalTimeline
+                                 client={client}
+                                 formData={formData}
+                                 isEditing={isEditing}
+                                 paymentLinks={paymentLinks}
+                                 paymentMethods={paymentMethods}
+                                 onUpdate={updateField}
+                                 onAutoActivate={async (phase: string) => {
+                                    await handleAutoActivateRenewal(phase);
+                                 }}
+                              />
+                           </div>
 
                            {/* === EDITABLE FIELDS === */}
                            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print space-y-5">
