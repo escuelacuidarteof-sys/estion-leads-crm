@@ -807,6 +807,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     } : null;
     const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
+    const hourNow = new Date().getHours();
+    const greeting = hourNow < 12 ? 'Buenos días' : hourNow < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const warmthLine = hourNow < 12
+        ? 'Empezamos el día juntas, paso a paso.'
+        : hourNow < 20
+            ? 'Seguimos avanzando juntas esta tarde.'
+            : 'Cierra el día con calma y foco en ti.';
 
     // Calendar helpers
     const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -915,6 +922,25 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
         return (
             <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-6 shadow-sm">
+                    <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-brand-green/10 blur-2xl" />
+                    <div className="absolute -bottom-10 -left-8 w-40 h-40 rounded-full bg-brand-gold/10 blur-2xl" />
+                    <div className="relative z-10 flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-[11px] font-black uppercase tracking-widest text-brand-green">{greeting}</p>
+                            <h2 className="text-2xl md:text-3xl font-heading font-black text-brand-dark mt-1">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
+                            <p className="text-sm text-slate-600 mt-2">{warmthLine}</p>
+                        </div>
+                        {nextAppt && (
+                            <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 min-w-[180px]">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Próxima revisión</p>
+                                <p className="text-sm font-bold text-brand-dark mt-1">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                                <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Inicio rápido</p>
                     <h2 className="text-2xl font-heading font-black text-brand-dark">¿Qué quieres hacer hoy, {client.firstName || 'cliente'}?</h2>
@@ -922,7 +948,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-5">
                         {[
-                            { label: 'Hacer check-in semanal', desc: needsCheckin ? 'Recomendado hoy' : 'Disponible', icon: CheckCircle2, action: () => setActiveView('checkin'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                            { label: 'Hacer check-in semanal', desc: needsCheckin ? 'Recomendado hoy' : 'Disponible', icon: CheckCircle2, action: () => setActiveView('checkin'), tone: 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' },
                             { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
                             { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
                             { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
@@ -932,7 +958,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <button
                                 key={label}
                                 onClick={action}
-                                className={`rounded-2xl border p-4 text-left transition-all hover:shadow-sm active:scale-[0.98] ${tone}`}
+                                className={`rounded-2xl border p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${tone}`}
                             >
                                 <Icon className="w-5 h-5 mb-2" />
                                 <p className="text-sm font-black leading-tight">{label}</p>
@@ -949,15 +975,15 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <button onClick={() => setActiveTab('program')} className="text-xs font-bold text-brand-green hover:underline">Ver detalle</button>
                         </div>
                         <div className="space-y-3 text-sm">
-                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                            <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
                                 <p className="text-slate-700 mt-1">{compact(cAny.action_plan_nutrition, 220) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
                             </div>
-                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                            <div className="rounded-xl bg-amber-50/60 border border-amber-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
                                 <p className="text-slate-700 mt-1">{compact(cAny.action_plan_habits, 220) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
                             </div>
-                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                            <div className="rounded-xl bg-sky-50/60 border border-sky-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
                                 <p className="text-slate-700 mt-1">{compact(cAny.action_plan_training, 220) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
                             </div>
@@ -1298,13 +1324,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center">
             <div className="w-full max-w-6xl mx-auto flex flex-col min-h-screen relative">
                 {/* Header fijo */}
-                <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                <div className="bg-white/85 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-brand-green to-brand-green-dark rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
                             <span className="text-white font-heading font-black text-xl">{(client.firstName || '?')[0].toUpperCase()}</span>
                         </div>
                         <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bienvenida</p>
+                            <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest">{greeting}</p>
                             <p className="font-heading font-black text-brand-dark text-lg leading-none">{client.firstName} {client.surname || ''}</p>
                         </div>
                     </div>
