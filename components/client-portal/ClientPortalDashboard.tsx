@@ -591,28 +591,34 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const lastCheckinDate = client.last_checkin_submitted ? new Date(client.last_checkin_submitted) : null;
     const lastWeightDate = weightHistory.length > 0 ? new Date(weightHistory[0].date) : null;
 
-    // --- CHECK-IN REMINDER LOGIC ---
-    // Show banner Friday-Sunday if no check-in submitted since this week's Friday
-    const shouldShowCheckinReminder = (() => {
+    // --- CHECK-IN VISIBILITY LOGIC (Friday -> Monday) ---
+    const checkinWindowInfo = (() => {
         const today = new Date();
-        const dayOfWeek = today.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
+        const dayOfWeek = today.getDay(); // 0=Sunday, 1=Monday, 5=Friday, 6=Saturday
+        const isVisibleWindow = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1;
 
-        // Only show on Friday (5), Saturday (6), Sunday (0), or Monday (1)
-        const isCheckinWindow = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1;
-        if (!isCheckinWindow) return false;
+        if (!isVisibleWindow) {
+            return { isVisibleWindow: false, needsReminder: false, isCompleted: false };
+        }
 
-        // Calculate the date of the most recent Friday (start of check-in week)
-        let fridayDate = new Date(today);
-        const daysFromFriday = dayOfWeek === 0 ? 2 : (dayOfWeek === 6 ? 1 : 0);
+        let daysFromFriday = 0;
+        if (dayOfWeek === 6) daysFromFriday = 1;
+        if (dayOfWeek === 0) daysFromFriday = 2;
+        if (dayOfWeek === 1) daysFromFriday = 3;
+
+        const fridayDate = new Date(today);
         fridayDate.setDate(fridayDate.getDate() - daysFromFriday);
         fridayDate.setHours(0, 0, 0, 0);
 
-        // If no check-in ever, show the banner
-        if (!lastCheckinDate) return true;
-
-        // Check if last check-in was before this Friday
-        return lastCheckinDate < fridayDate;
+        const isCompleted = !!lastCheckinDate && lastCheckinDate >= fridayDate;
+        return {
+            isVisibleWindow: true,
+            needsReminder: !isCompleted,
+            isCompleted
+        };
     })();
+
+    const shouldShowCheckinReminder = checkinWindowInfo.needsReminder;
 
     // Safe Accessors
     const cAny = client as any;
@@ -897,7 +903,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const clientGoals = cAny.goals || {};
 
     // Banner prioritario
-    const needsCheckin = shouldShowCheckinReminder;
     const hasNewReviews = unreadReviewsCount > 0;
     const hasRenewal = cAny.renewal_status === 'pending';
 
@@ -928,14 +933,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-5 sm:p-6 shadow-sm">
                     <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-brand-green/10 blur-2xl" />
                     <div className="absolute -bottom-10 -left-8 w-40 h-40 rounded-full bg-brand-gold/10 blur-2xl" />
-                    <div className="relative z-10 flex items-start justify-between gap-4">
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div>
                             <p className="text-[11px] font-black uppercase tracking-widest text-brand-green">{greeting}</p>
                             <h2 className="text-[1.65rem] sm:text-3xl font-heading font-black text-brand-dark mt-1 leading-tight">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
                             <p className="text-sm text-slate-600 mt-2">{warmthLine}</p>
                         </div>
                         {nextAppt && (
-                            <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 min-w-[180px]">
+                            <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 w-full md:w-auto md:min-w-[180px]">
                                 <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Próxima revisión</p>
                                 <p className="text-sm font-bold text-brand-dark mt-1">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
                                 <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
@@ -946,12 +951,20 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
-                    <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Qué quieres hacer hoy</h2>
-                    <p className="text-sm text-slate-600 mt-1">Elige una acción y seguimos contigo paso a paso.</p>
+                    <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Acciones de hoy</h2>
+                    <p className="text-sm text-slate-600 mt-1">Elige una y seguimos contigo paso a paso.</p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-4 sm:mt-5">
                         {[
-                            { label: 'Hacer check-in semanal', desc: needsCheckin ? 'Recomendado hoy' : 'Disponible', icon: CheckCircle2, action: () => setActiveView('checkin'), tone: 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' },
+                            ...(checkinWindowInfo.isVisibleWindow ? [{
+                                label: checkinWindowInfo.isCompleted ? 'Check-in semanal completado' : 'Hacer check-in semanal',
+                                desc: checkinWindowInfo.isCompleted ? 'Ya enviado esta semana' : 'Disponible viernes-lunes',
+                                icon: CheckCircle2,
+                                action: () => setActiveView('checkin'),
+                                tone: checkinWindowInfo.isCompleted
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                    : 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm'
+                            }] : []),
                             { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
                             { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
                             { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
@@ -961,10 +974,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <button
                                 key={label}
                                 onClick={action}
-                                className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] min-h-[112px] ${tone}`}
+                                className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] min-h-[96px] sm:min-h-[112px] ${tone}`}
                             >
                                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-2" />
-                                <p className="text-[1.08rem] sm:text-sm font-black leading-tight">{label}</p>
+                                <p className="text-sm sm:text-sm font-black leading-tight">{label}</p>
                                 <p className="text-xs opacity-80 mt-1">{desc}</p>
                             </button>
                         ))}
@@ -1415,13 +1428,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center">
             <div className="w-full max-w-6xl mx-auto flex flex-col min-h-screen relative">
                 {/* Header fijo */}
-                <div className="bg-white/85 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                <div className="bg-white/85 backdrop-blur-md border-b border-slate-100 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-brand-green to-brand-green-dark rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
                             <span className="text-white font-heading font-black text-xl">{(client.firstName || '?')[0].toUpperCase()}</span>
                         </div>
                         <div>
-                            <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest">{greeting}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bienvenida</p>
                             <p className="font-heading font-black text-brand-dark text-lg leading-none">{client.firstName} {client.surname || ''}</p>
                         </div>
                     </div>
@@ -1446,7 +1459,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
 
                 {/* Contenido scrollable */}
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-6 pb-32">
+                <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-32">
                     <div className="max-w-5xl mx-auto w-full">
                         {activeTab === 'home' && <HomeTab />}
                         {activeTab === 'health' && <HealthTab />}
@@ -1458,7 +1471,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
 
                 {/* Bottom Navigation */}
-                <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl z-40 p-1.5 rounded-3xl flex items-center justify-around">
+                <nav className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-[calc(100%-1.5rem)] max-w-xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl z-40 p-1 sm:p-1.5 rounded-3xl flex items-center justify-around">
                     <div className="flex items-center justify-around px-2 py-2">
                         {tabs.map(({ id, label, icon: Icon, badge }) => {
                             const isActive = activeTab === id;
@@ -1474,7 +1487,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
                                         )}
                                     </div>
-                                    <span className={`text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
+                                    <span className={`text-[9px] font-bold transition-colors hidden sm:block ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
                                 </button>
                             );
                         })}
