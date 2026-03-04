@@ -4041,37 +4041,39 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           )}
                                        </div>
 
-                                       {/* Vetados */}
-                                       <div className={`p-3 rounded-lg border ${formData.nutrition.dislikes ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
-                                          <div className="flex items-center gap-1.5 mb-1">
-                                             <Ban className={`w-4 h-4 ${formData.nutrition.dislikes ? 'text-amber-600' : 'text-slate-400'}`} />
-                                             <span className={`text-xs font-bold uppercase tracking-wide ${formData.nutrition.dislikes ? 'text-amber-700' : 'text-slate-500'}`}>Alimentos Vetados</span>
-                                          </div>
-                                          <p className={`text-sm ${formData.nutrition.dislikes ? 'text-amber-800 font-semibold' : 'text-slate-400 italic text-xs'}`}>
-                                             {formData.nutrition.dislikes || 'No indicado'}
-                                          </p>
-                                          {isEditing && (
-                                             <div className="mt-2 pt-2 border-t border-slate-200">
-                                                <DataField label="Alimentos Vetados" value={formData.nutrition.dislikes} path="nutrition.dislikes" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                       {(isEditing || !!formData.nutrition.dislikes?.trim()) && (
+                                          <div className={`p-3 rounded-lg border ${formData.nutrition.dislikes ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
+                                             <div className="flex items-center gap-1.5 mb-1">
+                                                <Ban className={`w-4 h-4 ${formData.nutrition.dislikes ? 'text-amber-600' : 'text-slate-400'}`} />
+                                                <span className={`text-xs font-bold uppercase tracking-wide ${formData.nutrition.dislikes ? 'text-amber-700' : 'text-slate-500'}`}>Alimentos Vetados</span>
                                              </div>
-                                          )}
-                                       </div>
+                                             <p className={`text-sm ${formData.nutrition.dislikes ? 'text-amber-800 font-semibold' : 'text-slate-400 italic text-xs'}`}>
+                                                {formData.nutrition.dislikes || 'No indicado'}
+                                             </p>
+                                             {isEditing && (
+                                                <div className="mt-2 pt-2 border-t border-slate-200">
+                                                   <DataField label="Alimentos Vetados" value={formData.nutrition.dislikes} path="nutrition.dislikes" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                                </div>
+                                             )}
+                                          </div>
+                                       )}
 
-                                       {/* Preferencias */}
-                                       <div className={`p-3 rounded-lg border ${formData.nutrition.preferences ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
-                                          <div className="flex items-center gap-1.5 mb-1">
-                                             <Heart className={`w-4 h-4 ${formData.nutrition.preferences ? 'text-emerald-600' : 'text-slate-400'}`} />
-                                             <span className={`text-xs font-bold uppercase tracking-wide ${formData.nutrition.preferences ? 'text-emerald-700' : 'text-slate-500'}`}>Preferencias Dietéticas</span>
-                                          </div>
-                                          <p className={`text-sm ${formData.nutrition.preferences ? 'text-emerald-800 font-semibold' : 'text-slate-400 italic text-xs'}`}>
-                                             {formData.nutrition.preferences || 'No indicado'}
-                                          </p>
-                                          {isEditing && (
-                                             <div className="mt-2 pt-2 border-t border-slate-200">
-                                                <DataField label="Preferencias" value={formData.nutrition.preferences} path="nutrition.preferences" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                       {(isEditing || !!formData.nutrition.preferences?.trim()) && (
+                                          <div className={`p-3 rounded-lg border ${formData.nutrition.preferences ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
+                                             <div className="flex items-center gap-1.5 mb-1">
+                                                <Heart className={`w-4 h-4 ${formData.nutrition.preferences ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                                <span className={`text-xs font-bold uppercase tracking-wide ${formData.nutrition.preferences ? 'text-emerald-700' : 'text-slate-500'}`}>Preferencias Dietéticas</span>
                                              </div>
-                                          )}
-                                       </div>
+                                             <p className={`text-sm ${formData.nutrition.preferences ? 'text-emerald-800 font-semibold' : 'text-slate-400 italic text-xs'}`}>
+                                                {formData.nutrition.preferences || 'No indicado'}
+                                             </p>
+                                             {isEditing && (
+                                                <div className="mt-2 pt-2 border-t border-slate-200">
+                                                   <DataField label="Preferencias" value={formData.nutrition.preferences} path="nutrition.preferences" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                                </div>
+                                             )}
+                                          </div>
+                                       )}
                                     </div>
                                  </div>
 
@@ -4081,43 +4083,43 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        <Utensils className="w-4 h-4 text-emerald-600" />
                                        <h3 className="text-sm font-bold text-slate-700">Hábitos y Conducta</h3>
                                     </div>
-                                    <div className="p-5 space-y-3">
-                                       <div className="grid grid-cols-2 gap-3">
-                                          <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                             <span>👨‍🍳</span>
-                                             <DataField label="Cocina propia" value={formData.nutrition.cooksForSelf} path="nutrition.cooksForSelf" type="checkbox" isEditing={isEditing} onUpdate={updateField} className="!mb-0 flex-1" />
+                                    <div className="p-5 space-y-4">
+                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Cocina propia</p>
+                                             {isEditing ? (
+                                                <DataField label="Cocina propia" value={formData.nutrition.cooksForSelf} path="nutrition.cooksForSelf" type="checkbox" isEditing={isEditing} onUpdate={updateField} className="!mb-0 mt-1" />
+                                             ) : (
+                                                <p className="text-sm font-semibold text-slate-700 mt-1">{formData.nutrition.cooksForSelf ? 'Si' : 'No'}</p>
+                                             )}
                                           </div>
-                                          <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                             <span>⚖️</span>
-                                             <DataField label="Pesa la comida" value={formData.nutrition.willingToWeighFood} path="nutrition.willingToWeighFood" type="checkbox" isEditing={isEditing} onUpdate={updateField} className="!mb-0 flex-1" />
-                                          </div>
-                                          <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                             <span>🥖</span>
-                                             <DataField label="Con pan" value={formData.nutrition.eatsWithBread} path="nutrition.eatsWithBread" type="checkbox" isEditing={isEditing} onUpdate={updateField} className="!mb-0 flex-1" />
-                                          </div>
-                                          <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                             <span>🍪</span>
-                                             <DataField label="Pica entre horas" value={formData.nutrition.snacking} path="nutrition.snacking" type="checkbox" isEditing={isEditing} onUpdate={updateField} className="!mb-0 flex-1" />
-                                          </div>
+
+                                          {(isEditing || !!formData.nutrition.weighFoodPreference) && (
+                                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Gestion de raciones</p>
+                                                <DataField label="Preferencia al pesar comida" value={formData.nutrition.weighFoodPreference} path="nutrition.weighFoodPreference" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} className="!mb-0 mt-1" />
+                                             </div>
+                                          )}
                                        </div>
 
-                                       <DataField label="Comidas fuera (sem)" value={formData.nutrition.mealsOutPerWeek} path="nutrition.mealsOutPerWeek" type="number" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       <DataField label="Cantidad Pan" value={formData.nutrition.breadAmount} path="nutrition.breadAmount" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       <DataField label="Consumo Alcohol" value={formData.nutrition.alcohol} path="nutrition.alcohol" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       <DataField label="Bebida en comidas" value={formData.nutrition.waterIntake} path="nutrition.waterIntake" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                          {(isEditing || !!formData.nutrition.alcohol?.trim()) && (
+                                             <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Consumo alcohol</p>
+                                                <DataField label="Consumo Alcohol" value={formData.nutrition.alcohol} path="nutrition.alcohol" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} className="!mb-0 mt-1" />
+                                             </div>
+                                          )}
 
-                                        <div className="pt-3 border-t border-slate-100 space-y-3">
-                                           <DataField label="Tiene Antojos" value={formData.nutrition.cravings} path="nutrition.cravings" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="Tipo Antojos" value={formData.nutrition.cravingsDetail} path="nutrition.cravingsDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="Qué pica" value={formData.nutrition.snackingDetail} path="nutrition.snackingDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="TCA Diagnosticado" value={formData.nutrition.eatingDisorder} path="nutrition.eatingDisorder" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="Detalle TCA" value={formData.nutrition.eatingDisorderDetail} path="nutrition.eatingDisorderDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="Preferencia al pesar comida" value={formData.nutrition.weighFoodPreference} path="nutrition.weighFoodPreference" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                           <DataField label="Estado de tabaquismo" value={formData.nutrition.smokingStatus} path="nutrition.smokingStatus" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                        </div>
-                                     </div>
+                                          {(isEditing || !!formData.nutrition.smokingStatus?.trim()) && (
+                                             <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Estado de tabaquismo</p>
+                                                <DataField label="Estado de tabaquismo" value={formData.nutrition.smokingStatus} path="nutrition.smokingStatus" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} className="!mb-0 mt-1" />
+                                             </div>
+                                          )}
+                                       </div>
+                                    </div>
                                   </div>
-                              </div>
+                               </div>
 
                               {/* ===== ROW 2: Horarios + Plan Estructurado ===== */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -440,7 +440,7 @@ export function OnboardingPage() {
                 allergies: formData.foodAllergies,
                 regular_foods: formData.regularFoods,
                 unwanted_foods: formData.unwantedFoods,
-                cooks_for_self: formData.cooksSelf === 'Sí',
+                cooks_for_self: ['si', 'sí'].includes((formData.cooksSelf || '').trim().toLowerCase()),
                 meals_per_day: formData.mealsPerDay,
                 meal_schedules: formData.mealSchedules,
                 weigh_food_preference: formData.weighFoodPreference,
