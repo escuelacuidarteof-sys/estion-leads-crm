@@ -133,6 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       'renewals': 'ventas',
       'support-tickets': 'seguimiento',
       'coach-tasks': 'seguimiento',
+      'coach-manual': 'seguimiento',
       'leads': 'ventas',
       'payment-links': 'ventas',
       'new-sale': 'ventas',
@@ -418,6 +419,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   )}
                 <NavItem view="support-tickets" icon={MessageCircle} label="Soporte & Tickets" />
                 <NavItem view="coach-tasks" icon={Activity} label="Mis Tareas" />
+                {(isCoach || isHeadCoach || isAdmin) && (
+                  <NavItem view="coach-manual" icon={ClipboardList} label="Manual Interno Coach" />
+                )}
               </MenuSection>
 
               {/* 2. VENTAS (Solo ventas y admin, coaches solo ven renovaciones) */}
@@ -687,6 +691,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   )}
                 <NavItem view="support-tickets" icon={MessageCircle} label="Soporte & Tickets" />
                 <NavItem view="coach-tasks" icon={Activity} label="Mis Tareas" />
+                {(isCoach || isHeadCoach || isAdmin) && (
+                  <NavItem view="coach-manual" icon={ClipboardList} label="Manual Interno Coach" />
+                )}
               </MenuSection>
 
               {/* 2. VENTAS (Solo ventas y admin, coaches solo ven renovaciones) */}
