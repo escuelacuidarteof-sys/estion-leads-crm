@@ -64,6 +64,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [newWeight, setNewWeight] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
+    const [showFullPlan, setShowFullPlan] = useState(false);
+    const [showFullAssessment, setShowFullAssessment] = useState(false);
 
     // Today's Tasks & Weekly Calendar
     const [todayProgramDay, setTodayProgramDay] = useState<any | null>(null);
@@ -922,14 +924,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         const initialAssessmentSnippet = compact(cAny.onboarding_initial_assessment, 220);
 
         return (
-            <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-6 shadow-sm">
+            <div className="space-y-4 sm:space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-5 sm:p-6 shadow-sm">
                     <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-brand-green/10 blur-2xl" />
                     <div className="absolute -bottom-10 -left-8 w-40 h-40 rounded-full bg-brand-gold/10 blur-2xl" />
                     <div className="relative z-10 flex items-start justify-between gap-4">
                         <div>
                             <p className="text-[11px] font-black uppercase tracking-widest text-brand-green">{greeting}</p>
-                            <h2 className="text-2xl md:text-3xl font-heading font-black text-brand-dark mt-1">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
+                            <h2 className="text-[1.65rem] sm:text-3xl font-heading font-black text-brand-dark mt-1 leading-tight">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
                             <p className="text-sm text-slate-600 mt-2">{warmthLine}</p>
                         </div>
                         {nextAppt && (
@@ -942,12 +944,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Inicio rápido</p>
-                    <h2 className="text-2xl font-heading font-black text-brand-dark">¿Qué quieres hacer hoy, {client.firstName || 'cliente'}?</h2>
-                    <p className="text-sm text-slate-600 mt-1">Accesos directos para lo más importante de tu proceso.</p>
+                <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
+                    <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Qué quieres hacer hoy</h2>
+                    <p className="text-sm text-slate-600 mt-1">Elige una acción y seguimos contigo paso a paso.</p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-4 sm:mt-5">
                         {[
                             { label: 'Hacer check-in semanal', desc: needsCheckin ? 'Recomendado hoy' : 'Disponible', icon: CheckCircle2, action: () => setActiveView('checkin'), tone: 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' },
                             { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
@@ -959,10 +961,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <button
                                 key={label}
                                 onClick={action}
-                                className={`rounded-2xl border p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${tone}`}
+                                className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] min-h-[112px] ${tone}`}
                             >
-                                <Icon className="w-5 h-5 mb-2" />
-                                <p className="text-sm font-black leading-tight">{label}</p>
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-2" />
+                                <p className="text-[1.08rem] sm:text-sm font-black leading-tight">{label}</p>
                                 <p className="text-xs opacity-80 mt-1">{desc}</p>
                             </button>
                         ))}
@@ -973,7 +975,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">Tu plan actual</h3>
-                            <button onClick={() => setActiveTab('program')} className="text-xs font-bold text-brand-green hover:underline">Ver detalle</button>
+                            {(cAny.action_plan_nutrition || cAny.action_plan_habits || cAny.action_plan_training) && (
+                                <button onClick={() => setShowFullPlan(true)} className="text-xs font-bold text-brand-green hover:underline">Ver completo</button>
+                            )}
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
@@ -1009,12 +1013,97 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             )}
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
-                            <p className="text-sm text-slate-700">{initialAssessmentSnippet || 'Aún no hay valoración inicial compartida en portal.'}</p>
-                        </div>
+                        {initialAssessmentSnippet ? (
+                            <button onClick={() => setShowFullAssessment(true)} className="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valoración inicial</p>
+                                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                </div>
+                                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{compact(cAny.onboarding_initial_assessment, 150)}</p>
+                                <p className="text-[10px] font-bold text-indigo-500 mt-2 group-hover:underline">Leer valoración completa</p>
+                            </button>
+                        ) : (
+                            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
+                                <p className="text-sm text-slate-600">Aún no hay valoración inicial compartida en portal.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Modal: Plan completo */}
+                {showFullPlan && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowFullPlan(false)}>
+                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white relative">
+                                <button onClick={() => setShowFullPlan(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full"><X className="w-5 h-5" /></button>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-xl"><FileText className="w-6 h-6" /></div>
+                                    <div>
+                                        <h2 className="text-lg font-black">Tu Plan Actual</h2>
+                                        <p className="text-sm text-white/70">Plan de acción personalizado</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {cAny.action_plan_nutrition && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><Utensils className="w-4 h-4 text-emerald-600" /></div>
+                                            <h3 className="text-sm font-black text-emerald-700 uppercase tracking-wider">Nutrición</h3>
+                                        </div>
+                                        <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-4">
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.action_plan_nutrition}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {cAny.action_plan_habits && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center"><Sparkles className="w-4 h-4 text-amber-600" /></div>
+                                            <h3 className="text-sm font-black text-amber-700 uppercase tracking-wider">Hábitos</h3>
+                                        </div>
+                                        <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-4">
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.action_plan_habits}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {cAny.action_plan_training && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center"><Dumbbell className="w-4 h-4 text-sky-600" /></div>
+                                            <h3 className="text-sm font-black text-sky-700 uppercase tracking-wider">Entrenamiento</h3>
+                                        </div>
+                                        <div className="bg-sky-50/60 border border-sky-200/60 rounded-xl p-4">
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.action_plan_training}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal: Valoración inicial completa */}
+                {showFullAssessment && cAny.onboarding_initial_assessment && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowFullAssessment(false)}>
+                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white relative">
+                                <button onClick={() => setShowFullAssessment(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full"><X className="w-5 h-5" /></button>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-xl"><Stethoscope className="w-6 h-6" /></div>
+                                    <div>
+                                        <h2 className="text-lg font-black">Valoración Inicial</h2>
+                                        <p className="text-sm text-white/70">Resumen de tu caso para el equipo</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.onboarding_initial_assessment}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
