@@ -38,6 +38,7 @@ import { ContractView } from './ContractView';
 import { MedicalReportsView } from './MedicalReportsView';
 import { CycleTrackingView } from './CycleTrackingView';
 import { TrainingView } from './TrainingView';
+import { DiaryView } from './DiaryView';
 
 interface WeightEntry {
     id: string;
@@ -55,7 +56,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const toast = useToast();
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
@@ -748,7 +749,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         </SubViewWrapper>
     );
     if (activeView === 'contract') return (
-        <ContractView client={client} onBack={() => setActiveView('dashboard')} onRefresh={onRefresh} />
+        <ContractView client={client} onBack={() => setActiveView('dashboard')} onRefresh={onRefresh} readOnly />
     );
     if (activeView === 'reports') return (
         <MedicalReportsView
@@ -762,6 +763,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     );
     if (activeView === 'training') return (
         <TrainingView client={client} onBack={() => setActiveView('dashboard')} />
+    );
+    if (activeView === 'diary') return (
+        <DiaryView
+            clientId={client.id}
+            clientName={client.firstName || 'Paciente'}
+            onBack={() => setActiveView('dashboard')}
+        />
     );
 
     // --- HELPERS ---
@@ -896,358 +904,103 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- TAB CONTENT ---
 
-    const HomeTab = () => (
-        <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* === HERO CARD === */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-dark via-[#1a2e1a] to-[#0a140a] p-8 md:p-10 shadow-2xl">
-                <div className="absolute top-0 right-0 w-80 h-80 bg-brand-green/20 blur-[120px] -mr-32 -mt-32 rounded-full pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-mint/10 blur-[100px] -ml-32 -mb-32 rounded-full pointer-events-none" />
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="space-y-4 flex-1">
-                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg mb-2">
-                            <Sparkles className="w-4 h-4 text-brand-mint" />
-                            <span className="text-[11px] text-white font-black uppercase tracking-widest">{oncologyStatus || 'Programa Activo'}</span>
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-heading font-black text-white leading-[1.1]">
-                            {(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; })()}, <br /><span className="text-brand-mint">{client.firstName || 'campeón/a'} 💪</span>
-                        </h2>
-                        {programWeekTotal > 0 && (
-                            <div className="flex flex-col gap-2 mt-6 max-w-sm">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-white font-bold text-sm">Progreso del programa</span>
-                                    <span className="text-brand-mint font-black text-xs">Semana {programWeekCurrent} de {programWeekTotal}</span>
-                                </div>
-                                <div className="h-2.5 bg-white/10 rounded-full overflow-hidden w-full backdrop-blur-md">
-                                    <div className="h-full bg-gradient-to-r from-brand-mint to-brand-green rounded-full shadow-[0_0_10px_rgba(107,160,107,0.5)] transition-all duration-1000" style={{ width: `${programProgress}%` }} />
-                                </div>
-                                {activeContract.startDate && (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-white/50 text-[10px] font-bold">{new Date(activeContract.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                        <span className="text-white/30 text-[10px]">→</span>
-                                        <span className="text-brand-mint/70 text-[10px] font-bold">
-                                            {activeContract.endDate ? new Date(activeContract.endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : activeContract.duration ? new Date(new Date(activeContract.startDate).getTime() + activeContract.duration * 30 * 86400000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col items-center justify-center bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border border-white/10 min-w-[200px] shadow-2xl ring-1 ring-white/5 relative group cursor-default">
-                        <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-3">Valoración Semanal</p>
-                        <div className="relative w-28 h-28 flex items-center justify-center">
-                            <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
-                                <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                                <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={289.02} strokeDashoffset={289.02 * (1 - (energyVal || 0) / 10)} className="text-brand-mint transition-all duration-1000 ease-out" strokeLinecap="round" />
-                            </svg>
-                            <span className="absolute text-4xl font-black text-white">{energyVal !== null ? energyVal : '—'}</span>
-                        </div>
-                        <p className="text-brand-green-dark text-[10px] font-black mt-3 bg-brand-mint px-3 py-1 rounded-full shadow-sm">
-                            {energyVal !== null ? (energyVal >= 7 ? '¡Genial!' : energyVal >= 4 ? 'En progreso' : 'Ánimo 💚') : 'Sin datos aún'}
-                        </p>
-                    </div>
-                </div>
-            </div>
+    const HomeTab = () => {
+        const compact = (value?: string, max = 180) => {
+            const clean = (value || '').replace(/\s+/g, ' ').trim();
+            if (!clean) return '';
+            return clean.length > max ? `${clean.slice(0, max)}...` : clean;
+        };
 
-            {/* === WEEKLY CALENDAR WITH REAL DATES === */}
-            <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-                <div className="flex items-center justify-between mb-4 px-2">
-                    <h3 className="text-lg font-heading font-black text-brand-dark flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-brand-green" /> Tu Semana
-                    </h3>
-                    <div className="flex items-center gap-3">
-                        {calendarData && <span className="text-xs font-bold text-slate-400">Semana {calendarData.week}</span>}
-                        <button onClick={() => setActiveView('training')} className="text-xs font-bold text-brand-green hover:underline transition-all">Ver programa</button>
-                    </div>
-                </div>
+        const initialAssessmentSnippet = compact(cAny.onboarding_initial_assessment, 220);
 
-                {isTodayTasksLoading ? (
-                    <div className="grid grid-cols-7 gap-2">
-                        {Array.from({ length: 7 }).map((_, i) => <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-2xl" />)}
-                    </div>
-                ) : calendarData ? (
-                    <>
-                        <div className="grid grid-cols-7 gap-1.5">
-                            {calendarData.days.map((day) => {
-                                const isSelected = selectedCalendarDay === day.dayNumber;
-                                return (
-                                    <button
-                                        key={day.dayNumber}
-                                        onClick={() => day.hasActivities ? handleCalendarDayClick(day.dayNumber, day.dayData) : undefined}
-                                        className={`relative flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-h-[80px] ${
-                                            isSelected ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30 scale-105' :
-                                            day.isToday ? 'bg-white border-2 border-brand-green shadow-md' :
-                                            day.hasActivities ? 'bg-white border border-slate-200 hover:border-brand-mint hover:shadow-sm' :
-                                            'bg-slate-50 border border-slate-100 opacity-50'
-                                        }`}
-                                    >
-                                        {day.isCompleted && !isSelected && (
-                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-green rounded-full flex items-center justify-center shadow-sm z-10">
-                                                <Check className="w-2.5 h-2.5 text-white" />
-                                            </div>
-                                        )}
-                                        <span className={`text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-white/80' : day.isToday ? 'text-brand-green' : 'text-slate-400'}`}>
-                                            {DAY_NAMES_SHORT[day.date.getDay()]}
-                                        </span>
-                                        <span className={`text-lg font-black ${isSelected ? 'text-white' : day.isToday ? 'text-brand-dark' : 'text-slate-600'}`}>
-                                            {day.date.getDate()}
-                                        </span>
-                                        <div className="flex items-center gap-0.5 min-h-[16px]">
-                                            {day.hasActivities ? (
-                                                day.activities.slice(0, 3).map((act: any, idx: number) => {
-                                                    const meta = ACTIVITY_META_MAP[act.type || 'custom'] || ACTIVITY_META_MAP.custom;
-                                                    const Icon = meta.icon;
-                                                    return <Icon key={idx} className={`w-3 h-3 ${isSelected ? 'text-white/80' : meta.color}`} />;
-                                                })
-                                            ) : (
-                                                <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/40' : 'bg-slate-200'}`} />
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
+        return (
+            <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Inicio rápido</p>
+                    <h2 className="text-2xl font-heading font-black text-brand-dark">¿Qué quieres hacer hoy, {client.firstName || 'cliente'}?</h2>
+                    <p className="text-sm text-slate-600 mt-1">Accesos directos para lo más importante de tu proceso.</p>
 
-                        {/* Expanded day activities */}
-                        {selectedCalendarDay !== null && selectedDayActivities.length > 0 && (
-                            <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {selectedDayActivities.map((activity: any) => {
-                                    const isCompleted = selectedDayActivityLogs.some((l: any) => l.activity_id === activity.id);
-                                    const meta = ACTIVITY_META_MAP[activity.type || 'custom'] || ACTIVITY_META_MAP.custom;
-                                    const Icon = meta.icon;
-                                    return (
-                                        <button
-                                            key={activity.id}
-                                            onClick={() => setActiveView('training')}
-                                            className={`w-full bg-white rounded-2xl p-4 shadow-sm border transition-all hover:shadow-md text-left flex items-center gap-4 ${isCompleted ? 'border-brand-green/30' : 'border-slate-100'}`}
-                                        >
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-brand-green/10' : meta.bg}`}>
-                                                {isCompleted ? <CheckCircle className="w-5 h-5 text-brand-green" /> : <Icon className={`w-5 h-5 ${meta.color}`} />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-brand-dark text-sm">{activity.title || meta.label}</p>
-                                                {activity.description && <p className="text-xs text-slate-400 truncate">{activity.description}</p>}
-                                            </div>
-                                            {isCompleted && <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Hecho</span>}
-                                            <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="bg-white rounded-2xl border border-brand-mint/40 p-8 text-center">
-                        <Calendar className="w-10 h-10 text-brand-mint mx-auto mb-3" />
-                        <p className="text-sm font-bold text-slate-500">Tu programa se asignará pronto</p>
-                        <p className="text-xs text-slate-400 mt-1">Cuando tu coach asigne un programa, verás aquí tu calendario semanal</p>
-                    </div>
-                )}
-            </div>
-
-            {/* === TU ESTADO ACTUAL === */}
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-brand-mint/40 rounded-xl">
-                            <Heart className="w-5 h-5 text-brand-green" />
-                        </div>
-                        <h3 className="text-lg font-black text-brand-dark">Tu estado actual</h3>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {/* Peso */}
-                    <button onClick={() => setActiveTab('health')} className="bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors">
-                        <Scale className="w-5 h-5 text-slate-500 mx-auto mb-2" />
-                        <p className="text-xl font-black text-brand-dark">{latestWeight || '—'}</p>
-                        {weightDelta !== null && (
-                            <div className="flex items-center justify-center gap-1 mt-0.5">
-                                {weightDelta > 0 ? <TrendingUp className="w-3 h-3 text-slate-400" /> : weightDelta < 0 ? <TrendingDown className="w-3 h-3 text-slate-400" /> : null}
-                                <span className="text-[10px] text-slate-400">{weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg</span>
-                            </div>
-                        )}
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Peso</p>
-                    </button>
-
-                    {/* Pasos */}
-                    <button onClick={() => setActiveTab('health')} className="bg-orange-50 rounded-2xl p-4 text-center hover:bg-orange-100 transition-colors">
-                        <Footprints className="w-5 h-5 text-orange-500 mx-auto mb-2" />
-                        <p className="text-xl font-black text-orange-600">{todaySteps !== null ? todaySteps.toLocaleString() : '—'}</p>
-                        <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider mt-1">Pasos hoy</p>
-                    </button>
-
-                    {/* Sueño */}
-                    <div className="bg-blue-50 rounded-2xl p-4 text-center">
-                        <Moon className="w-5 h-5 text-blue-500 mx-auto mb-2" />
-                        {sleepVal !== null ? (
-                            <p className="text-xl font-black text-blue-600">{sleepVal}<span className="text-[10px] opacity-40">/10</span></p>
-                        ) : (
-                            <button onClick={() => setActiveView('checkin')} className="text-xs font-bold text-blue-500 hover:underline">Registrar</button>
-                        )}
-                        <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mt-1">Sueño</p>
-                    </div>
-
-                    {/* Energía */}
-                    <div className="bg-emerald-50 rounded-2xl p-4 text-center">
-                        <Zap className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
-                        {fatigueVal !== null ? (
-                            <p className="text-xl font-black text-emerald-600">{10 - fatigueVal}<span className="text-[10px] opacity-40">/10</span></p>
-                        ) : (
-                            <button onClick={() => setActiveView('checkin')} className="text-xs font-bold text-emerald-500 hover:underline">Registrar</button>
-                        )}
-                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1">Energía</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* === WEEKLY PROGRESS === */}
-            {weeklyStats && weeklyStats.total > 0 && (
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-5 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-3xl bg-brand-mint/30 flex items-center justify-center flex-shrink-0">
-                        <Target className="w-7 h-7 text-brand-green" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-black text-brand-dark text-sm">
-                            Semana {weeklyStats.week}: {weeklyStats.completed} de {weeklyStats.total} actividades
-                        </p>
-                        <div className="h-2.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-brand-mint to-brand-green rounded-full transition-all duration-700" style={{ width: `${weeklyStats.total > 0 ? (weeklyStats.completed / weeklyStats.total) * 100 : 0}%` }} />
-                        </div>
-                        {weeklyStats.completed === weeklyStats.total && (
-                            <p className="text-xs text-brand-green mt-1.5 font-bold">¡Semana completada! Genial 💚</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* === OBJECTIVES === */}
-            {(clientGoals.goal_3_months || clientGoals.goal_6_months || clientGoals.goal_1_year) && (
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-amber-50 rounded-xl">
-                            <Target className="w-5 h-5 text-amber-500" />
-                        </div>
-                        <h3 className="text-lg font-black text-brand-dark">Tus Objetivos</h3>
-                    </div>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-5">
                         {[
-                            { label: '3 meses', text: clientGoals.goal_3_months, status: clientGoals.goal_3_months_status },
-                            { label: '6 meses', text: clientGoals.goal_6_months, status: clientGoals.goal_6_months_status },
-                            { label: '1 año', text: clientGoals.goal_1_year, status: clientGoals.goal_1_year_status },
-                        ].filter(g => g.text).map((goal) => (
-                            <div key={goal.label} className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl">
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${goal.status === 'achieved' ? 'bg-green-100' : goal.status === 'failed' ? 'bg-red-100' : 'bg-amber-100'}`}>
-                                    {goal.status === 'achieved' ? <CheckCircle className="w-4 h-4 text-green-600" /> :
-                                     goal.status === 'failed' ? <X className="w-4 h-4 text-red-500" /> :
-                                     <Hourglass className="w-4 h-4 text-amber-500" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{goal.label}</p>
-                                    <p className="text-sm text-brand-dark font-medium mt-0.5">{goal.text}</p>
-                                </div>
-                            </div>
+                            { label: 'Hacer check-in semanal', desc: needsCheckin ? 'Recomendado hoy' : 'Disponible', icon: CheckCircle2, action: () => setActiveView('checkin'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                            { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
+                            { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
+                            { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
+                            { label: 'Entrenamiento de hoy', desc: 'Programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
+                            { label: 'Materiales de apoyo', desc: 'Recursos de tu equipo', icon: FileHeart, action: () => setActiveView('materials'), tone: 'bg-slate-50 border-slate-200 text-slate-800' }
+                        ].map(({ label, desc, icon: Icon, action, tone }) => (
+                            <button
+                                key={label}
+                                onClick={action}
+                                className={`rounded-2xl border p-4 text-left transition-all hover:shadow-sm active:scale-[0.98] ${tone}`}
+                            >
+                                <Icon className="w-5 h-5 mb-2" />
+                                <p className="text-sm font-black leading-tight">{label}</p>
+                                <p className="text-xs opacity-80 mt-1">{desc}</p>
+                            </button>
                         ))}
                     </div>
                 </div>
-            )}
 
-            {/* === COACH COMPACT === */}
-            {coachData && (
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-5 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shadow-lg flex-shrink-0">
-                        {coachData.photo_url ? (
-                            <img src={coachData.photo_url} className="w-full h-full object-cover" alt={coachData.name} />
-                        ) : (
-                            <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300 font-heading text-xl">{(coachData.name || '?')[0]}</div>
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-black text-brand-dark text-sm truncate">{coachData.name}</p>
-                        <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">{coachData.specialty || 'Tu Mentor'}</p>
-                        {cAny.weeklyCoachMessage && (
-                            <p className="text-xs text-slate-500 italic mt-1 line-clamp-2">"{cAny.weeklyCoachMessage}"</p>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        {coachData.calendar_url && (
-                            <a href={coachData.calendar_url} target="_blank" rel="noopener noreferrer" className="bg-brand-dark text-white px-4 py-2.5 rounded-xl text-[11px] font-black hover:bg-black transition-all whitespace-nowrap">Reservar</a>
-                        )}
-                        {coachData.instagram && (
-                            <a href={`https://instagram.com/${coachData.instagram}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-50 text-pink-600 border border-pink-100"><Instagram className="w-4 h-4" /></a>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* === NEXT APPOINTMENT === */}
-            {nextAppt && apptLabel && (
-                <div className="bg-gradient-to-br from-slate-50 to-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-8 rotate-12 opacity-[0.03] group-hover:rotate-0 transition-transform duration-700">
-                        <Calendar className="w-32 h-32 text-brand-dark" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-gold/20">Próxima Sesión</div>
-                            <span className="text-xs font-black text-brand-gold">{apptLabel}</span>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">Tu plan actual</h3>
+                            <button onClick={() => setActiveTab('program')} className="text-xs font-bold text-brand-green hover:underline">Ver detalle</button>
                         </div>
-                        <h4 className="text-xl font-black text-brand-dark mb-1">Consulta Médica</h4>
-                        <p className="text-slate-500 text-sm mb-4">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} {nextAppt.time && `· ${nextAppt.time}`}</p>
-                        {nextAppt.videoUrl && (
-                            <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-dark text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg shadow-black/10">
-                                <Video className="w-4 h-4" /> Unirme a la videollamada
-                            </a>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* === PRIORITY ACTIONS === */}
-            {(hasRenewal || hasNewReviews || needsCheckin) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {hasRenewal && (
-                        <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-[2rem] p-5 flex items-center gap-4 shadow-xl shadow-amber-500/20">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0"><Award className="w-6 h-6 text-white" /></div>
-                            <div className="flex-1">
-                                <p className="text-white font-black text-sm">Nueva Etapa</p>
-                                <p className="text-white/80 text-xs">Renovación disponible</p>
+                        <div className="space-y-3 text-sm">
+                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
+                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_nutrition, 220) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
                             </div>
-                            <button onClick={() => setActiveTab('profile')} className="bg-white text-amber-600 font-black px-4 py-2 rounded-xl text-xs">Ver</button>
-                        </div>
-                    )}
-                    {hasNewReviews && (
-                        <div className="bg-gradient-to-br from-brand-green to-[#2DA061] rounded-[2rem] p-5 flex items-center gap-4 shadow-xl shadow-brand-green/20">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0"><MessageCircle className="w-6 h-6 text-white" /></div>
-                            <div className="flex-1">
-                                <p className="text-white font-black text-sm">Nueva Revisión</p>
-                                <p className="text-white/80 text-xs">Feedback listo</p>
+                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
+                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_habits, 220) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
                             </div>
-                            <button onClick={() => setActiveView('reviews')} className="bg-white text-brand-green-dark font-black px-4 py-2 rounded-xl text-xs">Ver</button>
-                        </div>
-                    )}
-                    {needsCheckin && (
-                        <div className="bg-white rounded-[2rem] p-5 border-2 border-brand-mint flex items-center gap-4 shadow-xl">
-                            <div className="w-12 h-12 bg-brand-mint text-brand-green rounded-2xl flex items-center justify-center flex-shrink-0"><Calendar className="w-6 h-6" /></div>
-                            <div className="flex-1">
-                                <p className="text-brand-dark font-black text-sm">Check-in Semanal</p>
-                                <p className="text-slate-500 text-xs">Cuéntanos cómo vas</p>
+                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
+                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_training, 220) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
                             </div>
-                            <button onClick={() => setActiveView('checkin')} className="bg-brand-green text-white font-black px-4 py-2 rounded-xl text-xs">Ir</button>
                         </div>
-                    )}
-                </div>
-            )}
+                    </div>
 
-            {/* === ANNOUNCEMENTS === */}
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
-                    <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
-                    <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+                    <div className="space-y-4">
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Próxima revisión</p>
+                            {nextAppt ? (
+                                <>
+                                    <p className="text-sm font-bold text-brand-dark">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{nextAppt.time ? `${nextAppt.time}h` : 'Hora pendiente'} {apptLabel ? `· ${apptLabel}` : ''}</p>
+                                    {nextAppt.videoUrl && (
+                                        <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold px-3 py-2 rounded-lg bg-brand-dark text-white hover:bg-black">
+                                            <Video className="w-3.5 h-3.5" /> Unirme
+                                        </a>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm text-slate-600">Tu equipo te avisará cuando esté programada.</p>
+                            )}
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
+                            <p className="text-sm text-slate-700">{initialAssessmentSnippet || 'Aún no hay valoración inicial compartida en portal.'}</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-2">
-                    <ClientAnnouncements clientId={client.id} coachId={client.coach_id} inline />
+
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
+                        <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+                    </div>
+                    <div className="p-2">
+                        <ClientAnnouncements clientId={client.id} coachId={client.coach_id} inline />
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const HealthTab = () => (
         <div className="space-y-4 pb-2">
@@ -1267,12 +1020,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             )}
                         </div>
                     </div>
-                    <button
-                        onClick={() => setIsWeightModalOpen(true)}
-                        className="flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-mint/40 px-3 py-2 rounded-xl hover:bg-brand-mint transition-colors"
-                    >
-                        <Scale className="w-3.5 h-3.5" /> Registrar
-                    </button>
+                    <div className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl">
+                        Solo lectura
+                    </div>
                 </div>
                 {displayTargetWeight && latestWeight && (
                     <div>
@@ -1322,37 +1072,15 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-brand-green" /> Mis Objetivos</p>
                 <div className="space-y-3">
                     {[
-                        { key: '3m', label: '3 Meses', goal: client.goals?.goal_3_months, color: 'border-brand-green', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700', isEditing: isEditingGoal3, setEditing: setIsEditingGoal3, temp: tempGoal3, setTemp: setTempGoal3, saving: isSavingGoal3, onSave: () => handleGoalSave('3m') },
-                        { key: '6m', label: '6 Meses', goal: client.goals?.goal_6_months, color: 'border-brand-gold', badgeBg: 'bg-amber-50', badgeText: 'text-amber-700', isEditing: isEditingGoal6, setEditing: setIsEditingGoal6, temp: tempGoal6, setTemp: setTempGoal6, saving: isSavingGoal6, onSave: () => handleGoalSave('6m') },
-                        { key: '1y', label: '1 Año', goal: client.goals?.goal_1_year, color: 'border-purple-400', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700', isEditing: isEditingGoal1, setEditing: setIsEditingGoal1, temp: tempGoal1, setTemp: setTempGoal1, saving: isSavingGoal1, onSave: () => handleGoalSave('1y') },
-                    ].map(({ key, label, goal, color, badgeBg, badgeText, isEditing, setEditing, temp, setTemp, saving, onSave }) => (
+                        { key: '3m', label: '3 Meses', goal: client.goals?.goal_3_months, color: 'border-brand-green', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
+                        { key: '6m', label: '6 Meses', goal: client.goals?.goal_6_months, color: 'border-brand-gold', badgeBg: 'bg-amber-50', badgeText: 'text-amber-700' },
+                        { key: '1y', label: '1 Año', goal: client.goals?.goal_1_year, color: 'border-purple-400', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700' },
+                    ].map(({ key, label, goal, color, badgeBg, badgeText }) => (
                         <div key={key} className={`border-l-4 ${color} bg-slate-50/50 rounded-xl p-3`}>
                             <div className="flex items-center justify-between mb-1">
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeBg} ${badgeText}`}>{label}</span>
-                                {!isEditing && (
-                                    <button onClick={() => setEditing(true)} className="text-slate-300 hover:text-slate-500 transition-colors">
-                                        <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
                             </div>
-                            {isEditing ? (
-                                <div className="space-y-2 mt-2">
-                                    <textarea
-                                        className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-green/20 resize-none"
-                                        rows={2}
-                                        value={temp}
-                                        onChange={e => setTemp(e.target.value)}
-                                    />
-                                    <div className="flex gap-2">
-                                        <button onClick={onSave} disabled={saving} className="flex-1 py-1.5 bg-brand-green text-white text-xs font-bold rounded-lg disabled:opacity-50">
-                                            {saving ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Guardar'}
-                                        </button>
-                                        <button onClick={() => setEditing(false)} className="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg">Cancelar</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-600 leading-relaxed">{goal || <span className="text-slate-300 italic">Sin objetivo definido</span>}</p>
-                            )}
+                            <p className="text-sm text-slate-600 leading-relaxed">{goal || <span className="text-slate-300 italic">Sin objetivo definido</span>}</p>
                         </div>
                     ))}
                 </div>
@@ -1527,9 +1255,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 <p className="text-xs text-emerald-700 font-bold">Comprobante enviado — en verificación</p>
                             </div>
                         ) : (
-                            <button onClick={() => setIsPaymentModalOpen(true)} className="w-full py-3 bg-brand-gold text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                                <Upload className="w-4 h-4" /> Subir comprobante de pago
-                            </button>
+                            <div className="w-full py-3 bg-white text-amber-800 font-bold rounded-xl text-sm border border-amber-200 text-center">
+                                Tu equipo te indicará el siguiente paso de renovación.
+                            </div>
                         )}
                     </div>
                 )}

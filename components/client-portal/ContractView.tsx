@@ -11,9 +11,10 @@ interface ContractViewProps {
     client: Client;
     onBack: () => void;
     onRefresh?: () => void;
+    readOnly?: boolean;
 }
 
-export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
+export function ContractView({ client, onBack, onRefresh, readOnly = false }: ContractViewProps) {
     const toast = useToast();
     const [accepted, setAccepted] = useState(false);
     const [healthConsent, setHealthConsent] = useState(false);
@@ -557,7 +558,7 @@ export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
             </div>
 
             {/* Signing Area - Only show if NOT signed */}
-            {!isSigned && (
+            {!isSigned && !readOnly && (
                 <div className="space-y-4">
                     {/* RGPD Consent */}
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
@@ -617,6 +618,13 @@ export function ContractView({ client, onBack, onRefresh }: ContractViewProps) {
                             <p className="text-amber-700 text-xs italic">Debes aceptar ambas casillas para poder firmar el contrato.</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {!isSigned && readOnly && (
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <p className="text-amber-700 text-sm">Este contrato está en modo solo lectura en el portal. Si necesitas firmarlo o actualizar datos, escríbenos y te ayudamos.</p>
                 </div>
             )}
         </div>
