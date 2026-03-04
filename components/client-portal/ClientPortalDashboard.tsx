@@ -1281,15 +1281,21 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </button>
             </div>
 
-            {/* Ciclo hormonal si aplica */}
-            {client.hormonal_status && ['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
+            {/* Ciclo hormonal para todas las mujeres */}
+            {['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
                 <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 border border-pink-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
                     <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                         <Heart className="w-6 h-6 text-pink-500" />
                     </div>
                     <div className="flex-1">
                         <p className="font-black text-pink-900 text-sm">Mi Ciclo</p>
-                        <p className="text-xs text-pink-600">{client.hormonal_status === 'pre_menopausica' ? 'Seguimiento menstrual' : client.hormonal_status === 'perimenopausica' ? 'Seguimiento perimenopáusico' : 'Seguimiento menopáusico'}</p>
+                        <p className="text-xs text-pink-600">
+                            {client.hormonal_status === 'pre_menopausica'
+                                ? 'Seguimiento menstrual'
+                                : client.hormonal_status === 'perimenopausica'
+                                    ? 'Seguimiento perimenopáusico'
+                                    : 'Configura tu situación hormonal'}
+                        </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0" />
                 </button>

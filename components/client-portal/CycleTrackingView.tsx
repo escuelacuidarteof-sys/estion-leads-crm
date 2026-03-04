@@ -68,7 +68,7 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
     const [symptomData, setSymptomData] = useState<SymptomEntry>({ ...defaultSymptoms });
     const [symptomDate, setSymptomDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const hormonalStatus = client.hormonal_status;
+    const [hormonalStatus, setHormonalStatus] = useState<Client['hormonal_status'] | undefined>(client.hormonal_status);
     const cycleLength = client.average_cycle_length || 28;
     const isPreOrPeri = hormonalStatus === 'pre_menopausica' || hormonalStatus === 'perimenopausica';
 
@@ -169,6 +169,24 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
         }
     };
 
+    const handleSelectHormonalStatus = async (status: 'pre_menopausica' | 'perimenopausica') => {
+        setIsSaving(true);
+        try {
+            const { error } = await supabase
+                .from('clientes')
+                .update({ hormonal_status: status })
+                .eq('id', client.id);
+
+            if (error) throw error;
+            setHormonalStatus(status);
+        } catch (e) {
+            console.error('Error updating hormonal status:', e);
+            alert('No se pudo guardar tu situación hormonal. Inténtalo de nuevo.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     // Current phase calculation
     const currentPhase = (() => {
         if (!isPreOrPeri || cycles.length === 0) return null;
@@ -182,6 +200,48 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
+            </div>
+        );
+    }
+
+    if (!hormonalStatus) {
+        return (
+            <div className="max-w-lg mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4">
+                <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold group">
+                    <ChevronRight className="w-5 h-5 rotate-180 group-hover:-translate-x-1 transition-transform" /> Volver al Dashboard
+                </button>
+
+                <div className="bg-white rounded-3xl p-6 shadow-xl border border-pink-100">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-3 bg-pink-50 text-pink-600 rounded-xl"><Heart className="w-6 h-6" /></div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900">Configura tu ciclo</h2>
+                            <p className="text-slate-500 text-sm">Elige tu situación actual para personalizar el seguimiento.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 mt-5">
+                        <button
+                            onClick={() => handleSelectHormonalStatus('pre_menopausica')}
+                            disabled={isSaving}
+                            className="w-full text-left p-4 rounded-2xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 transition-all"
+                        >
+                            <p className="text-sm font-black text-pink-800">Pre-menopáusica</p>
+                            <p className="text-xs text-pink-700 mt-1">Ciclo regular o con menstruación activa.</p>
+                        </button>
+
+                        <button
+                            onClick={() => handleSelectHormonalStatus('perimenopausica')}
+                            disabled={isSaving}
+                            className="w-full text-left p-4 rounded-2xl border-2 border-violet-200 bg-violet-50 hover:bg-violet-100 transition-all"
+                        >
+                            <p className="text-sm font-black text-violet-800">Perimenopáusica</p>
+                            <p className="text-xs text-violet-700 mt-1">Ciclos irregulares y cambios hormonales en transición.</p>
+                        </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 mt-4">Puedes pedir al equipo que actualice este estado más adelante si cambia tu situación.</p>
+                </div>
             </div>
         );
     }
