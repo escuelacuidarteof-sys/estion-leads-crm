@@ -44,7 +44,8 @@ import {
   FolderOpen,
   CheckSquare,
   ClipboardList,
-  Dumbbell
+  Dumbbell,
+  Calculator
 } from 'lucide-react';
 import { StaffAnnouncements } from './StaffAnnouncements';
 import { supabase } from '../services/supabaseClient';
@@ -142,6 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       'food-plans': 'programa',
       'nutrition-management': 'programa',
       'training-management': 'programa',
+      'food-calculator': 'programa',
       'materials-library': 'programa',
       'classes': 'programa',
       'medical-reviews': 'programa',
@@ -467,6 +469,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     {checkPermission(user, PERMISSIONS.ACCESS_NUTRITION) && (
                       <NavItem view="nutrition-management" icon={Apple} label="Planes Nutricionales" />
                     )}
+                    {(isCoach || isAdmin) && (
+                      <NavItem view="food-calculator" icon={Calculator} label="Calculadora Alimentos" />
+                    )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
@@ -738,6 +743,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     <NavItem view="food-plans" icon={FileText} label="Planes Alimentación" />
                     {checkPermission(user, PERMISSIONS.ACCESS_NUTRITION) && (
                       <NavItem view="nutrition-management" icon={Apple} label="Planes Nutricionales" />
+                    )}
+                    {(isCoach || isAdmin) && (
+                      <NavItem view="food-calculator" icon={Calculator} label="Calculadora Alimentos" />
                     )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
