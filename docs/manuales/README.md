@@ -12,7 +12,7 @@ Este espacio concentra la documentacion interna operativa para coaches y perfile
 
 - Vista interna: `Manual Interno Coach`.
 - Ubicacion menu: `Seguimiento de Clientes > Manual Interno Coach`.
-- Roles con acceso: `coach`, `head_coach`, `admin`.
+- Roles con acceso: `coach`, `admin`.
 
 ## Como actualizar estos manuales
 

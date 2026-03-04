@@ -419,7 +419,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   )}
                 <NavItem view="support-tickets" icon={MessageCircle} label="Soporte & Tickets" />
                 <NavItem view="coach-tasks" icon={Activity} label="Mis Tareas" />
-                {(isCoach || isHeadCoach || isAdmin) && (
+                {(isCoach || isAdmin) && (
                   <NavItem view="coach-manual" icon={ClipboardList} label="Manual Interno Coach" />
                 )}
               </MenuSection>
@@ -691,7 +691,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                   )}
                 <NavItem view="support-tickets" icon={MessageCircle} label="Soporte & Tickets" />
                 <NavItem view="coach-tasks" icon={Activity} label="Mis Tareas" />
-                {(isCoach || isHeadCoach || isAdmin) && (
+                {(isCoach || isAdmin) && (
                   <NavItem view="coach-manual" icon={ClipboardList} label="Manual Interno Coach" />
                 )}
               </MenuSection>

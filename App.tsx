@@ -675,7 +675,11 @@ const AppContent: React.FC = () => {
         ) : activeView === 'coach-tasks' ? (
           <StaffPortalView user={user} clients={clients} />
         ) : activeView === 'coach-manual' ? (
-          <CoachManualView user={user} />
+          (normalizeRole(user.role) === 'coach' || normalizeRole(user.role) === 'admin') ? (
+            <CoachManualView user={user} />
+          ) : (
+            <div className="flex items-center justify-center h-screen text-slate-400">Acceso denegado</div>
+          )
         ) : activeView === 'team-announcements' ? (
           <TeamAnnouncementsView user={user} clients={filteredClients} />
         ) : activeView === 'mass-communication' ? (

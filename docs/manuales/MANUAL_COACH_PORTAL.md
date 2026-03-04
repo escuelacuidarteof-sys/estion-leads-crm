@@ -2,7 +2,7 @@
 
 Version: v1.0
 Ultima actualizacion: 2026-03-04
-Audiencia: coach, head_coach, admin
+Audiencia: coach, admin
 
 ## 1) Objetivo del rol coach en el CRM
 
