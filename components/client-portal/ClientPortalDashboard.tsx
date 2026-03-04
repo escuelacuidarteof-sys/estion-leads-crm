@@ -39,6 +39,7 @@ import { MedicalReportsView } from './MedicalReportsView';
 import { CycleTrackingView } from './CycleTrackingView';
 import { TrainingView } from './TrainingView';
 import { DiaryView } from './DiaryView';
+import { TreatmentView } from './TreatmentView';
 
 interface WeightEntry {
     id: string;
@@ -57,7 +58,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary'>('dashboard');
-    const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'consultas' | 'profile'>('home');
+    const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
     const [newWeight, setNewWeight] = useState('');
@@ -1315,6 +1316,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         { id: 'home' as const, label: 'Inicio', icon: Activity },
         { id: 'health' as const, label: 'Mi Salud', icon: Heart },
         { id: 'program' as const, label: 'Programa', icon: BookOpen },
+        { id: 'treatment' as const, label: 'Tratamiento', icon: Pill },
         { id: 'consultas' as const, label: 'Consultas', icon: MessageCircle, badge: unreadReviewsCount + (unreadReportsCount > 0 ? 1 : 0) },
         { id: 'profile' as const, label: 'Perfil', icon: User },
     ];
@@ -1360,13 +1362,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         {activeTab === 'home' && <HomeTab />}
                         {activeTab === 'health' && <HealthTab />}
                         {activeTab === 'program' && <ProgramTab />}
+                        {activeTab === 'treatment' && <TreatmentView clientId={client.id} />}
                         {activeTab === 'consultas' && <ConsultasTab />}
                         {activeTab === 'profile' && <ProfileTab />}
                     </div>
                 </div>
 
                 {/* Bottom Navigation */}
-                <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl z-40 p-2 rounded-3xl flex items-center justify-around">
+                <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl z-40 p-1.5 rounded-3xl flex items-center justify-around">
                     <div className="flex items-center justify-around px-2 py-2">
                         {tabs.map(({ id, label, icon: Icon, badge }) => {
                             const isActive = activeTab === id;
@@ -1374,7 +1377,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 <button
                                     key={id}
                                     onClick={() => setActiveTab(id)}
-                                    className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                                    className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all relative"
                                 >
                                     <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${isActive ? 'bg-brand-mint' : ''} relative`}>
                                         <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`} />

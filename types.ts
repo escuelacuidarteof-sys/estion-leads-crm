@@ -974,3 +974,64 @@ export interface ClientActivityLog {
   data: Record<string, any>;
   created_at?: string;
 }
+
+// ─── Treatment Tracking ───────────────────────────────────────
+
+export type TreatmentType = 'chemotherapy' | 'radiotherapy' | 'hormonotherapy' | 'immunotherapy' | 'surgery' | 'other';
+export type ReviewType = 'routine' | 'scan' | 'blood_work' | 'follow_up' | 'other';
+
+export interface TreatmentSession {
+  id: string;
+  client_id: string;
+  session_date: string;
+  treatment_type: TreatmentType;
+  treatment_name?: string;
+  cycle_number?: number;
+  total_cycles?: number;
+  location?: string;
+  notes?: string;
+  overall_feeling?: number;
+  created_at: string;
+  updated_at?: string;
+  symptoms?: TreatmentSymptomLog[];
+}
+
+export interface TreatmentSymptomLog {
+  id: string;
+  client_id: string;
+  session_id?: string;
+  log_date: string;
+  fatigue: number;
+  nausea: number;
+  vomiting: number;
+  pain: number;
+  diarrhea: number;
+  constipation: number;
+  appetite_loss: number;
+  mouth_sores: number;
+  skin_issues: number;
+  numbness: number;
+  brain_fog: number;
+  mood: number;
+  sleep_quality: number;
+  other_symptoms?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface OncologyReview {
+  id: string;
+  client_id: string;
+  review_date: string;
+  review_type: ReviewType;
+  doctor_name?: string;
+  location?: string;
+  summary?: string;
+  results?: string;
+  next_review_date?: string;
+  next_review_notes?: string;
+  mood_after?: number;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
