@@ -37,6 +37,7 @@ import { generateContractHTML, calculateDaysFromMonths, getMesesList, ContractDa
 import { getContractHistory, saveContractToHistory, deleteContractFromHistory, ContractHistoryRecord } from '../services/contractHistoryService';
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
 import ClientMaterials from './ClientMaterials';
+import { ClientStatusBanner } from './client-detail/ClientStatusBanner';
 
 interface ClientDetailProps {
    client: Client;
@@ -47,7 +48,7 @@ interface ClientDetailProps {
    onViewAsClient?: () => void;
    currentUser?: CRMUser;
    coaches: CRMUser[];
-   initialTab?: 'overview' | 'checkins' | 'health' | 'program' | 'contract' | 'materials';
+   initialTab?: 'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials';
    onDeleteClient?: (clientId: string, userId?: string) => void;
 }
 
@@ -696,7 +697,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    initialTab,
    onDeleteClient
 }) => {
-   const [activeTab, setActiveTab] = useState<'overview' | 'checkins' | 'health' | 'program' | 'contract' | 'materials'>(initialTab || 'overview');
+   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials'>(initialTab || 'overview');
    const [isEditing, setIsEditing] = useState(false);
    const [formData, setFormData] = useState<Client>(client);
    const { toast } = useToast();
@@ -803,6 +804,125 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    };
 
    const coachDisplayName = useMemo(() => getCoachName(formData.coach_id), [formData.coach_id, coaches]);
+
+   const initialAssessmentText = (formData.onboarding_initial_assessment || '').trim();
+   const hasInitialAssessmentData = !!(formData.onboarding_call_url || initialAssessmentText);
+   const assessmentPreview = initialAssessmentText.length > 280
+      ? `${initialAssessmentText.slice(0, 280)}...`
+      : initialAssessmentText;
+
+   const assessmentSections = useMemo(() => {
+      if (!initialAssessmentText) return [] as Array<{ title: string; content: string }>;
+
+      const normalized = initialAssessmentText.replace(/\r\n/g, '\n');
+      const lines = normalized.split('\n');
+      const sections: Array<{ title: string; content: string }> = [];
+      let currentTitle = 'Resumen';
+      let currentContent: string[] = [];
+
+      const flush = () => {
+         if (currentContent.join(' ').trim()) {
+            sections.push({ title: currentTitle, content: currentContent.join('\n').trim() });
+         }
+      };
+
+      for (const rawLine of lines) {
+         const line = rawLine.trim();
+         const isHeading = /^(\d+\)|\d+\.|#+\s)/.test(line) ||
+            /^(Perfil|Cronolog[ií]a|Tratamiento|Situaci[oó]n|Actividad|Alimentaci[oó]n|Suplementaci[oó]n|Dispositivos|Neuropat[ií]a|Necesidades|Observaci[oó]n)/i.test(line);
+
+         if (isHeading) {
+            flush();
+            currentTitle = line.replace(/^#+\s*/, '');
+            currentContent = [];
+         } else {
+            currentContent.push(rawLine);
+         }
+      }
+
+      flush();
+      return sections.length ? sections : [{ title: 'Resumen', content: initialAssessmentText }];
+   }, [initialAssessmentText]);
+
+   const clinicalAlerts = useMemo(() => {
+      const alerts: Array<{ level: 'high' | 'medium'; label: string; value: string }> = [];
+      const medical = formData.medical || {} as any;
+
+      if (medical.bone_risk && medical.bone_risk !== 'ninguno') {
+         alerts.push({ level: 'high', label: 'Riesgo óseo', value: medical.bone_risk });
+      }
+      if (medical.lymphedema && medical.lymphedema !== 'none') {
+         alerts.push({ level: 'medium', label: 'Linfedema', value: medical.lymphedema });
+      }
+      if (medical.venous_access && medical.venous_access !== 'ninguno') {
+         alerts.push({ level: 'medium', label: 'Acceso venoso', value: medical.venous_access });
+      }
+      if (medical.drug_allergies) {
+         alerts.push({ level: 'high', label: 'Alergias fármacos', value: 'Revisar detalle' });
+      }
+      if ((medical.symptom_dyspnea ?? 0) >= 6) {
+         alerts.push({ level: 'high', label: 'Disnea', value: `${medical.symptom_dyspnea}/10` });
+      }
+
+      return alerts;
+   }, [formData.medical]);
+
+   const medicalCompleteness = useMemo(() => {
+      const medical = formData.medical || {} as any;
+      const isFilled = (value: any) => {
+         if (value === null || value === undefined) return false;
+         if (typeof value === 'string') return value.trim().length > 0;
+         if (Array.isArray(value)) return value.length > 0;
+         if (typeof value === 'boolean') return true;
+         return true;
+      };
+
+      const blocks = {
+         oncologia: [
+            ['Estado oncológico', medical.oncology_status || medical.diagnosis],
+            ['Tipo de cáncer', medical.tumor_type],
+            ['Fecha inicio tratamiento', medical.treatment_start_date],
+            ['Tratamientos marcados', [medical.treatment_chemotherapy, medical.treatment_radiotherapy, medical.treatment_hormonotherapy, medical.treatment_immunotherapy, medical.treatment_none].some(Boolean)],
+         ],
+         seguridad: [
+            ['Riesgo óseo', medical.bone_risk],
+            ['Linfedema', medical.lymphedema],
+            ['Acceso venoso', medical.venous_access],
+            ['Neuropatía periférica', medical.peripheral_neuropathy],
+            ['Alergias fármacos', medical.drug_allergies],
+         ],
+         sintomas: [
+            ['Fatiga', medical.symptom_fatigue],
+            ['Dolor', medical.symptom_pain],
+            ['Náusea', medical.symptom_nausea],
+            ['Sueño calidad', medical.symptom_sleep_quality],
+            ['Disnea', medical.symptom_dyspnea],
+            ['Chemo brain', medical.symptom_chemo_brain],
+         ],
+         analiticas: [
+            ['Analítica adjunta', formData.lab_results_url],
+            ['Hemoglobina', medical.lab_hemoglobina],
+            ['Hierro', medical.lab_hierro],
+            ['Glucosa', medical.lab_glucosa],
+            ['Vitamina D', medical.lab_vitamina_d],
+            ['Notas analíticas', medical.lab_otros_notes || medical.lab_otros_notas],
+         ],
+      };
+
+      const calculate = (entries: Array<[string, any]>) => {
+        const filledEntries = entries.filter(([, v]) => isFilled(v));
+        const missing = entries.filter(([, v]) => !isFilled(v)).map(([label]) => label);
+        const percent = Math.round((filledEntries.length / entries.length) * 100);
+        return { percent, missing };
+      };
+
+      return {
+         oncologia: calculate(blocks.oncologia),
+         seguridad: calculate(blocks.seguridad),
+         sintomas: calculate(blocks.sintomas),
+         analiticas: calculate(blocks.analiticas),
+      };
+   }, [formData.medical, formData.lab_results_url]);
 
    // Nutrition Plan Options
    const [nutritionTypes, setNutritionTypes] = useState<string[]>(['Flexible', 'Pescetariano', 'Vegetariano', 'Sin Gluten', 'Sin Lactosa', 'Keto', 'Low Carb', 'Protección Digestiva']);
@@ -2365,9 +2485,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
          {/* ============ PREMIUM HEADER ============ */}
          <div className="relative rounded-2xl mb-6 shadow-xl">
             {/* Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 overflow-hidden rounded-2xl">
-               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 opacity-20 rounded-full blur-3xl -mr-32 -mt-32"></div>
-               <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-indigo-500 opacity-10 rounded-full blur-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#3f6a3f] via-brand-green to-[#6ba06b] overflow-hidden rounded-2xl">
+               <div className="absolute top-0 right-0 w-96 h-96 bg-brand-mint opacity-25 rounded-full blur-3xl -mr-32 -mt-32"></div>
+               <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-brand-gold opacity-20 rounded-full blur-3xl"></div>
             </div>
 
             {/* Header Content */}
@@ -2382,14 +2502,14 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      )}
 
                      {/* Avatar Placeholder */}
-                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-blue-900/30 border-2 border-white/20">
+                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-mint to-brand-green flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-green-900/20 border-2 border-white/20">
                         {client.firstName?.charAt(0)}{client.surname?.charAt(0)}
                      </div>
 
                      <div>
                         <div className="flex items-center gap-3 flex-wrap">
                            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                              {client.firstName} <span className="text-blue-200">{client.surname}</span>
+                              {client.firstName} <span className="text-brand-mint">{client.surname}</span>
                            </h1>
                            <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase shadow-sm ${client.status === ClientStatus.ACTIVE ? 'bg-emerald-500 text-white' :
                               client.status === ClientStatus.PAUSED ? 'bg-amber-500 text-white' :
@@ -2399,7 +2519,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               {getStatusLabel(client.status)}
                            </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-blue-100">
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-emerald-50">
                            <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
                               <User className="w-3.5 h-3.5" /> {client.age} años
                            </span>
@@ -2408,7 +2528,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  <MapPin className="w-3.5 h-3.5" /> {client.city}
                               </span>
                            )}
-                           <span className="flex items-center gap-1.5 bg-blue-500/30 px-2.5 py-1 rounded-lg font-medium">
+                           <span className="flex items-center gap-1.5 bg-emerald-700/30 px-2.5 py-1 rounded-lg font-medium">
                               <Briefcase className="w-3.5 h-3.5" /> Coach: {coachDisplayName || client.coach_id || 'Sin Asignar'}
                            </span>
                            {client.allow_endocrine_access && (
@@ -2477,9 +2597,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 text-white text-sm font-medium transition-all">
                                  <X className="w-4 h-4" /> Cancelar
                               </button>
-                              <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 text-sm font-medium shadow-lg shadow-blue-900/30 transition-all disabled:opacity-50">
-                                 <Save className="w-4 h-4" /> {isSaving ? 'Guardando...' : 'Guardar'}
-                              </button>
+                               <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-brand-green to-[#558055] text-white rounded-xl hover:from-[#5a8f5a] hover:to-[#4c764c] text-sm font-medium shadow-lg shadow-green-900/20 transition-all disabled:opacity-50">
+                                  <Save className="w-4 h-4" /> {isSaving ? 'Guardando...' : 'Guardar'}
+                               </button>
                            </>
                         )}
                      </div>
@@ -2489,18 +2609,18 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                {/* ============ QUICK STATS CARDS ============ */}
                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                   {/* Weight Card */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/15 transition-all group">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/30 transition-all group">
                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-blue-200 uppercase tracking-wide">Peso</span>
+                        <span className="text-xs font-bold text-emerald-50 uppercase tracking-wide">Peso</span>
                         {weightChange < 0 && <TrendingDown className="w-4 h-4 text-emerald-400" />}
                         {weightChange > 0 && <TrendingUp className="w-4 h-4 text-red-400" />}
                      </div>
                      <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-white">{formData.current_weight || '--'}</span>
-                        <span className="text-blue-200 text-sm">kg</span>
+                        <span className="text-emerald-50/90 text-sm">kg</span>
                      </div>
                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-blue-300">Objetivo: {formData.target_weight || '--'}kg</span>
+                         <span className="text-xs text-emerald-50/80">Objetivo: {formData.target_weight || '--'}kg</span>
                         {weightChange !== 0 && (
                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${weightChange < 0 ? 'bg-emerald-500/30 text-emerald-300' : 'bg-red-500/30 text-red-300'}`}>
                               {weightChange > 0 ? '+' : ''}{weightChange}kg
@@ -2510,8 +2630,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                   </div>
 
                   {/* Progress Card */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/15 transition-all group">
-                     <span className="text-xs font-bold text-blue-200 uppercase tracking-wide">Progreso</span>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/30 transition-all group">
+                     <span className="text-xs font-bold text-emerald-50 uppercase tracking-wide">Progreso</span>
                      <div className="flex items-center gap-3 mt-2">
                         <div className="relative w-14 h-14">
                            <svg className="w-14 h-14 transform -rotate-90">
@@ -2535,14 +2655,14 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         </div>
                         <div>
                            <p className="text-white font-medium">Hacia tu meta</p>
-                           <p className="text-xs text-blue-300">{formData.target_weight ? `${Math.abs((formData.current_weight || 0) - formData.target_weight).toFixed(1)}kg restantes` : 'Sin objetivo'}</p>
+                            <p className="text-xs text-emerald-50/80">{formData.target_weight ? `${Math.abs((formData.current_weight || 0) - formData.target_weight).toFixed(1)}kg restantes` : 'Sin objetivo'}</p>
                         </div>
                      </div>
                   </div>
 
                   {/* Contract Card */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/15 transition-all group">
-                     <span className="text-xs font-bold text-blue-200 uppercase tracking-wide">Contrato</span>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/30 transition-all group">
+                     <span className="text-xs font-bold text-emerald-50 uppercase tracking-wide">Contrato</span>
                      {(() => {
                         const endDate = adjustedEndDate || formData.contract_end_date;
                         if (!endDate) return <p className="text-white text-2xl font-bold mt-2">--</p>;
@@ -2552,7 +2672,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            <>
                               <div className="flex items-baseline gap-1 mt-2">
                                  <span className={`text-3xl font-bold ${isUrgent ? 'text-amber-400' : 'text-white'}`}>{daysLeft > 0 ? daysLeft : 0}</span>
-                                 <span className="text-blue-200 text-sm">días</span>
+                                 <span className="text-emerald-50/90 text-sm">días</span>
                               </div>
                               <div className="w-full bg-white/20 rounded-full h-2 mt-2 overflow-hidden">
                                  <div
@@ -2560,7 +2680,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     style={{ width: `${Math.min(contractProgress, 100)}%` }}
                                  ></div>
                               </div>
-                              <p className="text-xs text-blue-300 mt-1">Hasta {new Date(endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                               <p className="text-xs text-emerald-50/80 mt-1">Hasta {new Date(endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
                               {pausedDays > 0 && <p className="text-xs text-amber-400">+{pausedDays} días por pausas</p>}
                            </>
                         );
@@ -2568,15 +2688,15 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                   </div>
 
                   {/* Wellness Card */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/15 transition-all group">
-                     <span className="text-xs font-bold text-blue-200 uppercase tracking-wide">Bienestar</span>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/30 transition-all group">
+                     <span className="text-xs font-bold text-emerald-50 uppercase tracking-wide">Bienestar</span>
                      <div className="flex items-center gap-3 mt-2">
                         <span className="text-4xl">😊</span>
                         <div>
                            <p className="text-white font-medium">Estado Actual</p>
                            <div className="flex gap-2 mt-1">
                               <span className="text-xs bg-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full">Energía 4/5</span>
-                              <span className="text-xs bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full">Sueño 3/5</span>
+                               <span className="text-xs bg-emerald-700/30 text-emerald-100 px-2 py-0.5 rounded-full">Sueño 3/5</span>
                            </div>
                         </div>
                      </div>
@@ -2588,11 +2708,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
          {/* ============ SIMPLIFIED TABS (4 instead of 9) ============ */}
          <div className="bg-transparent mb-8 overflow-x-auto pb-4 no-scrollbar">
             <div className="flex gap-3 min-w-max px-2">
-               <TabButton id="overview" label="Vista Rápida" icon={<Zap className="w-4 h-4" />} isActive={activeTab === 'overview'} onClick={setActiveTab} />
-               <TabButton id="checkins" label="Check-ins" icon={<CalendarCheck className="w-4 h-4" />} isActive={activeTab === 'checkins'} onClick={setActiveTab} />
-               <TabButton id="health" label="Salud" icon={<HeartPulse className="w-4 h-4" />} isActive={activeTab === 'health'} onClick={setActiveTab} />
-               <TabButton id="program" label="Programa" icon={<Target className="w-4 h-4" />} isActive={activeTab === 'program'} onClick={setActiveTab} />
-               <TabButton id="materials" label="Materiales" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'materials'} onClick={setActiveTab} />
+               <TabButton id="overview" label="Resumen Clínico" icon={<Zap className="w-4 h-4" />} isActive={activeTab === 'overview'} onClick={setActiveTab} />
+               <TabButton id="assessment" label="Valoración Inicial" icon={<FileCheck className="w-4 h-4" />} isActive={activeTab === 'assessment'} onClick={setActiveTab} />
+               <TabButton id="checkins" label="Evolución" icon={<CalendarCheck className="w-4 h-4" />} isActive={activeTab === 'checkins'} onClick={setActiveTab} />
+               <TabButton id="health" label="Salud Detallada" icon={<HeartPulse className="w-4 h-4" />} isActive={activeTab === 'health'} onClick={setActiveTab} />
+               <TabButton id="program" label="Plan Terapéutico" icon={<Target className="w-4 h-4" />} isActive={activeTab === 'program'} onClick={setActiveTab} />
+               <TabButton id="materials" label="Documentos" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'materials'} onClick={setActiveTab} />
                <TabButton id="contract" label="Contrato" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'contract'} onClick={setActiveTab} />
             </div>
          </div>
@@ -2608,97 +2729,96 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                      {/* ===== BANNER DE ESTADO ===== */}
-                     {(() => {
-                        // Determine client status
-                        const missedCount = client.missed_checkins_count || 0;
-                        const isContractUrgent = daysRemaining !== null && daysRemaining < 15;
-                        const isContractWarning = daysRemaining !== null && daysRemaining < 30 && daysRemaining >= 15;
-                        const isCheckinUrgent = missedCount >= 3;
-                        const isCheckinWarning = missedCount >= 1 && missedCount < 3;
+                     <ClientStatusBanner
+                        daysRemaining={daysRemaining}
+                        missedCheckins={client.missed_checkins_count || 0}
+                     />
 
-                        const isUrgent = isContractUrgent || isCheckinUrgent;
-                        const isWarning = !isUrgent && (isContractWarning || isCheckinWarning);
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                           <div className="flex items-center gap-2 mb-3">
+                              <ShieldAlert className="w-4 h-4 text-rose-500" />
+                              <p className="text-sm font-bold text-slate-700">Datos críticos de seguridad</p>
+                           </div>
+                           {clinicalAlerts.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                 {clinicalAlerts.map((alert, idx) => (
+                                    <span
+                                       key={`${alert.label}-${idx}`}
+                                       className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${alert.level === 'high'
+                                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                                          }`}
+                                    >
+                                       {alert.label}: {alert.value}
+                                    </span>
+                                 ))}
+                              </div>
+                           ) : (
+                              <p className="text-sm text-slate-500">Sin alertas críticas registradas. Revisa Salud Detallada para validar datos clínicos completos.</p>
+                           )}
+                        </div>
 
-                        // Build status message
-                        let statusMessages: string[] = [];
-                        if (isContractUrgent) statusMessages.push(`Contrato vence en ${daysRemaining} días`);
-                        else if (isContractWarning) statusMessages.push(`${daysRemaining} días restantes de contrato`);
-                        if (isCheckinUrgent) statusMessages.push(`${missedCount} check-ins sin enviar`);
-                        else if (isCheckinWarning) statusMessages.push(`${missedCount} check-in${missedCount > 1 ? 's' : ''} sin enviar`);
+                        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm xl:sticky xl:top-6">
+                           <p className="text-sm font-bold text-slate-700 mb-3">Panel operativo</p>
+                           <div className="space-y-2">
+                              <button onClick={() => setActiveTab('assessment')} className="w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100">Abrir valoración inicial</button>
+                              <button onClick={() => { setActiveTab('health'); setHealthSubTab('medical'); }} className="w-full text-left px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100">Ver bloque médico</button>
+                              <button onClick={() => setActiveTab('checkins')} className="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100">Ver evolución y check-ins</button>
+                           </div>
 
-                        const statusText = statusMessages.length > 0 ? statusMessages.join(' • ') : 'Todo en orden';
-
-                        return (
-                           <div className={`rounded-2xl p-4 border-2 flex items-center gap-4 ${isUrgent
-                              ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200'
-                              : isWarning
-                                 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
-                                 : 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200'
-                              }`}>
-                              <div className={`p-3 rounded-xl ${isUrgent ? 'bg-red-100' : isWarning ? 'bg-amber-100' : 'bg-emerald-100'
-                                 }`}>
-                                 {isUrgent ? (
-                                    <AlertOctagon className="w-6 h-6 text-red-600" />
-                                 ) : isWarning ? (
-                                    <AlertCircle className="w-6 h-6 text-amber-600" />
-                                 ) : (
-                                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                           <div className="mt-4 pt-4 border-t border-slate-100">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contacto rápido</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                 {formData.phone && (
+                                    <a
+                                       href={`https://wa.me/${formData.phone?.replace(/[^0-9]/g, '').replace(/^(?!34)/, '34')}`}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-semibold hover:bg-green-100"
+                                    >
+                                       <Send className="w-3.5 h-3.5" /> WhatsApp
+                                    </a>
+                                 )}
+                                 {formData.phone && (
+                                    <a
+                                       href={`tel:${formData.phone}`}
+                                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100"
+                                    >
+                                       <Phone className="w-3.5 h-3.5" /> Llamar
+                                    </a>
+                                 )}
+                                 {formData.phone && (
+                                    <a
+                                       href={`https://t.me/${formData.phone?.replace(/[^0-9]/g, '').replace(/^(?!34)/, '34')}`}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-700 text-xs font-semibold hover:bg-sky-100"
+                                    >
+                                       <MessageCircle className="w-3.5 h-3.5" /> Telegram
+                                    </a>
+                                 )}
+                                 {onViewAsClient && (
+                                    <button
+                                       onClick={onViewAsClient}
+                                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold hover:bg-purple-100"
+                                    >
+                                       <Eye className="w-3.5 h-3.5" /> Portal
+                                    </button>
                                  )}
                               </div>
-                              <div className="flex-1">
-                                 <p className={`text-xs font-bold uppercase tracking-wider ${isUrgent ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-emerald-600'
-                                    }`}>
-                                    {isUrgent ? 'Requiere Atención' : isWarning ? 'Atención' : 'Estado'}
-                                 </p>
-                                 <p className={`font-semibold ${isUrgent ? 'text-red-800' : isWarning ? 'text-amber-800' : 'text-emerald-800'
-                                    }`}>
-                                    {statusText}
-                                 </p>
-                              </div>
                            </div>
-                        );
-                     })()}
 
-                     {/* ===== GESTIÓN RÁPIDA DE ESTADO (Backup) ===== */}
-                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 rounded-lg bg-slate-200">
-                              <Activity className="w-5 h-5 text-slate-600" />
+                           <div className="mt-4 pt-4 border-t border-slate-100">
+                              <DataField
+                                 label="Mensaje para cliente (portal)"
+                                 value={formData.coach_message}
+                                 path="coach_message"
+                                 isTextArea
+                                 isEditing={isEditing}
+                                 onUpdate={updateField}
+                              />
                            </div>
-                           <div>
-                              <h3 className="text-sm font-bold text-slate-700">Cambiar estado del cliente</h3>
-                              <p className="text-xs text-slate-500">Usa estos botones si el menú superior no es accesible</p>
-                           </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                           {client.status !== ClientStatus.ACTIVE && (
-                              <button
-                                 onClick={() => client.status === ClientStatus.PAUSED ? handleReactivateClient() : onUpdateStatus(client.id, ClientStatus.ACTIVE)}
-                                 className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-bold hover:bg-emerald-200 transition-all flex items-center gap-2 border border-emerald-200"
-                              >
-                                 <Play className="w-4 h-4" /> Activar
-                              </button>
-                           )}
-                           {client.status === ClientStatus.ACTIVE && (
-                              <button
-                                 onClick={() => setIsPauseModalOpen(true)}
-                                 className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-200 transition-all flex items-center gap-2 border border-amber-200"
-                              >
-                                 <PauseCircle className="w-4 h-4" /> Pausar
-                              </button>
-                           )}
-                           <button
-                              onClick={() => openStatusModal(ClientStatus.DROPOUT)}
-                              className="px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm font-bold hover:bg-rose-200 transition-all flex items-center gap-2 border border-rose-200"
-                           >
-                              <UserX className="w-4 h-4" /> Abandono
-                           </button>
-                           <button
-                              onClick={() => openStatusModal(ClientStatus.INACTIVE)}
-                              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all flex items-center gap-2 border border-slate-300"
-                           >
-                              <XCircle className="w-4 h-4" /> Dar de Baja
-                           </button>
                         </div>
                      </div>
 
@@ -2866,55 +2986,25 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                            <div>
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valoración inicial</p>
-                              <h3 className="text-lg font-bold text-slate-800">Llamada y resumen clínico-funcional</h3>
+                              <h3 className="text-lg font-bold text-slate-800">Lectura clínica centralizada</h3>
                            </div>
-                           {formData.onboarding_call_url ? (
-                              <a
-                                 href={formData.onboarding_call_url}
-                                 target="_blank"
-                                 rel="noopener noreferrer"
-                                 className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
-                              >
-                                 <Video className="w-4 h-4" /> Abrir llamada inicial
-                              </a>
-                           ) : (
-                              <span className="text-xs text-slate-400">Sin URL de llamada registrada</span>
-                           )}
+                           <button
+                              onClick={() => setActiveTab('assessment')}
+                              className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                           >
+                              <FileCheck className="w-4 h-4" /> Abrir pestaña de valoración
+                           </button>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                           <DataField
-                              label="URL llamada inicial"
-                              value={formData.onboarding_call_url}
-                              path="onboarding_call_url"
-                              isEditing={isEditing}
-                              onUpdate={updateField}
-                              onChange={(val) => {
-                                 updateField('onboarding_call_url', val);
-                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                              }}
-                           />
+                           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 leading-relaxed min-h-[96px]">
+                              {assessmentPreview || 'Todavía no hay resumen de valoración inicial.'}
+                           </div>
                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                              <p><span className="font-semibold">Llamada:</span> {formData.onboarding_call_url ? 'Registrada' : 'Sin URL'}</p>
                               <p><span className="font-semibold">Última actualización:</span> {formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
                               <p><span className="font-semibold">Actualizado por:</span> {formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
                            </div>
-                        </div>
-
-                        <div className="mt-4">
-                           <DataField
-                              label="Valoración inicial (resumen oncología)"
-                              value={formData.onboarding_initial_assessment}
-                              path="onboarding_initial_assessment"
-                              isTextArea
-                              isEditing={isEditing}
-                              onUpdate={updateField}
-                              onChange={(val) => {
-                                 updateField('onboarding_initial_assessment', val);
-                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                              }}
-                           />
                         </div>
                      </div>
 
@@ -3026,91 +3116,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         </div>
                      </details>
 
-                     {/* ===== ACCIONES RÁPIDAS (iconos pequeños) ===== */}
-                     <div className="flex items-center justify-center gap-2 pt-2">
-                        <span className="text-xs text-slate-400 mr-2">Contactar:</span>
-
-                        {/* WhatsApp */}
-                        {formData.phone && (
-                           <a
-                              href={`https://wa.me/${formData.phone?.replace(/[^0-9]/g, '').replace(/^(?!34)/, '34')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                              title="WhatsApp"
-                           >
-                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                           </a>
-                        )}
-
-                        {/* Telegram */}
-                        {formData.telegram_group_id && (
-                           <a
-                              href={(() => {
-                                 if (formData.telegram_group_id?.startsWith('-100')) {
-                                    const pureId = formData.telegram_group_id.replace('-100', '');
-                                    return `https://t.me/c/${pureId}/1`;
-                                 }
-                                 return `https://t.me/${formData.telegram_group_id}`;
-                              })()}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                              title="Telegram"
-                           >
-                              <Send className="w-5 h-5" />
-                           </a>
-                        )}
-
-                        {/* Ver Portal */}
-                        {onViewAsClient && (
-                           <button
-                              onClick={onViewAsClient}
-                              className="p-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                              title="Ver Portal del Cliente"
-                           >
-                              <Eye className="w-5 h-5" />
-                           </button>
-                        )}
-
-                        {/* Ver Check-ins */}
-                        {checkins.length > 0 && (
-                           <button
-                              onClick={() => {
-                                 setActiveTab('checkins');
-                              }}
-                              className="p-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                              title={`Ver Check-ins (${checkins.length})`}
-                           >
-                              <CalendarCheck className="w-5 h-5" />
-                           </button>
-                        )}
-
-                        {/* Consultas Dra. Odile */}
-                        <button
-                           onClick={() => { setActiveTab('health'); setHealthSubTab('medical'); }}
-                           className="p-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                           title="Consultas a la Dra. Odile"
-                        >
-                           <MessageCircle className="w-5 h-5" />
-                        </button>
-                     </div>
-
-                     {/* ===== MENSAJE PARA EL CLIENTE ===== */}
-                     <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
-                        <div className="flex items-center gap-2 mb-3">
-                           <MessageSquare className="w-4 h-4 text-amber-600" />
-                           <p className="text-sm font-bold text-amber-900">Mensaje para el Cliente</p>
-                        </div>
-                        <DataField
-                           label="Mensaje motivacional (visible en portal)"
-                           value={formData.coach_message}
-                           path="coach_message"
-                           isTextArea
-                           isEditing={isEditing}
-                           onUpdate={updateField}
-                        />
-                     </div>
+                     {/* Contacto y mensaje movidos al panel operativo superior */}
 
                      {/* IMPORTANT NOTES COMPONENT */}
                      <div className="mt-8">
@@ -3131,6 +3137,127 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                )
                }
 
+
+               {/* --- INITIAL ASSESSMENT TAB --- */}
+               {activeTab === 'assessment' && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                     <div className="bg-gradient-to-r from-indigo-50 via-white to-blue-50 rounded-2xl border border-indigo-200 p-5">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                           <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-indigo-500">Documento clínico</p>
+                              <h3 className="text-xl font-black text-slate-800">Valoración inicial del caso</h3>
+                              <p className="text-sm text-slate-600 mt-1">Lectura compartida para oncología, nutrición, entrenamiento y seguimiento.</p>
+                           </div>
+                           <div className="flex flex-wrap gap-2">
+                              {formData.onboarding_call_url && (
+                                 <a
+                                    href={formData.onboarding_call_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                                 >
+                                    <Video className="w-4 h-4" /> Abrir llamada inicial
+                                 </a>
+                              )}
+                              <button
+                                 onClick={() => navigator.clipboard?.writeText(initialAssessmentText || '')}
+                                 className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                              >
+                                 <FileText className="w-4 h-4" /> Copiar valoración
+                              </button>
+                           </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
+                              <p className="text-slate-400 font-semibold">Última actualización</p>
+                              <p className="text-slate-700 font-bold">{formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
+                           </div>
+                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
+                              <p className="text-slate-400 font-semibold">Actualizado por</p>
+                              <p className="text-slate-700 font-bold">{formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
+                           </div>
+                           <div className="bg-white rounded-xl border border-slate-200 px-3 py-2">
+                              <p className="text-slate-400 font-semibold">Secciones detectadas</p>
+                              <p className="text-slate-700 font-bold">{assessmentSections.length || 0}</p>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 lg:col-span-1">
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Navegación rápida</p>
+                           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                              {assessmentSections.length > 0 ? assessmentSections.map((section, index) => {
+                                 const sectionId = `assessment-section-${index}`;
+                                 return (
+                                    <button
+                                       key={sectionId}
+                                       onClick={() => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                       className="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                                    >
+                                       <p className="text-[11px] font-bold text-slate-700 truncate">{section.title}</p>
+                                    </button>
+                                 );
+                              }) : (
+                                 <p className="text-sm text-slate-400">Todavía no hay secciones en la valoración.</p>
+                              )}
+                           </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 lg:col-span-2 space-y-5">
+                           <DataField
+                              label="URL llamada inicial"
+                              value={formData.onboarding_call_url}
+                              path="onboarding_call_url"
+                              isEditing={isEditing}
+                              onUpdate={updateField}
+                              onChange={(val) => {
+                                 updateField('onboarding_call_url', val);
+                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                              }}
+                           />
+
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                              <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                           </div>
+
+                           <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Documento completo</p>
+                              <DataField
+                                 label="Valoración inicial (lectura profesional)"
+                                 value={formData.onboarding_initial_assessment}
+                                 path="onboarding_initial_assessment"
+                                 isTextArea
+                                 isEditing={isEditing}
+                                 onUpdate={updateField}
+                                 onChange={(val) => {
+                                    updateField('onboarding_initial_assessment', val);
+                                    updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                    if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                                 }}
+                              />
+                           </div>
+
+                           {!!initialAssessmentText && (
+                              <div className="space-y-3">
+                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista estructurada</p>
+                                 {assessmentSections.map((section, index) => {
+                                    const sectionId = `assessment-section-${index}`;
+                                    return (
+                                       <div key={sectionId} id={sectionId} className="rounded-xl border border-slate-200 bg-white p-4">
+                                          <h4 className="text-sm font-black text-slate-800 mb-2">{section.title}</h4>
+                                          <p className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{section.content}</p>
+                                       </div>
+                                    );
+                                 })}
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               )}
 
                {/* --- CHECK-INS TAB --- */}
                {activeTab === 'checkins' && (
@@ -3638,271 +3765,100 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         {/* Medical Sub-tab */}
                         {healthSubTab === 'medical' && (
                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                              {/* ===== PANEL RESUMEN MÉDICO ===== */}
-                              <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-lg overflow-hidden">
-                                 <div className="bg-gradient-to-r from-brand-green to-brand-green-dark px-6 py-4 flex items-center gap-3">
-                                    <HeartPulse className="w-6 h-6 text-white" />
-                                    <h3 className="text-lg font-black text-white uppercase tracking-wide">Resumen Médico del Paciente</h3>
-                                 </div>
-                                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                    {/* Estado Oncológico */}
-                                    <div className={`p-4 rounded-2xl border-2 ${formData.medical.oncology_status ? 'bg-brand-mint-light border-brand-mint' : 'bg-slate-50 border-slate-200'}`}>
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estado Oncológico</p>
-                                       <p className="text-sm font-black text-brand-dark leading-relaxed">
-                                          {formData.medical.oncology_status || formData.medical.diagnosis || 'Sin información'}
-                                       </p>
-                                    </div>
-
-                                    {/* Tratamientos */}
-                                    <div className="p-4 rounded-2xl border-2 bg-amber-50 border-amber-200">
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tratamientos</p>
-                                       <div className="space-y-1 mt-1">
-                                          {formData.medical.treatment_chemotherapy && <p className="text-xs font-bold text-amber-800">✓ Quimioterapia</p>}
-                                          {formData.medical.treatment_radiotherapy && <p className="text-xs font-bold text-amber-800">✓ Radioterapia</p>}
-                                          {formData.medical.treatment_hormonotherapy && <p className="text-xs font-bold text-amber-800">✓ Hormonoterapia</p>}
-                                          {formData.medical.treatment_immunotherapy && <p className="text-xs font-bold text-amber-800">✓ Inmunoterapia</p>}
-                                          {formData.medical.treatment_none && <p className="text-xs font-bold text-green-700">Sin tratamiento activo</p>}
-                                          {!formData.medical.treatment_chemotherapy && !formData.medical.treatment_radiotherapy && !formData.medical.treatment_hormonotherapy && !formData.medical.treatment_immunotherapy && !formData.medical.treatment_none && (
-                                             <p className="text-xs text-slate-400 italic">No especificado</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                 {[
+                                    { title: 'Oncología', key: 'oncologia', color: 'emerald' },
+                                    { title: 'Seguridad ejercicio', key: 'seguridad', color: 'rose' },
+                                    { title: 'Síntomas', key: 'sintomas', color: 'amber' },
+                                    { title: 'Analíticas', key: 'analiticas', color: 'blue' },
+                                 ].map((item) => {
+                                    const data = (medicalCompleteness as any)[item.key];
+                                    return (
+                                       <div key={item.key} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{item.title}</p>
+                                          <p className="text-2xl font-black text-slate-800 mt-1">{data.percent}%</p>
+                                          <p className="text-xs text-slate-500">Completitud del bloque</p>
+                                          {data.missing.length > 0 && (
+                                             <p className="text-[11px] text-amber-700 mt-2 line-clamp-2">Falta: {data.missing.slice(0, 2).join(', ')}{data.missing.length > 2 ? '...' : ''}</p>
                                           )}
                                        </div>
-                                       {formData.medical.treatment_start_date && (
-                                          <p className="text-[10px] text-slate-500 mt-2">Inicio: {formData.medical.treatment_start_date}</p>
-                                       )}
-                                    </div>
-
-                                    {/* Síntomas principales */}
-                                    <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-200">
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Síntomas</p>
-                                       <div className="space-y-1.5 mt-1">
-                                          {[
-                                             { label: 'Fatiga', val: formData.medical.symptom_fatigue },
-                                             { label: 'Dolor', val: formData.medical.symptom_pain },
-                                             { label: 'Náuseas', val: formData.medical.symptom_nausea },
-                                             { label: 'Sueño', val: formData.medical.symptom_sleep_quality },
-                                          ].filter(s => s.val != null && s.val > 0).slice(0, 3).map(s => (
-                                             <div key={s.label} className="flex items-center justify-between">
-                                                <span className="text-xs text-slate-600">{s.label}</span>
-                                                <span className={`text-xs font-bold ${(s.val || 0) >= 7 ? 'text-red-600' : (s.val || 0) >= 4 ? 'text-amber-600' : 'text-green-600'}`}>{s.val}/10</span>
-                                             </div>
-                                          ))}
-                                          {![formData.medical.symptom_fatigue, formData.medical.symptom_pain, formData.medical.symptom_nausea, formData.medical.symptom_sleep_quality].some(v => v != null && v > 0) && (
-                                             <p className="text-xs text-slate-400 italic">Sin síntomas reportados</p>
-                                          )}
-                                       </div>
-                                    </div>
-
-                                    {/* Medicación */}
-                                    <div className={`p-4 rounded-2xl border-2 ${formData.medical.medication ? 'bg-purple-50 border-purple-300' : 'bg-slate-50 border-slate-200'}`}>
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Medicación Diaria</p>
-                                       <p className={`text-sm font-bold leading-relaxed ${formData.medical.medication ? 'text-purple-900' : 'text-slate-400 italic'}`}>
-                                          {formData.medical.medication || 'Sin medicación reportada'}
-                                       </p>
-                                    </div>
-                                 </div>
-
-                                 {/* Enfermedades - fila completa por si es texto largo */}
-                                 {(formData.medical.pathologies || formData.medical.otherConditions) && (
-                                    <div className="px-6 pb-6">
-                                       <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300">
-                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Enfermedades / Patologías</p>
-                                          <p className="text-base font-bold text-rose-900 leading-relaxed">{formData.medical.pathologies || ''}</p>
-                                          {formData.medical.otherConditions && (
-                                             <p className="text-sm text-rose-700 mt-2 border-t border-rose-200 pt-2">{formData.medical.otherConditions}</p>
-                                          )}
-                                       </div>
-                                    </div>
-                                 )}
+                                    );
+                                 })}
                               </div>
 
-                              {/* ===== DETALLE MÉDICO ===== */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 <div className="space-y-4">
-                                    <SectionTitle title="Información Oncológica" icon={<Activity className="w-4 h-4 text-brand-green" />} />
-                                    <div className="bg-gradient-to-br from-brand-mint-light to-white p-5 rounded-2xl space-y-4 border border-brand-mint shadow-sm relative overflow-hidden">
-                                       <div className="absolute top-0 right-0 w-32 h-32 bg-brand-mint/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                                       <DataField label="Estado Oncológico" value={formData.medical.oncology_status} path="medical.oncology_status" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tratamientos recibidos</p>
-                                       <div className="grid grid-cols-2 gap-3">
-                                          <DataField label="Quimioterapia" value={formData.medical.treatment_chemotherapy} path="medical.treatment_chemotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Radioterapia" value={formData.medical.treatment_radiotherapy} path="medical.treatment_radiotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Hormonoterapia" value={formData.medical.treatment_hormonotherapy} path="medical.treatment_hormonotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Inmunoterapia" value={formData.medical.treatment_immunotherapy} path="medical.treatment_immunotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       </div>
-                                       <DataField label="Fecha inicio tratamiento" value={formData.medical.treatment_start_date} path="medical.treatment_start_date" type="date" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <div className="border-t border-brand-mint pt-3 mt-2 space-y-3">
-                                          <DataField label="Tipo de cáncer / Localización" value={formData.medical.tumor_type} path="medical.tumor_type" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="¿Medicación afecta al peso?" value={formData.medical.medication_affects_weight} path="medical.medication_affects_weight" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          {formData.medical.medication_affects_weight && (
-                                             <DataField label="Detalles efecto en peso" value={formData.medical.medication_affects_weight_details} path="medical.medication_affects_weight_details" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          )}
-                                          <DataField label="¿Limitaciones para ejercicio?" value={formData.medical.exercise_medical_limitations} path="medical.exercise_medical_limitations" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          {formData.medical.exercise_medical_limitations && (
-                                             <DataField label="Detalles limitaciones" value={formData.medical.exercise_medical_limitations_details} path="medical.exercise_medical_limitations_details" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          )}
-                                       </div>
-                                    </div>
-
-                                    {/* ===== FACTORES DE SEGURIDAD PARA EL EJERCICIO ===== */}
-                                    <div className="bg-red-50 border border-red-200 rounded-2xl p-5 space-y-4">
-                                       <div className="flex items-center gap-2">
-                                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                                          <p className="text-sm font-bold text-red-800">Factores de Seguridad para el Ejercicio</p>
-                                       </div>
-
-                                       {/* Alert visual si hay factores de riesgo alto */}
-                                       {(formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' ||
-                                          formData.medical.bone_risk === 'metastasis_oseas') && (
-                                             <div className="bg-red-100 border border-red-300 rounded-xl p-3 flex items-start gap-2">
-                                                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                                                <p className="text-xs text-red-700 font-medium">
-                                                   {formData.medical.bone_risk === 'metastasis_oseas' && 'Metástasis óseas detectadas — revisar ejercicio con cargas. '}
-                                                   {formData.medical.lymphedema && formData.medical.lymphedema !== 'ninguno' && `Linfedema: ${formData.medical.lymphedema}. `}
-                                                </p>
-                                             </div>
-                                          )}
-
-                                       <DataField
-                                          label="Neuropatía periférica"
-                                          value={formData.medical.peripheral_neuropathy}
-                                          path="medical.peripheral_neuropathy"
-                                          type="select"
-                                          options={[
-                                             { label: 'Sin neuropatía', value: 'ninguna' },
-                                             { label: 'Leve (hormigueo)', value: 'leve' },
-                                             { label: 'Moderada-severa (afecta al equilibrio)', value: 'moderada_severa' },
-                                          ]}
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                       />
-                                       <DataField
-                                          label="Linfedema"
-                                          value={formData.medical.lymphedema}
-                                          path="medical.lymphedema"
-                                          type="select"
-                                          options={[
-                                             { label: 'Ninguno', value: 'ninguno' },
-                                             { label: 'Miembro superior (brazo/mano)', value: 'miembro_superior' },
-                                             { label: 'Miembro inferior', value: 'miembro_inferior' },
-                                             { label: 'Bilateral', value: 'bilateral' },
-                                          ]}
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                       />
-                                       <DataField
-                                          label="Acceso venoso"
-                                          value={formData.medical.venous_access}
-                                          path="medical.venous_access"
-                                          type="select"
-                                          options={[
-                                             { label: 'Ninguno', value: 'ninguno' },
-                                             { label: 'Port-a-cath', value: 'port_a_cath' },
-                                             { label: 'PICC line', value: 'picc' },
-                                          ]}
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                       />
-                                       <DataField
-                                          label="Riesgo óseo"
-                                          value={formData.medical.bone_risk}
-                                          path="medical.bone_risk"
-                                          type="select"
-                                          options={[
-                                             { label: 'Sin riesgo conocido', value: 'ninguno' },
-                                             { label: 'Osteoporosis', value: 'osteoporosis' },
-                                             { label: 'Metástasis óseas', value: 'metastasis_oseas' },
-                                          ]}
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          readOnly={readOnlyMedical}
-                                       />
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+                                    <SectionTitle title="Oncología" icon={<Activity className="w-4 h-4 text-emerald-600" />} />
+                                    <DataField label="Estado oncológico" value={formData.medical.oncology_status} path="medical.oncology_status" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Tipo de cáncer / localización" value={formData.medical.tumor_type} path="medical.tumor_type" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Fecha inicio tratamiento" value={formData.medical.treatment_start_date} path="medical.treatment_start_date" type="date" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Tratamientos declarados" value={Array.isArray(formData.medical.current_treatments) ? formData.medical.current_treatments.join(', ') : ''} path="medical.current_treatments" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                                       <DataField label="Quimioterapia" value={formData.medical.treatment_chemotherapy} path="medical.treatment_chemotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Radioterapia" value={formData.medical.treatment_radiotherapy} path="medical.treatment_radiotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Hormonoterapia" value={formData.medical.treatment_hormonotherapy} path="medical.treatment_hormonotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Inmunoterapia" value={formData.medical.treatment_immunotherapy} path="medical.treatment_immunotherapy" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                     </div>
                                  </div>
 
-                                 <div className="space-y-4">
-                                    <SectionTitle title="Historial Médico" icon={<HeartPulse className="w-4 h-4 text-pink-500" />} />
-                                    <div className="bg-gradient-to-br from-pink-50 to-rose-50/30 p-5 rounded-2xl space-y-4 border border-pink-100/80 shadow-sm relative overflow-hidden">
-                                       <div className="absolute top-0 right-0 w-32 h-32 bg-pink-100/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                                       <div className="relative z-10 space-y-3">
-                                          <DataField label="Enfermedades Actuales" value={formData.medical.pathologies} path="medical.pathologies" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Detalle Otras Enfermedades" value={formData.medical.otherConditions} path="medical.otherConditions" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                          <DataField label="Medicación Diaria" value={formData.medical.medication} path="medical.medication" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+                                    <SectionTitle title="Seguridad para ejercicio" icon={<ShieldAlert className="w-4 h-4 text-rose-600" />} />
+                                    {clinicalAlerts.length > 0 && (
+                                       <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-semibold">
+                                          Alertas activas: {clinicalAlerts.map(a => a.label).join(', ')}.
                                        </div>
-                                    </div>
-                                 </div>
-                              </div>
-
-                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                 <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
-                                    <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                       <FileText className="w-4 h-4 text-brand-green" /> Información ampliada del onboarding
-                                    </h3>
-                                    {formData.lab_results_url ? (
-                                       <a
-                                          href={formData.lab_results_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                                       >
-                                          <ExternalLink className="w-3.5 h-3.5" /> Ver analítica
-                                       </a>
-                                    ) : (
-                                       <span className="text-xs text-slate-400">Sin analítica adjunta</span>
+                                    )}
+                                    <DataField label="Riesgo óseo" value={formData.medical.bone_risk} path="medical.bone_risk" type="select" options={[{ label: 'Sin riesgo conocido', value: 'ninguno' }, { label: 'Osteoporosis', value: 'osteoporosis' }, { label: 'Metástasis óseas', value: 'metastasis_oseas' }]} isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Linfedema" value={formData.medical.lymphedema} path="medical.lymphedema" type="select" options={[{ label: 'Ninguno', value: 'ninguno' }, { label: 'Miembro superior', value: 'miembro_superior' }, { label: 'Miembro inferior', value: 'miembro_inferior' }, { label: 'Bilateral', value: 'bilateral' }]} isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Acceso venoso" value={formData.medical.venous_access} path="medical.venous_access" type="select" options={[{ label: 'Ninguno', value: 'ninguno' }, { label: 'Port-a-cath', value: 'port_a_cath' }, { label: 'PICC line', value: 'picc' }]} isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Neuropatía periférica" value={formData.medical.peripheral_neuropathy} path="medical.peripheral_neuropathy" type="select" options={[{ label: 'Sin neuropatía', value: 'ninguna' }, { label: 'Leve', value: 'leve' }, { label: 'Moderada-severa', value: 'moderada_severa' }]} isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Alergias a fármacos" value={formData.medical.drug_allergies} path="medical.drug_allergies" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Limitaciones para ejercicio" value={formData.medical.exercise_medical_limitations} path="medical.exercise_medical_limitations" type="checkbox" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    {formData.medical.exercise_medical_limitations && (
+                                       <DataField label="Detalle limitaciones" value={formData.medical.exercise_medical_limitations_details} path="medical.exercise_medical_limitations_details" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                     )}
                                  </div>
 
-                                 <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-3">
-                                       <DataField
-                                          label="URL llamada inicial"
-                                          value={formData.onboarding_call_url}
-                                          path="onboarding_call_url"
-                                          isEditing={isEditing}
-                                          onUpdate={updateField}
-                                          onChange={(val) => {
-                                             updateField('onboarding_call_url', val);
-                                             updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                             if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                                          }}
-                                       />
-                                       <DataField label="Tratamientos declarados (texto)" value={Array.isArray(formData.medical.current_treatments) ? formData.medical.current_treatments.join(', ') : ''} path="medical.current_treatments" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Alergias a fármacos" value={formData.medical.drug_allergies} path="medical.drug_allergies" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Horas de sueño" value={formData.medical.sleep_hours} path="medical.sleep_hours" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Estrés percibido (0-10)" value={formData.medical.stress_level} path="medical.stress_level" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Alteración del gusto (0-10)" value={formData.medical.symptom_taste_alteration} path="medical.symptom_taste_alteration" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Chemo brain (0-10)" value={formData.medical.symptom_chemo_brain} path="medical.symptom_chemo_brain" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Disnea (0-10)" value={formData.medical.symptom_dyspnea} path="medical.symptom_dyspnea" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+                                    <SectionTitle title="Síntomas" icon={<AlertCircle className="w-4 h-4 text-amber-600" />} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                       <DataField label="Fatiga" value={formData.medical.symptom_fatigue} path="medical.symptom_fatigue" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Dolor" value={formData.medical.symptom_pain} path="medical.symptom_pain" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Náusea" value={formData.medical.symptom_nausea} path="medical.symptom_nausea" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Calidad sueño" value={formData.medical.symptom_sleep_quality} path="medical.symptom_sleep_quality" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Alteración gusto" value={formData.medical.symptom_taste_alteration} path="medical.symptom_taste_alteration" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Chemo brain" value={formData.medical.symptom_chemo_brain} path="medical.symptom_chemo_brain" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Disnea" value={formData.medical.symptom_dyspnea} path="medical.symptom_dyspnea" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Estrés percibido" value={formData.medical.stress_level} path="medical.stress_level" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                     </div>
-
-                                    <div className="space-y-3">
-                                       <DataField label="Notas de analíticas" value={formData.medical.lab_otros_notes || formData.medical.lab_otros_notas} path="medical.lab_otros_notes" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
-                                       <DataField label="Objetivo evolución corporal" value={formData.body_evolution_goal_notes} path="body_evolution_goal_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                       <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                       <DataField label="Cómo quiere sentirse" value={formData.desired_feeling_notes} path="desired_feeling_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                       <DataField label="Hito corto plazo" value={formData.short_term_milestone_notes} path="short_term_milestone_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                       <DataField label="Por qué confía en el método" value={formData.why_trust_us} path="why_trust_us" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                       <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                    </div>
+                                    <DataField label="Horas de sueño" value={formData.medical.sleep_hours} path="medical.sleep_hours" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <DataField label="Enfermedades actuales" value={formData.medical.pathologies} path="medical.pathologies" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
                                  </div>
 
-                                 <div className="px-5 pb-5">
-                                    <DataField
-                                       label="Valoración inicial completa"
-                                       value={formData.onboarding_initial_assessment}
-                                       path="onboarding_initial_assessment"
-                                       isTextArea
-                                       isEditing={isEditing}
-                                       onUpdate={updateField}
-                                       onChange={(val) => {
-                                          updateField('onboarding_initial_assessment', val);
-                                          updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                          if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                                       }}
-                                    />
+                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+                                    <SectionTitle title="Analíticas e informes" icon={<FileText className="w-4 h-4 text-blue-600" />} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                       <DataField label="Hemoglobina" value={formData.medical.lab_hemoglobina} path="medical.lab_hemoglobina" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Hierro" value={formData.medical.lab_hierro} path="medical.lab_hierro" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Glucosa" value={formData.medical.lab_glucosa} path="medical.lab_glucosa" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Vitamina D" value={formData.medical.lab_vitamina_d} path="medical.lab_vitamina_d" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    </div>
+                                    <DataField label="Notas de analíticas" value={formData.medical.lab_otros_notes || formData.medical.lab_otros_notas} path="medical.lab_otros_notes" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                       {formData.lab_results_url ? (
+                                          <a href={formData.lab_results_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">
+                                             <ExternalLink className="w-3.5 h-3.5" /> Abrir analítica
+                                          </a>
+                                       ) : (
+                                          <span className="text-xs text-slate-400">Sin analítica adjunta</span>
+                                       )}
+                                       <button
+                                          onClick={() => setActiveTab('assessment')}
+                                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                                       >
+                                          <FileCheck className="w-3.5 h-3.5" /> Ver valoración inicial completa
+                                       </button>
+                                    </div>
                                  </div>
                               </div>
 
@@ -4851,92 +4807,63 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                   )
                }
 
-               {/* --- CHECKINS SECTION (now part of Overview) --- */}
-               {
-                  activeTab === 'overview' && checkins.length > 0 && (
-                     <div id="checkins-section" className="space-y-8 mt-8 animate-in slide-in-from-bottom-4 duration-500">
-                        <div className="border-t border-slate-200 pt-8">
-                           <SectionTitle title="Últimos Check-ins" icon={<FileText className="w-4 h-4 text-indigo-600" />} className="mb-6" />
-                        </div>
-
-                        {/* Weight Chart for Reports */}
-                        {weightHistory.length > 0 && (
-                           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                              <div className="flex items-center justify-between mb-6">
-                                 <div>
-                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                       <TrendingUp className="w-5 h-5 text-blue-600" /> Progreso de Peso
-                                    </h3>
-                                    <p className="text-sm text-slate-500">Evolución registrada desde {new Date(weightHistory[0].date).toLocaleDateString('es-ES')}</p>
-                                 </div>
-                                 <div className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
-                                    Actual: {weightHistory[weightHistory.length - 1]?.weight} kg
-                                 </div>
-                              </div>
-                              <div className="h-64 w-full">
-                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={
-                                       weightHistory.map(w => ({
-                                          date: new Date(w.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
-                                          fullDate: w.date,
-                                          weight: w.weight
-                                       }))
-                                    }>
-                                       <defs>
-                                          <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
-                                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                          </linearGradient>
-                                       </defs>
-                                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                       <XAxis
-                                          dataKey="date"
-                                          tick={{ fontSize: 11, fill: '#64748b' }}
-                                          tickLine={false}
-                                          axisLine={false}
-                                          dy={10}
-                                       />
-                                       <YAxis
-                                          domain={['dataMin - 1', 'dataMax + 1']}
-                                          hide={false}
-                                          axisLine={false}
-                                          tickLine={false}
-                                          tick={{ fontSize: 11, fill: '#64748b' }}
-                                          width={30}
-                                       />
-                                       <Tooltip
-                                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                          labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
-                                       />
-                                       <Area
-                                          type="linear"
-                                          dataKey="weight"
-                                          stroke="#2563eb"
-                                          strokeWidth={3}
-                                          fillOpacity={1}
-                                          fill="url(#colorWeight)"
-                                          activeDot={{ r: 6, strokeWidth: 0 }}
-                                       />
-                                    </AreaChart>
-                                 </ResponsiveContainer>
-                              </div>
-                           </div>
-                        )}
-
-
-                     </div>
-                  )
-               }
-
                {/* --- MATERIALS TAB CONTENT --- */}
                {activeTab === 'materials' && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="flex items-center justify-between mb-6">
-                        <SectionTitle title="Materiales y Recursos" icon={<FileText className="w-4 h-4 text-violet-500" />} />
+                        <SectionTitle title="Documentos y Recursos" icon={<FileText className="w-4 h-4 text-violet-500" />} />
                         <div className="bg-violet-50 text-violet-700 px-3 py-1 rounded-full text-xs font-bold border border-violet-100">
-                           Espacio Compartido
+                           Biblioteca del caso
                         </div>
                      </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Documentación clínica</p>
+                           <p className="text-sm font-semibold text-slate-700 mb-3">Valoración inicial, analíticas y contexto del caso.</p>
+                           <div className="flex flex-wrap gap-2">
+                              <button
+                                 onClick={() => setActiveTab('assessment')}
+                                 className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                              >
+                                 Abrir valoración
+                              </button>
+                              {formData.lab_results_url && (
+                                 <a
+                                    href={formData.lab_results_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                 >
+                                    Ver analítica
+                                 </a>
+                              )}
+                           </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Plan terapéutico</p>
+                           <p className="text-sm font-semibold text-slate-700 mb-3">Acceso directo a nutrición, entrenamiento y objetivos.</p>
+                           <button
+                              onClick={() => setActiveTab('program')}
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                           >
+                              Ir a plan terapéutico
+                           </button>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Contrato y renovación</p>
+                           <p className="text-sm font-semibold text-slate-700 mb-3">Documentación legal, firma y estado de continuidad.</p>
+                           <button
+                              onClick={() => setActiveTab('contract')}
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                           >
+                              Abrir contrato
+                           </button>
+                        </div>
+                     </div>
+
                      <div className="bg-white/50 p-1 rounded-2xl border border-slate-100 shadow-sm">
                         <ClientMaterials
                            clientId={client.id}
