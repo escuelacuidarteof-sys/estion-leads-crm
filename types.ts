@@ -110,6 +110,10 @@ export interface MedicalData {
   treatment_immunotherapy?: boolean;
   treatment_none?: boolean;
   treatment_start_date?: string;
+  current_treatments?: string[];
+  drug_allergies?: string;
+  menopause_status?: string;
+  menopause_symptoms?: string[];
   medication_affects_weight?: boolean;
   medication_affects_weight_details?: string;
   exercise_medical_limitations?: boolean;
@@ -129,6 +133,8 @@ export interface MedicalData {
   symptom_intestinal_transit?: number;
   symptom_brain_fog?: number;
   symptom_stress?: number;
+  sleep_hours?: number;
+  stress_level?: number;
 
   // --- Analíticas ---
   lab_hemoglobina?: number;
@@ -136,6 +142,7 @@ export interface MedicalData {
   lab_glucosa?: number;
   lab_vitamina_d?: number;
   lab_otros_notas?: string;
+  lab_otros_notes?: string;
 
   // Extensiones de Oncología
   tumor_type?: string;
@@ -375,6 +382,10 @@ export interface Client {
   general_notes?: string;
   history?: string;
   history_food_behavior?: string;
+  onboarding_call_url?: string;
+  onboarding_initial_assessment?: string;
+  onboarding_initial_assessment_updated_at?: string;
+  onboarding_initial_assessment_author?: string;
 
   // Funcionalidad y energía
   energy_level?: number;
@@ -397,6 +408,9 @@ export interface Client {
 
   weight_evolution_status?: string;
   habitual_weight_6_months?: number;
+  body_evolution_goal_notes?: string;
+  lab_results_url?: string;
+  food_fear_tumor?: boolean;
 
   // Relación con la comida (scores)
   food_fear_score?: number;

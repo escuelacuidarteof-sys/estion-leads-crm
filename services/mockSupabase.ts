@@ -252,11 +252,20 @@ export const mapRowToClient = (row: any): Client => {
 
     medical: {
       diagnosis: row.diagnosis,
-      diagnosisDate: row.diagnosis_date,
+      diagnosisDate: row.diagnosis_date || row.oncology_diagnosis_date,
       currentTreatment: row.current_treatment,
+      current_treatments: Array.isArray(row.current_treatments)
+        ? row.current_treatments
+        : (typeof row.current_treatments === 'string' ? row.current_treatments.split(',').map((v: string) => v.trim()).filter(Boolean) : undefined),
       pathologies: row.pathologies,
       medication: row.medication,
       medicalNotes: row.medical_notes,
+      otherConditions: row.health_conditions_prev,
+      drug_allergies: row.drug_allergies,
+      menopause_status: row.menopause_status,
+      menopause_symptoms: Array.isArray(row.menopause_symptoms)
+        ? row.menopause_symptoms
+        : (typeof row.menopause_symptoms === 'string' ? row.menopause_symptoms.split(',').map((v: string) => v.trim()).filter(Boolean) : undefined),
 
       // Oncología
       oncology_status: row.oncology_status,
@@ -281,6 +290,20 @@ export const mapRowToClient = (row: any): Client => {
       symptom_appetite_loss: row.symptom_appetite_loss,
       symptom_bloating: row.symptom_bloating,
       symptom_sleep_quality: row.symptom_sleep_quality,
+      symptom_taste_alteration: row.symptom_taste_alteration,
+      symptom_chemo_brain: row.symptom_chemo_brain,
+      symptom_dyspnea: row.symptom_dyspnea,
+      sleep_hours: row.sleep_hours,
+      stress_level: row.stress_level,
+
+      // Analíticas y seguridad
+      lab_otros_notes: row.lab_otros_notes,
+      tumor_type: row.tumor_type,
+      peripheral_neuropathy: row.peripheral_neuropathy,
+      lymphedema: row.lymphedema,
+      venous_access: row.venous_access,
+      bone_risk: row.bone_risk,
+      significant_weight_loss: row.significant_weight_loss,
     },
 
     nutrition: {
@@ -290,6 +313,18 @@ export const mapRowToClient = (row: any): Client => {
       cooksForSelf: row.cooks_for_self,
       mealsPerDay: row.meals_per_day,
       dietaryNotes: row.dietary_notes,
+      assigned_nutrition_type: row.assigned_nutrition_type,
+      consumedFoods: row.regular_foods || row.consumed_foods,
+      unwantedFoods: row.unwanted_foods,
+      schedules: typeof row.meal_schedules === 'object'
+        ? row.meal_schedules
+        : (typeof row.meal_schedules === 'string' ? { breakfast: row.meal_schedules } : undefined),
+      weighFoodPreference: row.weigh_food_preference,
+      alcohol: row.alcohol_weekly || row.alcohol,
+      smokingStatus: row.smoking_status,
+      lastRecallMeal: row.last_recall_meal,
+      ed_binge_eating: row.ed_binge_eating,
+      ed_emotional_eating: row.ed_emotional_eating,
     },
 
     training: {
@@ -299,7 +334,7 @@ export const mapRowToClient = (row: any): Client => {
       trainingLocation: row.training_location,
       injuries: row.injuries,
       notes: row.training_notes,
-      availability: row.availability,
+      availability: row.availability || row.exercise_availability_slots,
     },
 
     goals: {
@@ -332,22 +367,39 @@ export const mapRowToClient = (row: any): Client => {
     },
 
     general_notes: row.general_notes,
+    onboarding_call_url: row.onboarding_call_url,
+    onboarding_initial_assessment: row.onboarding_initial_assessment,
+    onboarding_initial_assessment_updated_at: row.onboarding_initial_assessment_updated_at,
+    onboarding_initial_assessment_author: row.onboarding_initial_assessment_author,
 
     // Funcionalidad y energía
     energy_level: row.energy_level,
     recovery_capacity: row.recovery_capacity,
     fatigue_interference: row.fatigue_interference,
     current_strength_score: row.current_strength_score,
-    functional_limitation_carry_bag: row.functional_limitation_carry_bag,
-    functional_limitation_stand_up: row.functional_limitation_stand_up,
-    functional_limitation_stairs: row.functional_limitation_stairs,
-    functional_limitation_falls: row.functional_limitation_falls,
+    functional_limitation_carry_bag: row.functional_limitation_carry_bag ?? row.func_test_lift_bags,
+    functional_limitation_stand_up: row.functional_limitation_stand_up ?? row.func_test_get_up_chair,
+    functional_limitation_stairs: row.functional_limitation_stairs ?? row.func_test_stairs,
+    functional_limitation_falls: row.functional_limitation_falls ?? row.func_test_falls,
 
     // Scores relación con comida
     food_fear_score: row.food_fear_score,
     food_guilt_score: row.food_guilt_score,
     food_peace_score: row.food_peace_score,
     body_trust_score: row.body_trust_score,
+    food_fear_tumor: row.food_fear_tumor,
+
+    habitual_weight_6_months: row.habitual_weight_6_months,
+    weight_evolution_status: row.weight_evolution_status,
+    body_evolution_goal_notes: row.body_evolution_goal_notes,
+    daily_routine_description: row.daily_routine_description,
+    exercise_availability_slots: row.exercise_availability_slots,
+    main_priority_notes: row.main_priority_notes,
+    desired_feeling_notes: row.desired_feeling_notes,
+    short_term_milestone_notes: row.short_term_milestone_notes,
+    why_trust_us: row.why_trust_us,
+    concerns_fears_notes: row.concerns_fears_notes,
+    lab_results_url: row.lab_results_url,
 
     nutrition_approved: row.nutrition_approved,
     nutrition_approved_at: row.nutrition_approved_at,
@@ -356,6 +408,8 @@ export const mapRowToClient = (row: any): Client => {
     onboarding_token: row.onboarding_token,
     onboarding_completed: row.onboarding_completed,
     onboarding_completed_at: row.onboarding_completed_at,
+    onboarding_phase2_completed: row.onboarding_phase2_completed,
+    onboarding_phase2_completed_at: row.onboarding_phase2_completed_at,
 
     user_id: row.user_id,
     activation_token: row.activation_token,
@@ -479,9 +533,14 @@ const mapClientToRow = (client: Partial<Client>): any => {
     if (client.medical.diagnosis !== undefined) row.diagnosis = client.medical.diagnosis;
     if (client.medical.diagnosisDate !== undefined) row.diagnosis_date = client.medical.diagnosisDate;
     if (client.medical.currentTreatment !== undefined) row.current_treatment = client.medical.currentTreatment;
+    if (client.medical.current_treatments !== undefined) row.current_treatments = client.medical.current_treatments;
     if (client.medical.pathologies !== undefined) row.pathologies = client.medical.pathologies;
     if (client.medical.medication !== undefined) row.medication = client.medical.medication;
     if (client.medical.medicalNotes !== undefined) row.medical_notes = client.medical.medicalNotes;
+    if (client.medical.otherConditions !== undefined) row.health_conditions_prev = client.medical.otherConditions;
+    if (client.medical.drug_allergies !== undefined) row.drug_allergies = client.medical.drug_allergies;
+    if (client.medical.menopause_status !== undefined) row.menopause_status = client.medical.menopause_status;
+    if (client.medical.menopause_symptoms !== undefined) row.menopause_symptoms = client.medical.menopause_symptoms;
 
     // Oncología
     if (client.medical.oncology_status !== undefined) row.oncology_status = client.medical.oncology_status;
@@ -506,6 +565,18 @@ const mapClientToRow = (client: Partial<Client>): any => {
     if (client.medical.symptom_appetite_loss !== undefined) row.symptom_appetite_loss = client.medical.symptom_appetite_loss;
     if (client.medical.symptom_bloating !== undefined) row.symptom_bloating = client.medical.symptom_bloating;
     if (client.medical.symptom_sleep_quality !== undefined) row.symptom_sleep_quality = client.medical.symptom_sleep_quality;
+    if (client.medical.symptom_taste_alteration !== undefined) row.symptom_taste_alteration = client.medical.symptom_taste_alteration;
+    if (client.medical.symptom_chemo_brain !== undefined) row.symptom_chemo_brain = client.medical.symptom_chemo_brain;
+    if (client.medical.symptom_dyspnea !== undefined) row.symptom_dyspnea = client.medical.symptom_dyspnea;
+    if (client.medical.sleep_hours !== undefined) row.sleep_hours = client.medical.sleep_hours;
+    if (client.medical.stress_level !== undefined) row.stress_level = client.medical.stress_level;
+    if (client.medical.lab_otros_notes !== undefined) row.lab_otros_notes = client.medical.lab_otros_notes;
+    if (client.medical.tumor_type !== undefined) row.tumor_type = client.medical.tumor_type;
+    if (client.medical.peripheral_neuropathy !== undefined) row.peripheral_neuropathy = client.medical.peripheral_neuropathy;
+    if (client.medical.lymphedema !== undefined) row.lymphedema = client.medical.lymphedema;
+    if (client.medical.venous_access !== undefined) row.venous_access = client.medical.venous_access;
+    if (client.medical.bone_risk !== undefined) row.bone_risk = client.medical.bone_risk;
+    if (client.medical.significant_weight_loss !== undefined) row.significant_weight_loss = client.medical.significant_weight_loss;
   }
 
   // Funcionalidad y energía
@@ -517,12 +588,28 @@ const mapClientToRow = (client: Partial<Client>): any => {
   if (client.functional_limitation_stand_up !== undefined) row.functional_limitation_stand_up = client.functional_limitation_stand_up;
   if (client.functional_limitation_stairs !== undefined) row.functional_limitation_stairs = client.functional_limitation_stairs;
   if (client.functional_limitation_falls !== undefined) row.functional_limitation_falls = client.functional_limitation_falls;
+  if (client.functional_limitation_carry_bag !== undefined) row.func_test_lift_bags = client.functional_limitation_carry_bag;
+  if (client.functional_limitation_stand_up !== undefined) row.func_test_get_up_chair = client.functional_limitation_stand_up;
+  if (client.functional_limitation_stairs !== undefined) row.func_test_stairs = client.functional_limitation_stairs;
+  if (client.functional_limitation_falls !== undefined) row.func_test_falls = client.functional_limitation_falls;
 
   // Scores relación con comida
   if (client.food_fear_score !== undefined) row.food_fear_score = client.food_fear_score;
   if (client.food_guilt_score !== undefined) row.food_guilt_score = client.food_guilt_score;
   if (client.food_peace_score !== undefined) row.food_peace_score = client.food_peace_score;
   if (client.body_trust_score !== undefined) row.body_trust_score = client.body_trust_score;
+  if (client.food_fear_tumor !== undefined) row.food_fear_tumor = client.food_fear_tumor;
+  if (client.habitual_weight_6_months !== undefined) row.habitual_weight_6_months = client.habitual_weight_6_months;
+  if (client.weight_evolution_status !== undefined) row.weight_evolution_status = client.weight_evolution_status;
+  if (client.body_evolution_goal_notes !== undefined) row.body_evolution_goal_notes = client.body_evolution_goal_notes;
+  if (client.daily_routine_description !== undefined) row.daily_routine_description = client.daily_routine_description;
+  if (client.exercise_availability_slots !== undefined) row.exercise_availability_slots = client.exercise_availability_slots;
+  if (client.main_priority_notes !== undefined) row.main_priority_notes = client.main_priority_notes;
+  if (client.desired_feeling_notes !== undefined) row.desired_feeling_notes = client.desired_feeling_notes;
+  if (client.short_term_milestone_notes !== undefined) row.short_term_milestone_notes = client.short_term_milestone_notes;
+  if (client.why_trust_us !== undefined) row.why_trust_us = client.why_trust_us;
+  if (client.concerns_fears_notes !== undefined) row.concerns_fears_notes = client.concerns_fears_notes;
+  if (client.lab_results_url !== undefined) row.lab_results_url = client.lab_results_url;
 
   // Nutrition
   if (client.nutrition) {
@@ -532,6 +619,16 @@ const mapClientToRow = (client: Partial<Client>): any => {
     if (client.nutrition.cooksForSelf !== undefined) row.cooks_for_self = client.nutrition.cooksForSelf;
     if (client.nutrition.mealsPerDay !== undefined) row.meals_per_day = client.nutrition.mealsPerDay;
     if (client.nutrition.dietaryNotes !== undefined) row.dietary_notes = client.nutrition.dietaryNotes;
+    if (client.nutrition.assigned_nutrition_type !== undefined) row.assigned_nutrition_type = client.nutrition.assigned_nutrition_type;
+    if (client.nutrition.consumedFoods !== undefined) row.regular_foods = client.nutrition.consumedFoods;
+    if (client.nutrition.unwantedFoods !== undefined) row.unwanted_foods = client.nutrition.unwantedFoods;
+    if (client.nutrition.schedules !== undefined) row.meal_schedules = client.nutrition.schedules;
+    if (client.nutrition.weighFoodPreference !== undefined) row.weigh_food_preference = client.nutrition.weighFoodPreference;
+    if (client.nutrition.alcohol !== undefined) row.alcohol_weekly = client.nutrition.alcohol;
+    if (client.nutrition.smokingStatus !== undefined) row.smoking_status = client.nutrition.smokingStatus;
+    if (client.nutrition.lastRecallMeal !== undefined) row.last_recall_meal = client.nutrition.lastRecallMeal;
+    if (client.nutrition.ed_binge_eating !== undefined) row.ed_binge_eating = client.nutrition.ed_binge_eating;
+    if (client.nutrition.ed_emotional_eating !== undefined) row.ed_emotional_eating = client.nutrition.ed_emotional_eating;
   }
 
   // Training
@@ -542,7 +639,10 @@ const mapClientToRow = (client: Partial<Client>): any => {
     if (client.training.trainingLocation !== undefined) row.training_location = client.training.trainingLocation;
     if (client.training.injuries !== undefined) row.injuries = client.training.injuries;
     if (client.training.notes !== undefined) row.training_notes = client.training.notes;
-    if (client.training.availability !== undefined) row.availability = client.training.availability;
+    if (client.training.availability !== undefined) {
+      row.availability = client.training.availability;
+      row.exercise_availability_slots = client.training.availability;
+    }
   }
 
   // Goals
@@ -576,6 +676,10 @@ const mapClientToRow = (client: Partial<Client>): any => {
 
   // General Notes
   if (client.general_notes !== undefined) row.general_notes = client.general_notes;
+  if (client.onboarding_call_url !== undefined) row.onboarding_call_url = client.onboarding_call_url;
+  if (client.onboarding_initial_assessment !== undefined) row.onboarding_initial_assessment = client.onboarding_initial_assessment;
+  if (client.onboarding_initial_assessment_updated_at !== undefined) row.onboarding_initial_assessment_updated_at = client.onboarding_initial_assessment_updated_at;
+  if (client.onboarding_initial_assessment_author !== undefined) row.onboarding_initial_assessment_author = client.onboarding_initial_assessment_author;
 
   // Nutrition Approval
   if (client.nutrition_approved !== undefined) row.nutrition_approved = client.nutrition_approved;
@@ -586,6 +690,8 @@ const mapClientToRow = (client: Partial<Client>): any => {
   if (client.onboarding_token !== undefined) row.onboarding_token = client.onboarding_token;
   if (client.onboarding_completed !== undefined) row.onboarding_completed = client.onboarding_completed;
   if (client.onboarding_completed_at !== undefined) row.onboarding_completed_at = client.onboarding_completed_at;
+  if (client.onboarding_phase2_completed !== undefined) row.onboarding_phase2_completed = client.onboarding_phase2_completed;
+  if (client.onboarding_phase2_completed_at !== undefined) row.onboarding_phase2_completed_at = client.onboarding_phase2_completed_at;
 
   // Account Activation
   if (client.user_id !== undefined) row.user_id = client.user_id;

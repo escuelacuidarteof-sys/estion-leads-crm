@@ -2862,6 +2862,62 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         </div>
                      </div>
 
+                     <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                           <div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valoración inicial</p>
+                              <h3 className="text-lg font-bold text-slate-800">Llamada y resumen clínico-funcional</h3>
+                           </div>
+                           {formData.onboarding_call_url ? (
+                              <a
+                                 href={formData.onboarding_call_url}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                              >
+                                 <Video className="w-4 h-4" /> Abrir llamada inicial
+                              </a>
+                           ) : (
+                              <span className="text-xs text-slate-400">Sin URL de llamada registrada</span>
+                           )}
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                           <DataField
+                              label="URL llamada inicial"
+                              value={formData.onboarding_call_url}
+                              path="onboarding_call_url"
+                              isEditing={isEditing}
+                              onUpdate={updateField}
+                              onChange={(val) => {
+                                 updateField('onboarding_call_url', val);
+                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                              }}
+                           />
+                           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                              <p><span className="font-semibold">Última actualización:</span> {formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
+                              <p><span className="font-semibold">Actualizado por:</span> {formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
+                           </div>
+                        </div>
+
+                        <div className="mt-4">
+                           <DataField
+                              label="Valoración inicial (resumen oncología)"
+                              value={formData.onboarding_initial_assessment}
+                              path="onboarding_initial_assessment"
+                              isTextArea
+                              isEditing={isEditing}
+                              onUpdate={updateField}
+                              onChange={(val) => {
+                                 updateField('onboarding_initial_assessment', val);
+                                 updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                 if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                              }}
+                           />
+                        </div>
+                     </div>
+
                      {/* ===== CHECK-INS TIMELINE ===== */}
                      <div className="bg-white rounded-2xl p-5 border border-slate-200">
                         <ReviewComplianceSummary checkins={checkins} missedCount={client.missed_checkins_count} />
@@ -3780,6 +3836,76 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  </div>
                               </div>
 
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                 <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+                                    <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                       <FileText className="w-4 h-4 text-brand-green" /> Información ampliada del onboarding
+                                    </h3>
+                                    {formData.lab_results_url ? (
+                                       <a
+                                          href={formData.lab_results_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                       >
+                                          <ExternalLink className="w-3.5 h-3.5" /> Ver analítica
+                                       </a>
+                                    ) : (
+                                       <span className="text-xs text-slate-400">Sin analítica adjunta</span>
+                                    )}
+                                 </div>
+
+                                 <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-3">
+                                       <DataField
+                                          label="URL llamada inicial"
+                                          value={formData.onboarding_call_url}
+                                          path="onboarding_call_url"
+                                          isEditing={isEditing}
+                                          onUpdate={updateField}
+                                          onChange={(val) => {
+                                             updateField('onboarding_call_url', val);
+                                             updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                             if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                                          }}
+                                       />
+                                       <DataField label="Tratamientos declarados (texto)" value={Array.isArray(formData.medical.current_treatments) ? formData.medical.current_treatments.join(', ') : ''} path="medical.current_treatments" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Alergias a fármacos" value={formData.medical.drug_allergies} path="medical.drug_allergies" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Horas de sueño" value={formData.medical.sleep_hours} path="medical.sleep_hours" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Estrés percibido (0-10)" value={formData.medical.stress_level} path="medical.stress_level" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Alteración del gusto (0-10)" value={formData.medical.symptom_taste_alteration} path="medical.symptom_taste_alteration" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Chemo brain (0-10)" value={formData.medical.symptom_chemo_brain} path="medical.symptom_chemo_brain" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Disnea (0-10)" value={formData.medical.symptom_dyspnea} path="medical.symptom_dyspnea" type="number" isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                       <DataField label="Notas de analíticas" value={formData.medical.lab_otros_notes || formData.medical.lab_otros_notas} path="medical.lab_otros_notes" isTextArea isEditing={isEditing} onUpdate={updateField} readOnly={readOnlyMedical} />
+                                       <DataField label="Objetivo evolución corporal" value={formData.body_evolution_goal_notes} path="body_evolution_goal_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       <DataField label="Cómo quiere sentirse" value={formData.desired_feeling_notes} path="desired_feeling_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       <DataField label="Hito corto plazo" value={formData.short_term_milestone_notes} path="short_term_milestone_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       <DataField label="Por qué confía en el método" value={formData.why_trust_us} path="why_trust_us" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                    </div>
+                                 </div>
+
+                                 <div className="px-5 pb-5">
+                                    <DataField
+                                       label="Valoración inicial completa"
+                                       value={formData.onboarding_initial_assessment}
+                                       path="onboarding_initial_assessment"
+                                       isTextArea
+                                       isEditing={isEditing}
+                                       onUpdate={updateField}
+                                       onChange={(val) => {
+                                          updateField('onboarding_initial_assessment', val);
+                                          updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
+                                          if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
+                                       }}
+                                    />
+                                 </div>
+                              </div>
+
                               <MedicalReviews client={formData} currentUserRole={currentUser?.role} />
                            </div>
                         )}
@@ -3981,15 +4107,17 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        <DataField label="Consumo Alcohol" value={formData.nutrition.alcohol} path="nutrition.alcohol" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
                                        <DataField label="Bebida en comidas" value={formData.nutrition.waterIntake} path="nutrition.waterIntake" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
 
-                                       <div className="pt-3 border-t border-slate-100 space-y-3">
-                                          <DataField label="Tiene Antojos" value={formData.nutrition.cravings} path="nutrition.cravings" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                          <DataField label="Tipo Antojos" value={formData.nutrition.cravingsDetail} path="nutrition.cravingsDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                          <DataField label="Qué pica" value={formData.nutrition.snackingDetail} path="nutrition.snackingDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                          <DataField label="TCA Diagnosticado" value={formData.nutrition.eatingDisorder} path="nutrition.eatingDisorder" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                          <DataField label="Detalle TCA" value={formData.nutrition.eatingDisorderDetail} path="nutrition.eatingDisorderDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                       </div>
-                                    </div>
-                                 </div>
+                                        <div className="pt-3 border-t border-slate-100 space-y-3">
+                                           <DataField label="Tiene Antojos" value={formData.nutrition.cravings} path="nutrition.cravings" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="Tipo Antojos" value={formData.nutrition.cravingsDetail} path="nutrition.cravingsDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="Qué pica" value={formData.nutrition.snackingDetail} path="nutrition.snackingDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="TCA Diagnosticado" value={formData.nutrition.eatingDisorder} path="nutrition.eatingDisorder" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="Detalle TCA" value={formData.nutrition.eatingDisorderDetail} path="nutrition.eatingDisorderDetail" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="Preferencia al pesar comida" value={formData.nutrition.weighFoodPreference} path="nutrition.weighFoodPreference" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                           <DataField label="Estado de tabaquismo" value={formData.nutrition.smokingStatus} path="nutrition.smokingStatus" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                        </div>
+                                     </div>
+                                  </div>
                               </div>
 
                               {/* ===== ROW 2: Horarios + Plan Estructurado ===== */}
@@ -4188,6 +4316,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
                                        <div className="relative z-10 space-y-4">
                                           <DataField label="Tipo Trabajo/Actividad" value={formData.training.activityLevel} path="training.activityLevel" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                          <DataField label="Rutina diaria" value={formData.daily_routine_description} path="daily_routine_description" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
                                           <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl border border-orange-100/50">
                                              <span className="text-2xl">👟</span>
                                              <DataField label="Pasos Diarios Objetivo" value={formData.training.stepsGoal} path="training.stepsGoal" type="number" isEditing={isEditing} onUpdate={updateField} className="flex-1 !mb-0" />
@@ -4198,6 +4327,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           </div>
                                           <DataField label="Lugar Entrenamiento" value={formData.training.trainingLocation} path="training.trainingLocation" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
                                           <DataField label="Horario Disponibilidad" value={formData.training.availability} path="training.availability" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
+                                          <DataField label="Franja disponibilidad (onboarding)" value={formData.exercise_availability_slots} path="exercise_availability_slots" isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
                                        </div>
                                     </div>
                                  </div>
