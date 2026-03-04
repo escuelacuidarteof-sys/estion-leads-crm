@@ -4,44 +4,44 @@ import {
   ClipboardList, ScanLine, TestTube, CalendarCheck, FileText, Calendar,
   X, ChevronDown, ChevronUp, Clock, MapPin, MessageSquare, Activity,
   Frown, Flame, Brain, Heart, Moon, Hand, UtensilsCrossed, AlertCircle,
-  CheckCircle2, BarChart3
+  CheckCircle2, BarChart3, Paperclip, Upload, Trash2, Eye, FileImage, File
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
-import { TreatmentSession, TreatmentSymptomLog, OncologyReview, TreatmentType, ReviewType } from '../../types';
+import { TreatmentSession, TreatmentSymptomLog, OncologyReview, TreatmentType, ReviewType, ReviewAttachment } from '../../types';
 
 // ─── Constants ─────────────────────────────────────────────────
 
 const TREATMENT_META: Record<TreatmentType, { icon: React.FC<any>; label: string; color: string; bgColor: string; gradient: string }> = {
-  chemotherapy:   { icon: Pill,        label: 'Quimioterapia',  color: 'text-purple-600',  bgColor: 'bg-purple-50',  gradient: 'from-purple-500 to-purple-600' },
-  radiotherapy:   { icon: Zap,         label: 'Radioterapia',   color: 'text-amber-600',   bgColor: 'bg-amber-50',   gradient: 'from-amber-500 to-orange-500' },
-  hormonotherapy: { icon: Droplets,    label: 'Hormonoterapia', color: 'text-emerald-600', bgColor: 'bg-emerald-50', gradient: 'from-emerald-500 to-teal-500' },
-  immunotherapy:  { icon: Shield,      label: 'Inmunoterapia',  color: 'text-blue-600',    bgColor: 'bg-blue-50',    gradient: 'from-blue-500 to-cyan-500' },
-  surgery:        { icon: Scissors,    label: 'Cirugía',        color: 'text-red-600',     bgColor: 'bg-red-50',     gradient: 'from-red-500 to-rose-500' },
-  other:          { icon: Stethoscope, label: 'Otro',           color: 'text-slate-600',   bgColor: 'bg-slate-50',   gradient: 'from-slate-500 to-slate-600' },
+  chemotherapy: { icon: Pill, label: 'Quimioterapia', color: 'text-purple-600', bgColor: 'bg-purple-50', gradient: 'from-purple-500 to-purple-600' },
+  radiotherapy: { icon: Zap, label: 'Radioterapia', color: 'text-amber-600', bgColor: 'bg-amber-50', gradient: 'from-amber-500 to-orange-500' },
+  hormonotherapy: { icon: Droplets, label: 'Hormonoterapia', color: 'text-emerald-600', bgColor: 'bg-emerald-50', gradient: 'from-emerald-500 to-teal-500' },
+  immunotherapy: { icon: Shield, label: 'Inmunoterapia', color: 'text-blue-600', bgColor: 'bg-blue-50', gradient: 'from-blue-500 to-cyan-500' },
+  surgery: { icon: Scissors, label: 'Cirugía', color: 'text-red-600', bgColor: 'bg-red-50', gradient: 'from-red-500 to-rose-500' },
+  other: { icon: Stethoscope, label: 'Otro', color: 'text-slate-600', bgColor: 'bg-slate-50', gradient: 'from-slate-500 to-slate-600' },
 };
 
 const REVIEW_META: Record<ReviewType, { icon: React.FC<any>; label: string; color: string; bgColor: string }> = {
-  routine:    { icon: ClipboardList, label: 'Rutina',        color: 'text-blue-600',   bgColor: 'bg-blue-50' },
-  scan:       { icon: ScanLine,      label: 'Prueba imagen', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  blood_work: { icon: TestTube,      label: 'Analítica',     color: 'text-red-600',    bgColor: 'bg-red-50' },
-  follow_up:  { icon: CalendarCheck, label: 'Seguimiento',   color: 'text-teal-600',   bgColor: 'bg-teal-50' },
-  other:      { icon: FileText,      label: 'Otro',          color: 'text-slate-600',  bgColor: 'bg-slate-50' },
+  routine: { icon: ClipboardList, label: 'Rutina', color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  scan: { icon: ScanLine, label: 'Prueba imagen', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  blood_work: { icon: TestTube, label: 'Analítica', color: 'text-red-600', bgColor: 'bg-red-50' },
+  follow_up: { icon: CalendarCheck, label: 'Seguimiento', color: 'text-teal-600', bgColor: 'bg-teal-50' },
+  other: { icon: FileText, label: 'Otro', color: 'text-slate-600', bgColor: 'bg-slate-50' },
 };
 
 const SYMPTOM_LIST = [
-  { key: 'fatigue',       label: 'Fatiga',           icon: Activity },
-  { key: 'nausea',        label: 'Náuseas',          icon: Frown },
-  { key: 'vomiting',      label: 'Vómitos',          icon: Droplets },
-  { key: 'pain',          label: 'Dolor',            icon: Flame },
-  { key: 'diarrhea',      label: 'Diarrea',          icon: AlertCircle },
-  { key: 'constipation',  label: 'Estreñimiento',    icon: AlertCircle },
-  { key: 'appetite_loss', label: 'Sin apetito',      icon: UtensilsCrossed },
-  { key: 'mouth_sores',   label: 'Llagas boca',      icon: Frown },
-  { key: 'skin_issues',   label: 'Problemas piel',   icon: AlertCircle },
-  { key: 'numbness',      label: 'Hormigueo',        icon: Hand },
-  { key: 'brain_fog',     label: 'Niebla mental',    icon: Brain },
-  { key: 'mood',          label: 'Estado ánimo',      icon: Heart },
-  { key: 'sleep_quality', label: 'Calidad sueño',     icon: Moon },
+  { key: 'fatigue', label: 'Fatiga', icon: Activity },
+  { key: 'nausea', label: 'Náuseas', icon: Frown },
+  { key: 'vomiting', label: 'Vómitos', icon: Droplets },
+  { key: 'pain', label: 'Dolor', icon: Flame },
+  { key: 'diarrhea', label: 'Diarrea', icon: AlertCircle },
+  { key: 'constipation', label: 'Estreñimiento', icon: AlertCircle },
+  { key: 'appetite_loss', label: 'Sin apetito', icon: UtensilsCrossed },
+  { key: 'mouth_sores', label: 'Llagas boca', icon: Frown },
+  { key: 'skin_issues', label: 'Problemas piel', icon: AlertCircle },
+  { key: 'numbness', label: 'Hormigueo', icon: Hand },
+  { key: 'brain_fog', label: 'Niebla mental', icon: Brain },
+  { key: 'mood', label: 'Estado ánimo', icon: Heart },
+  { key: 'sleep_quality', label: 'Calidad sueño', icon: Moon },
 ];
 
 const FEELING_EMOJIS = [
@@ -116,6 +116,10 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
     notes: '',
     ...Object.fromEntries(SYMPTOM_LIST.map(s => [s.key, 0])),
   });
+
+  // File attachments for review
+  const [reviewFiles, setReviewFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -205,10 +209,63 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
     }
   };
 
+  const uploadReviewFiles = async (): Promise<ReviewAttachment[]> => {
+    if (reviewFiles.length === 0) return [];
+    setUploadingFiles(true);
+    const uploaded: ReviewAttachment[] = [];
+    try {
+      for (const file of reviewFiles) {
+        const ext = file.name.split('.').pop() || 'bin';
+        const path = `${clientId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from('oncology-attachments').upload(path, file);
+        if (error) {
+          console.error('Upload error:', error);
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from('oncology-attachments').getPublicUrl(path);
+        uploaded.push({
+          url: urlData.publicUrl,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+      }
+    } finally {
+      setUploadingFiles(false);
+    }
+    return uploaded;
+  };
+
+  const removeReviewFile = (index: number) => {
+    setReviewFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReviewFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setReviewFiles(prev => [...prev, ...newFiles].slice(0, 5)); // Max 5 files
+    }
+    e.target.value = ''; // Reset input
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) return FileImage;
+    return File;
+  };
+
   const saveReview = async () => {
     if (!reviewForm.review_type || !reviewForm.review_date) return;
     setSaving(true);
     try {
+      // Upload files first
+      const attachments = await uploadReviewFiles();
+
       const { error } = await supabase.from('oncology_reviews').insert({
         client_id: clientId,
         review_date: reviewForm.review_date,
@@ -221,10 +278,12 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
         next_review_notes: reviewForm.next_review_notes || null,
         mood_after: reviewForm.mood_after || null,
         notes: reviewForm.notes || null,
+        attachments: attachments.length > 0 ? attachments : null,
       });
       if (error) throw error;
       setActiveModal(null);
       resetReviewForm();
+      setReviewFiles([]);
       loadAll();
     } catch (e) {
       console.error('Error saving review:', e);
@@ -261,7 +320,7 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
   };
 
   const resetSessionForm = () => setSessionForm({ treatment_type: '', session_date: new Date().toISOString().split('T')[0], treatment_name: '', cycle_number: '', total_cycles: '', location: '', overall_feeling: 0, notes: '' });
-  const resetReviewForm = () => setReviewForm({ review_type: '', review_date: new Date().toISOString().split('T')[0], doctor_name: '', location: '', summary: '', results: '', next_review_date: '', next_review_notes: '', mood_after: 0, notes: '' });
+  const resetReviewForm = () => { setReviewForm({ review_type: '', review_date: new Date().toISOString().split('T')[0], doctor_name: '', location: '', summary: '', results: '', next_review_date: '', next_review_notes: '', mood_after: 0, notes: '' }); setReviewFiles([]); };
   const resetSymptomForm = () => setSymptomForm({ session_id: '', log_date: new Date().toISOString().split('T')[0], notes: '', ...Object.fromEntries(SYMPTOM_LIST.map(s => [s.key, 0])) });
 
   // ─── Delete ──────────────────────────────────────────────────
@@ -658,6 +717,38 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
                   <p className="text-sm text-slate-700 whitespace-pre-wrap">{review.results}</p>
                 </div>
               )}
+              {/* Attachments */}
+              {review.attachments && review.attachments.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-1.5">
+                    <Paperclip className="w-3 h-3" />
+                    Documentos adjuntos ({review.attachments.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {review.attachments.map((att, i) => {
+                      const AttIcon = att.type?.startsWith('image/') ? FileImage : File;
+                      return (
+                        <a
+                          key={i}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 p-2.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors group"
+                        >
+                          <div className="p-1.5 bg-indigo-100 group-hover:bg-indigo-200 rounded-lg transition-colors">
+                            <AttIcon className="w-4 h-4 text-indigo-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-indigo-700 truncate">{att.name}</p>
+                            <p className="text-[10px] text-indigo-400">{formatFileSize(att.size)}</p>
+                          </div>
+                          <Eye className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {review.next_review_notes && (
                 <div>
                   <p className="text-xs font-bold text-slate-500 mb-1 uppercase">Notas próxima cita</p>
@@ -949,9 +1040,8 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
                   <button
                     key={f.value}
                     onClick={() => setSessionForm(prev => ({ ...prev, overall_feeling: f.value }))}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                      sessionForm.overall_feeling === f.value ? 'bg-purple-50 ring-2 ring-purple-300 scale-110' : 'hover:bg-slate-50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${sessionForm.overall_feeling === f.value ? 'bg-purple-50 ring-2 ring-purple-300 scale-110' : 'hover:bg-slate-50'
+                      }`}
                   >
                     <span className="text-2xl">{f.emoji}</span>
                     <span className="text-[10px] text-slate-500 font-medium">{f.label}</span>
@@ -1084,6 +1174,67 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
               />
             </div>
 
+            {/* Attachments Upload */}
+            <div>
+              <label className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-indigo-500" />
+                Adjuntar documentos
+                <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
+              <p className="text-xs text-slate-400 mb-3">Fotos de analíticas, informes PDF, resultados de TAC... (máx. 5 archivos)</p>
+
+              {/* File list */}
+              {reviewFiles.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {reviewFiles.map((file, i) => {
+                    const FIcon = getFileIcon(file.type);
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="p-1.5 bg-indigo-50 rounded-lg">
+                          <FIcon className="w-4 h-4 text-indigo-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
+                          <p className="text-[10px] text-slate-400">{formatFileSize(file.size)}</p>
+                        </div>
+                        {file.type.startsWith('image/') && (
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-10 h-10 rounded-lg object-cover border border-slate-200"
+                          />
+                        )}
+                        <button
+                          onClick={() => removeReviewFile(i)}
+                          className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group"
+                        >
+                          <Trash2 className="w-4 h-4 text-slate-300 group-hover:text-red-500 transition-colors" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Upload button */}
+              {reviewFiles.length < 5 && (
+                <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all group">
+                  <div className="p-2 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl transition-colors">
+                    <Upload className="w-5 h-5 text-indigo-500" />
+                  </div>
+                  <span className="text-xs font-bold text-indigo-600">Pulsa para adjuntar archivo</span>
+                  <span className="text-[10px] text-indigo-400">PDF, JPG, PNG • máx. 10 MB</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.heic,.webp"
+                    onChange={handleReviewFilesChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
             {/* Next Review */}
             <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
               <label className="text-sm font-bold text-teal-700 block mb-3">
@@ -1113,9 +1264,8 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
                   <button
                     key={f.value}
                     onClick={() => setReviewForm(prev => ({ ...prev, mood_after: f.value }))}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                      reviewForm.mood_after === f.value ? 'bg-blue-50 ring-2 ring-blue-300 scale-110' : 'hover:bg-slate-50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${reviewForm.mood_after === f.value ? 'bg-blue-50 ring-2 ring-blue-300 scale-110' : 'hover:bg-slate-50'
+                      }`}
                   >
                     <span className="text-2xl">{f.emoji}</span>
                     <span className="text-[10px] text-slate-500 font-medium">{f.label}</span>

@@ -1019,6 +1019,13 @@ export interface TreatmentSymptomLog {
   created_at: string;
 }
 
+export interface ReviewAttachment {
+  url: string;
+  name: string;
+  type: string;   // MIME type: 'application/pdf', 'image/jpeg', etc.
+  size: number;    // bytes
+}
+
 export interface OncologyReview {
   id: string;
   client_id: string;
@@ -1032,6 +1039,7 @@ export interface OncologyReview {
   next_review_notes?: string;
   mood_after?: number;
   notes?: string;
+  attachments?: ReviewAttachment[];
   created_at: string;
   updated_at?: string;
 }

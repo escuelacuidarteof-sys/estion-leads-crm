@@ -38,6 +38,7 @@ import { getContractHistory, saveContractToHistory, deleteContractFromHistory, C
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
 import ClientMaterials from './ClientMaterials';
 import { ClientStatusBanner } from './client-detail/ClientStatusBanner';
+import TreatmentView from './client-portal/TreatmentView';
 
 interface ClientDetailProps {
    client: Client;
@@ -796,7 +797,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    const [showFullAssessmentDoc, setShowFullAssessmentDoc] = useState(false);
 
    // Sub-tabs for consolidated views
-   const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal'>('medical');
+   const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal' | 'oncology'>('medical');
    const [programSubTab, setProgramSubTab] = useState<'plan' | 'revisiones' | 'objetivos'>('plan');
    const [contractSubTab, setContractSubTab] = useState<'contrato' | 'renovaciones'>('contrato');
 
@@ -3974,6 +3975,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  <span className="flex items-center gap-2"><Heart className="w-4 h-4" /> Hormonal</span>
                               </button>
                            )}
+                           <button
+                              onClick={() => setHealthSubTab('oncology')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'oncology' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-emerald-800'}`}
+                           >
+                              <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Oncología</span>
+                           </button>
                         </div>
 
                         {/* Medical Sub-tab */}

@@ -927,6 +927,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         };
 
         const initialAssessmentSnippet = compact(cAny.onboarding_initial_assessment, 220);
+        const hasActionPlan = Boolean(cAny.action_plan_nutrition || cAny.action_plan_habits || cAny.action_plan_training);
 
         return (
             <div className="space-y-4 sm:space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -985,28 +986,41 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <button
+                        type="button"
+                        onClick={() => hasActionPlan && setShowFullPlan(true)}
+                        className={`lg:col-span-2 w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all group ${hasActionPlan ? 'hover:shadow-md hover:border-emerald-200' : 'opacity-90 cursor-default'}`}
+                    >
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">Tu plan actual</h3>
-                            {(cAny.action_plan_nutrition || cAny.action_plan_habits || cAny.action_plan_training) && (
-                                <button onClick={() => setShowFullPlan(true)} className="text-xs font-bold text-brand-green hover:underline">Ver completo</button>
+                            {hasActionPlan ? (
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-brand-green">
+                                    <span className="group-hover:underline">Abrir completo</span>
+                                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                                </div>
+                            ) : (
+                                <span className="text-xs font-semibold text-slate-400">Sin contenido completo</span>
                             )}
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
-                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_nutrition, 220) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
                             </div>
                             <div className="rounded-xl bg-amber-50/60 border border-amber-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
-                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_habits, 220) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
                             </div>
                             <div className="rounded-xl bg-sky-50/60 border border-sky-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
-                                <p className="text-slate-700 mt-1">{compact(cAny.action_plan_training, 220) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
                             </div>
                         </div>
-                    </div>
+                        <div className="mt-3 flex items-center justify-between text-[11px]">
+                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Tu equipo añadirá el plan detallado aquí'}</span>
+                            {hasActionPlan && <span className="font-bold text-brand-green group-hover:underline">Ver plan completo</span>}
+                        </div>
+                    </button>
 
                     <div className="space-y-4">
                         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -1032,8 +1046,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valoración inicial</p>
                                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                 </div>
-                                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{compact(cAny.onboarding_initial_assessment, 150)}</p>
-                                <p className="text-[10px] font-bold text-indigo-500 mt-2 group-hover:underline">Leer valoración completa</p>
+                                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{compact(cAny.onboarding_initial_assessment, 180)}</p>
+                                <div className="mt-2 flex items-center justify-between text-[10px]">
+                                    <span className="font-semibold text-slate-500">Resumen breve</span>
+                                    <span className="font-bold text-indigo-500 group-hover:underline">Abrir completa</span>
+                                </div>
                             </button>
                         ) : (
                             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -1047,14 +1064,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 {/* Modal: Plan completo */}
                 {showFullPlan && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowFullPlan(false)}>
-                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white relative">
-                                <button onClick={() => setShowFullPlan(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full"><X className="w-5 h-5" /></button>
+                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 bg-gradient-to-r from-brand-green to-emerald-700 text-white relative border-b border-emerald-400/30">
+                                <button onClick={() => setShowFullPlan(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/20 rounded-xl"><FileText className="w-6 h-6" /></div>
                                     <div>
                                         <h2 className="text-lg font-black">Tu Plan Actual</h2>
-                                        <p className="text-sm text-white/70">Plan de acción personalizado</p>
+                                        <p className="text-sm text-white/80">Plan de acción personalizado</p>
                                     </div>
                                 </div>
                             </div>
@@ -1100,19 +1117,19 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 {/* Modal: Valoración inicial completa */}
                 {showFullAssessment && cAny.onboarding_initial_assessment && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowFullAssessment(false)}>
-                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                            <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white relative">
-                                <button onClick={() => setShowFullAssessment(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full"><X className="w-5 h-5" /></button>
+                        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white relative border-b border-indigo-300/30">
+                                <button onClick={() => setShowFullAssessment(false)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/20 rounded-xl"><Stethoscope className="w-6 h-6" /></div>
                                     <div>
                                         <h2 className="text-lg font-black">Valoración Inicial</h2>
-                                        <p className="text-sm text-white/70">Resumen de tu caso para el equipo</p>
+                                        <p className="text-sm text-white/80">Resumen de tu caso para el equipo</p>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-y-auto p-6">
-                                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.onboarding_initial_assessment}</p>
+                                <p className="text-[15px] text-slate-700 whitespace-pre-wrap leading-7">{cAny.onboarding_initial_assessment}</p>
                             </div>
                         </div>
                     </div>
