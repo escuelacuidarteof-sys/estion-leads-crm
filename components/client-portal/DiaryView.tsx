@@ -55,7 +55,8 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
       if (todayEntry) {
         setTodayNotes(todayEntry.notes || '');
         setTodayMood(todayEntry.mood || 'neutral');
-        setTodayEnergy(todayEntry.energy_level || 3);
+        const safeEnergy = Math.min(5, Math.max(1, Number(todayEntry.energy_level) || 3));
+        setTodayEnergy(safeEnergy);
       }
     } catch (error) {
       console.error('Error loading diary entries:', error);
@@ -73,6 +74,7 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
     if (!todayNotes.trim()) return;
     setSaving(true);
     try {
+      const normalizedEnergy = Math.min(5, Math.max(1, Number(todayEnergy) || 3));
       const { error } = await supabase
         .from('wellness_logs')
         .upsert({
@@ -80,7 +82,7 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
           log_date: today,
           notes: todayNotes.trim(),
           mood: todayMood,
-          energy_level: todayEnergy
+          energy_level: normalizedEnergy
         }, { onConflict: 'client_id,log_date' });
 
       if (error) throw error;
@@ -144,12 +146,12 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
                   <input
                     type="range"
                     min="1"
-                    max="10"
+                    max="5"
                     value={todayEnergy}
                     onChange={(e) => setTodayEnergy(Number(e.target.value))}
                     className="w-full accent-emerald-600"
                   />
-                  <span className="text-sm font-bold text-emerald-700 w-10 text-right">{todayEnergy}/10</span>
+                  <span className="text-sm font-bold text-emerald-700 w-10 text-right">{todayEnergy}/5</span>
                 </div>
               </div>
             </div>
@@ -177,7 +179,7 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
 
             {moodPreview && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 flex items-center gap-2">
-                <Heart className="w-4 h-4" /> Tu registro de hoy: {moodPreview.emoji} {moodPreview.label} · Energía {todayEnergy}/10
+                <Heart className="w-4 h-4" /> Tu registro de hoy: {moodPreview.emoji} {moodPreview.label} · Energía {todayEnergy}/5
               </div>
             )}
           </div>
@@ -205,7 +207,7 @@ export function DiaryView({ clientId, clientName, onBack }: DiaryViewProps) {
                   <div key={entry.id} className="rounded-xl border border-slate-200 p-4 bg-slate-50">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{new Date(entry.log_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                      <p className="text-xs text-slate-500">{moodInfo?.emoji || '😐'} {moodInfo?.label || 'Normal'} · {entry.energy_level || '-'} /10</p>
+                      <p className="text-xs text-slate-500">{moodInfo?.emoji || '😐'} {moodInfo?.label || 'Normal'} · {entry.energy_level || '-'} /5</p>
                     </div>
                     <p className="text-sm text-slate-700 whitespace-pre-line">{entry.notes}</p>
                   </div>

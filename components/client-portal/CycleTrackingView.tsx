@@ -169,7 +169,7 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
         }
     };
 
-    const handleSelectHormonalStatus = async (status: 'pre_menopausica' | 'perimenopausica') => {
+    const handleSelectHormonalStatus = async (status: 'pre_menopausica' | 'perimenopausica' | 'menopausica') => {
         setIsSaving(true);
         try {
             const { error } = await supabase
@@ -237,6 +237,15 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
                         >
                             <p className="text-sm font-black text-violet-800">Perimenopáusica</p>
                             <p className="text-xs text-violet-700 mt-1">Ciclos irregulares y cambios hormonales en transición.</p>
+                        </button>
+
+                        <button
+                            onClick={() => handleSelectHormonalStatus('menopausica')}
+                            disabled={isSaving}
+                            className="w-full text-left p-4 rounded-2xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 transition-all"
+                        >
+                            <p className="text-sm font-black text-purple-800">Menopáusica</p>
+                            <p className="text-xs text-purple-700 mt-1">Sin menstruación activa. Seguimiento de síntomas menopáusicos.</p>
                         </button>
                     </div>
 
