@@ -371,6 +371,11 @@ export const mapRowToClient = (row: any): Client => {
     onboarding_initial_assessment: row.onboarding_initial_assessment,
     onboarding_initial_assessment_updated_at: row.onboarding_initial_assessment_updated_at,
     onboarding_initial_assessment_author: row.onboarding_initial_assessment_author,
+    action_plan_nutrition: row.action_plan_nutrition,
+    action_plan_habits: row.action_plan_habits,
+    action_plan_training: row.action_plan_training,
+    action_plan_updated_at: row.action_plan_updated_at,
+    action_plan_updated_by: row.action_plan_updated_by,
 
     // Funcionalidad y energía
     energy_level: row.energy_level,
@@ -680,6 +685,11 @@ const mapClientToRow = (client: Partial<Client>): any => {
   if (client.onboarding_initial_assessment !== undefined) row.onboarding_initial_assessment = client.onboarding_initial_assessment;
   if (client.onboarding_initial_assessment_updated_at !== undefined) row.onboarding_initial_assessment_updated_at = client.onboarding_initial_assessment_updated_at;
   if (client.onboarding_initial_assessment_author !== undefined) row.onboarding_initial_assessment_author = client.onboarding_initial_assessment_author;
+  if (client.action_plan_nutrition !== undefined) row.action_plan_nutrition = client.action_plan_nutrition;
+  if (client.action_plan_habits !== undefined) row.action_plan_habits = client.action_plan_habits;
+  if (client.action_plan_training !== undefined) row.action_plan_training = client.action_plan_training;
+  if (client.action_plan_updated_at !== undefined) row.action_plan_updated_at = client.action_plan_updated_at;
+  if (client.action_plan_updated_by !== undefined) row.action_plan_updated_by = client.action_plan_updated_by;
 
   // Nutrition Approval
   if (client.nutrition_approved !== undefined) row.nutrition_approved = client.nutrition_approved;

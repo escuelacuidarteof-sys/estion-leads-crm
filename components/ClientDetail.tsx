@@ -52,6 +52,19 @@ interface ClientDetailProps {
    onDeleteClient?: (clientId: string, userId?: string) => void;
 }
 
+interface TeamReviewRecord {
+   id: string;
+   date: string;
+   type: string;
+   coach_name?: string;
+   summary?: string;
+   highlights?: string;
+   coach_comments?: string;
+   recording_url?: string;
+   action_items?: any;
+   created_at?: string;
+}
+
 // --- HELPER FUNCTIONS ---
 
 const getStatusColor = (status: ClientStatus) => {
@@ -732,6 +745,28 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       }
    }, [activeTab, formData.id]);
 
+   const fetchTeamReviews = useCallback(async () => {
+      if (!formData.id) return;
+      try {
+         setLoadingTeamReviews(true);
+         const { data, error } = await supabase
+            .from('coaching_sessions')
+            .select('id, date, type, coach_name, summary, highlights, coach_comments, recording_url, action_items, created_at')
+            .eq('client_id', formData.id)
+            .in('type', ['llamada_inicial', 'seguimiento', 'hito_clinico', 'ajuste_plan'])
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
+
+         if (error) throw error;
+         setTeamReviews((data || []) as TeamReviewRecord[]);
+      } catch (error) {
+         console.error('Error loading team reviews:', error);
+         setTeamReviews([]);
+      } finally {
+         setLoadingTeamReviews(false);
+      }
+   }, [formData.id]);
+
    const isCoach = currentUser?.role === UserRole.COACH || currentUser?.role === UserRole.HEAD_COACH || currentUser?.role === UserRole.ADMIN;
    const canManageMedical = currentUser ? checkPermission(currentUser, PERMISSIONS.MANAGE_MEDICAL) : false;
    const readOnlyMedical = isCoach && !canManageMedical;
@@ -762,8 +797,23 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
    // Sub-tabs for consolidated views
    const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal'>('medical');
-   const [programSubTab, setProgramSubTab] = useState<'objetivos' | 'testimonios'>('objetivos');
+   const [programSubTab, setProgramSubTab] = useState<'plan' | 'revisiones' | 'objetivos'>('plan');
    const [contractSubTab, setContractSubTab] = useState<'contrato' | 'renovaciones'>('contrato');
+
+   // Plan terapéutico: revisiones operativas
+   const [teamReviews, setTeamReviews] = useState<TeamReviewRecord[]>([]);
+   const [loadingTeamReviews, setLoadingTeamReviews] = useState(false);
+   const [savingTeamReview, setSavingTeamReview] = useState(false);
+   const [reviewType, setReviewType] = useState<'llamada_inicial' | 'seguimiento' | 'hito_clinico' | 'ajuste_plan'>('seguimiento');
+   const [reviewSummary, setReviewSummary] = useState('');
+   const [reviewNutrition, setReviewNutrition] = useState('');
+   const [reviewHabits, setReviewHabits] = useState('');
+   const [reviewTraining, setReviewTraining] = useState('');
+   const [reviewDecision, setReviewDecision] = useState('mantener');
+   const [reviewNextSteps, setReviewNextSteps] = useState('');
+   const [reviewNextDate, setReviewNextDate] = useState('');
+   const [reviewNextTime, setReviewNextTime] = useState('');
+   const [reviewCallLink, setReviewCallLink] = useState('');
 
    // Appointment Modal State
    const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -793,6 +843,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    const [loadingCheckins, setLoadingCheckins] = useState(false);
    const [checkinViewMode, setCheckinViewMode] = useState<'cards' | 'table'>('cards');
    const [coachCommission, setCoachCommission] = useState(0); // Porcentaje de comisión del Coach asignado
+
+   useEffect(() => {
+      if (activeTab === 'program' && programSubTab === 'revisiones') {
+         fetchTeamReviews();
+      }
+   }, [activeTab, programSubTab, fetchTeamReviews]);
 
    const getCoachName = (idOrName: string | null | undefined): string => {
       if (!idOrName || idOrName === 'Sin Asignar' || idOrName === 'Coach') return 'Sin Asignar';
@@ -1790,6 +1846,102 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
          toast.error('Error al actualizar la cita: ' + err.message);
       } finally {
          setIsSavingAppointment(false);
+      }
+   };
+
+   const handleSaveActionPlan = async () => {
+      try {
+         setIsSaving(true);
+         const now = new Date().toISOString();
+         const updated = {
+            ...formData,
+            action_plan_updated_at: now,
+            action_plan_updated_by: currentUser?.name || currentUser?.email || 'equipo'
+         };
+         setFormData(updated);
+         await onSave(updated);
+         toast.success('Plan de acción actualizado');
+      } catch (error: any) {
+         toast.error('Error al guardar el plan de acción: ' + (error?.message || 'Error desconocido'));
+      } finally {
+         setIsSaving(false);
+      }
+   };
+
+   const handleSaveTeamReview = async () => {
+      if (!reviewSummary.trim()) {
+         toast.error('Escribe un resumen de la revisión');
+         return;
+      }
+      if (!reviewNextDate) {
+         toast.error('Indica la próxima revisión (obligatoria)');
+         return;
+      }
+
+      try {
+         setSavingTeamReview(true);
+         const reviewDateIso = new Date().toISOString().split('T')[0];
+         const professionalName = currentUser?.name || currentUser?.email || 'equipo';
+
+         const actionSnapshot = {
+            nutrition: formData.action_plan_nutrition || '',
+            habits: formData.action_plan_habits || '',
+            training: formData.action_plan_training || '',
+            next_steps: reviewNextSteps,
+            decision: reviewDecision,
+            next_review_at: reviewNextDate,
+            next_review_time: reviewNextTime || null
+         };
+
+         const payload = {
+            client_id: formData.id,
+            coach_id: currentUser?.id || null,
+            coach_name: professionalName,
+            date: reviewDateIso,
+            type: reviewType,
+            summary: reviewSummary,
+            highlights: `Nutrición: ${reviewNutrition || '-'}\nHábitos: ${reviewHabits || '-'}\nEntrenamiento: ${reviewTraining || '-'}`,
+            coach_comments: reviewNextSteps || null,
+            recording_url: reviewCallLink || null,
+            action_items: actionSnapshot
+         };
+
+         const { error: reviewError } = await supabase
+            .from('coaching_sessions')
+            .insert(payload);
+
+         if (reviewError) throw reviewError;
+
+         const updatedClient = {
+            ...formData,
+            next_appointment_date: reviewNextDate,
+            next_appointment_time: reviewNextTime || null,
+            next_appointment_note: `Próxima revisión (${reviewType.replace('_', ' ')}) · ${reviewSummary}`,
+            next_appointment_link: reviewCallLink || formData.next_appointment_link || null,
+            next_appointment_status: 'scheduled',
+            next_appointment_conclusions: null
+         };
+
+         setFormData(updatedClient);
+         await onSave(updatedClient);
+
+         setReviewSummary('');
+         setReviewNutrition('');
+         setReviewHabits('');
+         setReviewTraining('');
+         setReviewDecision('mantener');
+         setReviewNextSteps('');
+         setReviewNextDate('');
+         setReviewNextTime('');
+         setReviewCallLink('');
+
+         await fetchTeamReviews();
+         toast.success('Revisión guardada y próxima revisión enviada a agenda/cliente');
+      } catch (error: any) {
+         console.error('Error saving team review:', error);
+         toast.error('No se pudo guardar la revisión: ' + (error?.message || 'Error desconocido'));
+      } finally {
+         setSavingTeamReview(false);
       }
    };
 
@@ -4655,42 +4807,170 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         {/* Sub-tabs for Program */}
                         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
                            <button
+                              onClick={() => setProgramSubTab('plan')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'plan' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                           >
+                              <span className="flex items-center gap-2"><ClipboardCheck className="w-4 h-4" /> Plan de Acción</span>
+                           </button>
+                           <button
+                              onClick={() => setProgramSubTab('revisiones')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'revisiones' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                           >
+                              <span className="flex items-center gap-2"><History className="w-4 h-4" /> Revisiones</span>
+                           </button>
+                           <button
                               onClick={() => setProgramSubTab('objetivos')}
                               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'objetivos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                            >
                               <span className="flex items-center gap-2"><Target className="w-4 h-4" /> Objetivos</span>
                            </button>
-                           <button
-                              onClick={() => setProgramSubTab('testimonios')}
-                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'testimonios' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                           >
-                              <span className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Testimonios</span>
-                           </button>
                         </div>
+
+                        {programSubTab === 'plan' && (
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                                 <SectionTitle title="Plan de acción por áreas" icon={<ClipboardCheck className="w-4 h-4 text-blue-500" />} />
+                                 <p className="text-sm text-slate-600">Este plan es el operativo actual del equipo. Cada cambio importante se documenta en Revisiones.</p>
+                                 <DataField label="Nutrición (acciones concretas)" value={formData.action_plan_nutrition} path="action_plan_nutrition" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                 <DataField label="Hábitos (acciones concretas)" value={formData.action_plan_habits} path="action_plan_habits" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                 <DataField label="Entrenamiento (acciones concretas)" value={formData.action_plan_training} path="action_plan_training" isTextArea isEditing={isEditing} onUpdate={updateField} />
+
+                                 <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                    <div className="text-xs text-slate-500">
+                                       <p><span className="font-semibold">Actualizado:</span> {formData.action_plan_updated_at ? new Date(formData.action_plan_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
+                                       <p><span className="font-semibold">Por:</span> {formData.action_plan_updated_by || 'Sin autor'}</p>
+                                    </div>
+                                    <button
+                                       onClick={handleSaveActionPlan}
+                                       disabled={isSaving}
+                                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                       {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar plan
+                                    </button>
+                                 </div>
+                              </div>
+
+                              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+                                 <SectionTitle title="Próxima revisión" icon={<CalendarCheck className="w-4 h-4 text-emerald-500" />} />
+                                 <p className="text-sm text-slate-600">Siempre se ve en agenda y en portal del cliente.</p>
+                                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                    {formData.next_appointment_date ? (
+                                       <>
+                                          <p className="text-sm font-bold text-emerald-800">{new Date(formData.next_appointment_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                          <p className="text-xs text-emerald-700 mt-1">{formData.next_appointment_time ? `${formData.next_appointment_time}h` : 'Hora pendiente'}</p>
+                                          {formData.next_appointment_note && <p className="text-xs text-emerald-700 mt-2">{formData.next_appointment_note}</p>}
+                                       </>
+                                    ) : (
+                                       <p className="text-sm text-emerald-700">Sin próxima revisión programada.</p>
+                                    )}
+                                 </div>
+                                 <button
+                                    onClick={() => setProgramSubTab('revisiones')}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-sm font-semibold hover:bg-slate-100"
+                                 >
+                                    Programar desde Revisiones
+                                 </button>
+                              </div>
+                           </div>
+                        )}
+
+                        {programSubTab === 'revisiones' && (
+                           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                                 <SectionTitle title="Nueva revisión del equipo" icon={<FileCheck className="w-4 h-4 text-emerald-500" />} />
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo revisión</label>
+                                       <select value={reviewType} onChange={(e) => setReviewType(e.target.value as any)} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                                          <option value="llamada_inicial">Llamada inicial</option>
+                                          <option value="seguimiento">Seguimiento</option>
+                                          <option value="hito_clinico">Hito clínico</option>
+                                          <option value="ajuste_plan">Ajuste de plan</option>
+                                       </select>
+                                    </div>
+                                    <div>
+                                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Decisión</label>
+                                       <select value={reviewDecision} onChange={(e) => setReviewDecision(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                                          <option value="mantener">Mantener plan</option>
+                                          <option value="ajustar">Ajustar plan</option>
+                                          <option value="escalar">Escalar caso</option>
+                                       </select>
+                                    </div>
+                                 </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <textarea value={reviewSummary} onChange={(e) => setReviewSummary(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Resumen global de la revisión" />
+                                    <textarea value={reviewNextSteps} onChange={(e) => setReviewNextSteps(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Siguiente paso acordado con el equipo" />
+                                 </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <textarea value={reviewNutrition} onChange={(e) => setReviewNutrition(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Valoración nutrición" />
+                                    <textarea value={reviewHabits} onChange={(e) => setReviewHabits(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Valoración hábitos" />
+                                    <textarea value={reviewTraining} onChange={(e) => setReviewTraining(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Valoración entrenamiento" />
+                                 </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50">
+                                    <div>
+                                       <label className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Próxima revisión (fecha)</label>
+                                       <input type="date" value={reviewNextDate} onChange={(e) => setReviewNextDate(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-lg border border-emerald-300 text-sm" />
+                                    </div>
+                                    <div>
+                                       <label className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Hora</label>
+                                       <input type="time" value={reviewNextTime} onChange={(e) => setReviewNextTime(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-lg border border-emerald-300 text-sm" />
+                                    </div>
+                                    <div>
+                                       <label className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Link llamada</label>
+                                       <input type="url" value={reviewCallLink} onChange={(e) => setReviewCallLink(e.target.value)} placeholder="https://..." className="mt-1 w-full px-3 py-2 rounded-lg border border-emerald-300 text-sm" />
+                                    </div>
+                                 </div>
+
+                                 <div className="flex justify-end">
+                                    <button
+                                       onClick={handleSaveTeamReview}
+                                       disabled={savingTeamReview}
+                                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                                    >
+                                       {savingTeamReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarCheck className="w-4 h-4" />} Guardar revisión y programar próxima
+                                    </button>
+                                 </div>
+                              </div>
+
+                              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                 <SectionTitle title="Historial de revisiones" icon={<History className="w-4 h-4 text-violet-500" />} />
+                                 {loadingTeamReviews ? (
+                                    <div className="py-8 text-center text-slate-500"><Loader2 className="w-5 h-5 mx-auto mb-2 animate-spin" />Cargando historial...</div>
+                                 ) : teamReviews.length === 0 ? (
+                                    <p className="text-sm text-slate-500 py-6">Aún no hay revisiones registradas.</p>
+                                 ) : (
+                                    <div className="space-y-3 mt-4 max-h-[520px] overflow-y-auto pr-1">
+                                       {teamReviews.map((review) => (
+                                          <div key={review.id} className="rounded-xl border border-slate-200 p-4 bg-slate-50/60">
+                                             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                                <p className="text-sm font-bold text-slate-800">{review.type.replace('_', ' ')}</p>
+                                                <p className="text-xs text-slate-500">{new Date(review.date).toLocaleDateString('es-ES')} · {review.coach_name || 'equipo'}</p>
+                                             </div>
+                                             {review.summary && <p className="text-sm text-slate-700 mb-2">{review.summary}</p>}
+                                             {review.highlights && <p className="text-xs text-slate-600 whitespace-pre-line">{review.highlights}</p>}
+                                             {review.coach_comments && <p className="text-xs text-indigo-700 mt-2"><span className="font-semibold">Siguiente paso:</span> {review.coach_comments}</p>}
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                        )}
 
                         {/* Objetivos Sub-tab */}
                         {programSubTab === 'objetivos' && (
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="space-y-4">
-                                 <SectionTitle title="Motivación" icon={<Target className="w-4 h-4 text-indigo-500" />} />
-                                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50/30 p-5 rounded-2xl border border-indigo-100/80 shadow-sm relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                                     <div className="relative z-10 space-y-4">
-                                        <DataField label="Motivo Confianza" value={formData.goals.motivation} path="goals.motivation" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                        <DataField label="Notas Adicionales" value={formData.general_notes} path="general_notes" isTextArea isEditing={isEditing} onUpdate={updateField} onQuickSave={handleQuickSave} />
-                                        <div className="rounded-xl border border-indigo-100 bg-white/70 px-3 py-2">
-                                           <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">Recordatorio 24h</p>
-                                           <p className="text-xs text-slate-600 mt-1">Se gestiona en Salud Detallada &gt; Nutrición para evitar duplicados.</p>
-                                           <button
-                                              onClick={() => { setActiveTab('health'); setHealthSubTab('nutrition'); }}
-                                              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                                           >
-                                              Ir a Nutrición
-                                           </button>
-                                        </div>
-                                     </div>
-                                  </div>
-                               </div>
+                           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                                    <DataField label="Prioridad terapéutica" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                 </div>
+                                 <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                                    <DataField label="Sensación objetivo" value={formData.desired_feeling_notes} path="desired_feeling_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                 </div>
+                              </div>
 
                               <div className="space-y-4">
                                  <SectionTitle title="Objetivos Temporales (Largo Plazo)" icon={<Clock className="w-4 h-4 text-green-500" />} />
@@ -4822,20 +5102,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  </div>
 
                                  {/* NUEVO: PANEL DE OBJETIVOS COACH */}
-                                 <div className="pt-6 mt-6 border-t border-slate-200">
-                                    <CoachGoalsManager clientId={client.id} isCoach={isCoach} />
-                                 </div>
-                              </div>
-                           </div>
-                        )}
-
-                        {/* Testimonios Sub-tab */}
-                        {programSubTab === 'testimonios' && (
-                           <ClientTestimonialManager
-                              client={client}
-                              currentUser={currentUser!}
-                           />
-                        )}
+                                  <div className="pt-6 mt-6 border-t border-slate-200">
+                                     <CoachGoalsManager clientId={client.id} isCoach={isCoach} />
+                                  </div>
+                               </div>
+                            </div>
+                         )}
                      </div>
                   )
                }
@@ -4901,6 +5173,15 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         <ClientMaterials
                            clientId={client.id}
                            currentUser={currentUser}
+                        />
+                     </div>
+
+                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mt-6">
+                        <SectionTitle title="Testimonios" icon={<MessageSquare className="w-4 h-4 text-violet-500" />} />
+                        <p className="text-sm text-slate-600 mb-4">Gestión de testimonios y piezas de evidencia del proceso del cliente.</p>
+                        <ClientTestimonialManager
+                           client={client}
+                           currentUser={currentUser!}
                         />
                      </div>
                   </div>

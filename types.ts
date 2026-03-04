@@ -387,6 +387,13 @@ export interface Client {
   onboarding_initial_assessment_updated_at?: string;
   onboarding_initial_assessment_author?: string;
 
+  // Plan terapéutico operativo
+  action_plan_nutrition?: string;
+  action_plan_habits?: string;
+  action_plan_training?: string;
+  action_plan_updated_at?: string;
+  action_plan_updated_by?: string;
+
   // Funcionalidad y energía
   energy_level?: number;
   recovery_capacity?: number;
