@@ -1018,6 +1018,11 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
             medical.treatment_none ? 'Sin tratamiento actual' : null,
          ].filter(Boolean);
 
+      const analyticsUrlRaw = typeof formData.lab_results_url === 'string' ? formData.lab_results_url.trim() : '';
+      const analyticsUrl = analyticsUrlRaw
+         ? (/^https?:\/\//i.test(analyticsUrlRaw) ? analyticsUrlRaw : `https://${analyticsUrlRaw}`)
+         : '';
+
       const sections = [
          {
             title: 'Identificacion y contacto',
@@ -1055,8 +1060,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
          {
             title: 'Analitica y pruebas',
             rows: [
-               { label: 'Analitica adjunta', value: formData.lab_results_url ? 'Disponible' : 'Sin dato', critical: true },
-               { label: 'Enlace analitica', value: normalize(formData.lab_results_url), critical: false },
+               { label: 'Analitica adjunta', value: analyticsUrl ? 'Abrir analitica' : 'Sin dato', critical: true, link: analyticsUrl || undefined },
+               { label: 'Enlace analitica', value: normalize(formData.lab_results_url), critical: false, link: analyticsUrl || undefined },
                { label: 'Hemoglobina', value: normalize(medical.lab_hemoglobina), critical: false },
                { label: 'Hierro', value: normalize(medical.lab_hierro), critical: false },
                { label: 'Glucosa', value: normalize(medical.lab_glucosa), critical: false },
@@ -3427,7 +3432,23 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                      {section.rows.map((row) => (
                                         <div key={`${section.title}-${row.label}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{row.label}</p>
-                                           <p className={`text-sm mt-0.5 ${row.isMissing ? 'text-amber-700 font-semibold' : 'text-slate-700'}`}>{row.value}</p>
+                                           {row.link && !row.isMissing ? (
+                                              <div className="mt-1.5 space-y-1.5">
+                                                 <a
+                                                    href={row.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                                                 >
+                                                    <ExternalLink className="w-3.5 h-3.5" /> Abrir analitica
+                                                 </a>
+                                                 {row.label !== 'Analitica adjunta' && (
+                                                    <p className="text-xs text-slate-500 break-all">{row.value}</p>
+                                                 )}
+                                              </div>
+                                           ) : (
+                                              <p className={`text-sm mt-0.5 ${row.isMissing ? 'text-amber-700 font-semibold' : 'text-slate-700'}`}>{row.value}</p>
+                                           )}
                                         </div>
                                      ))}
                                   </div>
