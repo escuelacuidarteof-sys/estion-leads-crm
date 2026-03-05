@@ -972,6 +972,167 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       return { summary, risks, priority, nextAction };
    }, [assessmentSections, clinicalAlerts, formData.concerns_fears_notes, formData.main_priority_notes, initialAssessmentText]);
 
+   const preCallFicha = useMemo(() => {
+      const medical = formData.medical || {} as any;
+      const nutrition = formData.nutrition || {} as any;
+      const training = formData.training || {} as any;
+
+      const normalize = (value: any): string => {
+         if (value === null || value === undefined) return 'Sin dato';
+         if (typeof value === 'string') {
+            const clean = value.trim();
+            return clean || 'Sin dato';
+         }
+         if (typeof value === 'number') {
+            return Number.isFinite(value) ? String(value) : 'Sin dato';
+         }
+         if (typeof value === 'boolean') return value ? 'Si' : 'No';
+         if (Array.isArray(value)) {
+            const clean = value
+               .map((item) => (typeof item === 'string' ? item.trim() : String(item)))
+               .filter(Boolean);
+            return clean.length > 0 ? clean.join(', ') : 'Sin dato';
+         }
+         return String(value);
+      };
+
+      const normalizeDate = (value: string | undefined): string => {
+         if (!value) return 'Sin dato';
+         const parsed = new Date(value);
+         if (Number.isNaN(parsed.getTime())) return normalize(value);
+         return parsed.toLocaleDateString('es-ES');
+      };
+
+      const symptom = (value: any): string => {
+         if (value === null || value === undefined || value === '') return 'Sin dato';
+         return `${value}/10`;
+      };
+
+      const activeTreatments = Array.isArray(medical.current_treatments) && medical.current_treatments.length > 0
+         ? medical.current_treatments
+         : [
+            medical.treatment_chemotherapy ? 'Quimioterapia' : null,
+            medical.treatment_radiotherapy ? 'Radioterapia' : null,
+            medical.treatment_hormonotherapy ? 'Hormonoterapia' : null,
+            medical.treatment_immunotherapy ? 'Inmunoterapia' : null,
+            medical.treatment_none ? 'Sin tratamiento actual' : null,
+         ].filter(Boolean);
+
+      const sections = [
+         {
+            title: 'Identificacion y contacto',
+            rows: [
+               { label: 'Nombre', value: normalize(`${formData.firstName || ''} ${formData.surname || ''}`), critical: true },
+               { label: 'Edad / sexo', value: normalize(`${formData.age || 'Sin dato'} / ${formData.gender || 'Sin dato'}`), critical: true },
+               { label: 'Telefono', value: normalize(formData.phone), critical: true },
+               { label: 'Email', value: normalize(formData.email), critical: false },
+               { label: 'Ciudad / provincia', value: normalize(`${formData.city || 'Sin dato'} / ${formData.province || 'Sin dato'}`), critical: false },
+               { label: 'Coach', value: normalize(coachDisplayName), critical: false },
+            ]
+         },
+         {
+            title: 'Oncologia y tratamiento',
+            rows: [
+               { label: 'Estado oncologico', value: normalize(medical.oncology_status || medical.diagnosis), critical: true },
+               { label: 'Tipo tumoral', value: normalize(medical.tumor_type), critical: true },
+               { label: 'Fecha diagnostico', value: normalizeDate(medical.diagnosisDate), critical: false },
+               { label: 'Tratamientos activos', value: normalize(activeTreatments), critical: true },
+               { label: 'Inicio tratamiento', value: normalizeDate(medical.treatment_start_date), critical: false },
+               { label: 'Medicacion diaria', value: normalize(medical.medication), critical: false },
+            ]
+         },
+         {
+            title: 'Riesgos y seguridad',
+            rows: [
+               { label: 'Alergias farmacos', value: normalize(medical.drug_allergies), critical: true },
+               { label: 'Limitaciones ejercicio', value: normalize(medical.exercise_medical_limitations_details), critical: true },
+               { label: 'Linfedema', value: normalize(medical.lymphedema), critical: true },
+               { label: 'Acceso venoso', value: normalize(medical.venous_access), critical: true },
+               { label: 'Riesgo oseo', value: normalize(medical.bone_risk), critical: true },
+               { label: 'Neuropatia periferica', value: normalize(medical.peripheral_neuropathy), critical: false },
+            ]
+         },
+         {
+            title: 'Sintomas y energia',
+            rows: [
+               { label: 'Fatiga', value: symptom(medical.symptom_fatigue), critical: true },
+               { label: 'Dolor', value: symptom(medical.symptom_pain), critical: true },
+               { label: 'Disnea', value: symptom(medical.symptom_dyspnea), critical: true },
+               { label: 'Chemo brain', value: symptom(medical.symptom_chemo_brain), critical: false },
+               { label: 'Sueno (calidad)', value: symptom(medical.symptom_sleep_quality), critical: false },
+               { label: 'Estres', value: symptom(medical.stress_level), critical: false },
+            ]
+         },
+         {
+            title: 'Nutricion y habitos',
+            rows: [
+               { label: 'Tipo nutricion', value: normalize(nutrition.assigned_nutrition_type), critical: false },
+               { label: 'Alergias alimentos', value: normalize(nutrition.allergies), critical: true },
+               { label: 'Alimentos habituales', value: normalize(nutrition.consumedFoods), critical: false },
+               { label: 'Alimentos no deseados', value: normalize(nutrition.unwantedFoods), critical: false },
+               { label: 'Comidas por dia', value: normalize(nutrition.mealsPerDay), critical: false },
+               { label: 'Alcohol / tabaco', value: `${normalize(nutrition.alcohol)} / ${normalize(nutrition.smokingStatus)}`, critical: false },
+            ]
+         },
+         {
+            title: 'Actividad y objetivos',
+            rows: [
+               { label: 'Nivel actividad', value: normalize(training.activityLevel), critical: true },
+               { label: 'Disponibilidad ejercicio', value: normalize(training.availability || formData.exercise_availability_slots), critical: true },
+               { label: 'Fuerza previa', value: normalize(training.strengthTraining), critical: false },
+               { label: 'Lugar entrenamiento', value: normalize(training.trainingLocation), critical: false },
+               { label: 'Prioridad principal', value: normalize(formData.main_priority_notes), critical: true },
+               { label: 'Preocupaciones/miedos', value: normalize(formData.concerns_fears_notes), critical: true },
+            ]
+         },
+      ];
+
+      const sectionsWithMeta = sections.map((section) => {
+         const rowsWithMeta = section.rows.map((row) => ({
+            ...row,
+            isMissing: row.value === 'Sin dato' || row.value === 'Sin dato / Sin dato'
+         }));
+
+         return {
+            ...section,
+            rows: rowsWithMeta,
+            missingCount: rowsWithMeta.filter((row) => row.isMissing).length,
+         };
+      });
+
+      const criticalPending = sectionsWithMeta
+         .flatMap((section) => section.rows)
+         .filter((row) => row.critical && row.isMissing)
+         .map((row) => row.label);
+
+      const symptomAlerts = [
+         { label: 'Fatiga alta', value: medical.symptom_fatigue },
+         { label: 'Dolor alto', value: medical.symptom_pain },
+         { label: 'Disnea alta', value: medical.symptom_dyspnea },
+      ]
+         .filter((item) => Number(item.value) >= 7)
+         .map((item) => `${item.label} (${item.value}/10)`);
+
+      const focusPoints = [...criticalPending, ...symptomAlerts];
+
+      const copyText = [
+         `Ficha pre-llamada: ${normalize(`${formData.firstName || ''} ${formData.surname || ''}`)}`,
+         '',
+         ...sectionsWithMeta.flatMap((section) => [
+            section.title.toUpperCase(),
+            ...section.rows.map((row) => `- ${row.label}: ${row.value}`),
+            ''
+         ]),
+      ].join('\n');
+
+      return {
+         sections: sectionsWithMeta,
+         criticalPending,
+         focusPoints,
+         copyText,
+      };
+   }, [coachDisplayName, formData]);
+
    const medicalCompleteness = useMemo(() => {
       const medical = formData.medical || {} as any;
       const isFilled = (value: any) => {
@@ -3183,8 +3344,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         </div>
                      </div>
 
-                     <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                            <div>
                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valoración inicial</p>
                               <h3 className="text-lg font-bold text-slate-800">Lectura clínica centralizada</h3>
@@ -3206,11 +3367,65 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <p><span className="font-semibold">Última actualización:</span> {formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
                               <p><span className="font-semibold">Actualizado por:</span> {formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
                            </div>
-                        </div>
-                     </div>
+                         </div>
+                      </div>
 
-                     {/* ===== CHECK-INS TIMELINE ===== */}
-                     <div className="bg-white rounded-2xl p-5 border border-slate-200">
+                      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                            <div>
+                               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ficha pre-llamada</p>
+                               <h3 className="text-lg font-bold text-slate-800">Resumen fiel del formulario</h3>
+                               <p className="text-xs text-slate-500 mt-1">
+                                  Campos pendientes criticos: <span className="font-bold text-amber-700">{preCallFicha.criticalPending.length}</span>
+                               </p>
+                            </div>
+                            <button
+                               onClick={() => navigator.clipboard?.writeText(preCallFicha.copyText)}
+                               className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
+                            >
+                               <ClipboardCheck className="w-4 h-4" /> Copiar ficha
+                            </button>
+                         </div>
+
+                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-4">
+                            <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">Puntos a profundizar en llamada</p>
+                            {preCallFicha.focusPoints.length > 0 ? (
+                               <div className="flex flex-wrap gap-2">
+                                  {preCallFicha.focusPoints.map((point, idx) => (
+                                     <span key={`${point}-${idx}`} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border border-amber-300 bg-white text-amber-800">
+                                        {point}
+                                     </span>
+                                  ))}
+                               </div>
+                            ) : (
+                               <p className="text-xs text-amber-800">Sin alertas prioritarias. Puedes validar y profundizar en objetivos y adherencia.</p>
+                            )}
+                         </div>
+
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            {preCallFicha.sections.map((section, sectionIdx) => (
+                               <details key={section.title} open={sectionIdx < 2} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                                  <summary className="cursor-pointer flex items-center justify-between gap-3">
+                                     <span className="text-sm font-bold text-slate-800">{section.title}</span>
+                                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-slate-300 bg-white text-slate-600">
+                                        {section.missingCount} pendientes
+                                     </span>
+                                  </summary>
+                                  <div className="mt-3 space-y-2">
+                                     {section.rows.map((row) => (
+                                        <div key={`${section.title}-${row.label}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{row.label}</p>
+                                           <p className={`text-sm mt-0.5 ${row.isMissing ? 'text-amber-700 font-semibold' : 'text-slate-700'}`}>{row.value}</p>
+                                        </div>
+                                     ))}
+                                  </div>
+                               </details>
+                            ))}
+                         </div>
+                      </div>
+
+                      {/* ===== CHECK-INS TIMELINE ===== */}
+                      <div className="bg-white rounded-2xl p-5 border border-slate-200">
                         <ReviewComplianceSummary checkins={checkins} missedCount={client.missed_checkins_count} />
                      </div>
 
