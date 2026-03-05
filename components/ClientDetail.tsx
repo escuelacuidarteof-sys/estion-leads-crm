@@ -1053,6 +1053,18 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
             ]
          },
          {
+            title: 'Analitica y pruebas',
+            rows: [
+               { label: 'Analitica adjunta', value: formData.lab_results_url ? 'Disponible' : 'Sin dato', critical: true },
+               { label: 'Enlace analitica', value: normalize(formData.lab_results_url), critical: false },
+               { label: 'Hemoglobina', value: normalize(medical.lab_hemoglobina), critical: false },
+               { label: 'Hierro', value: normalize(medical.lab_hierro), critical: false },
+               { label: 'Glucosa', value: normalize(medical.lab_glucosa), critical: false },
+               { label: 'Vitamina D', value: normalize(medical.lab_vitamina_d), critical: false },
+               { label: 'Notas analitica', value: normalize(medical.lab_otros_notes || medical.lab_otros_notas), critical: false },
+            ]
+         },
+         {
             title: 'Sintomas y energia',
             rows: [
                { label: 'Fatiga', value: symptom(medical.symptom_fatigue), critical: true },
