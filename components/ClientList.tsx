@@ -5,7 +5,7 @@ import {
   Search, Filter, PlayCircle, PauseCircle, XCircle, ChevronRight,
   Users, UserCheck, UserMinus, UserPlus, Clock, AlertOctagon, TrendingUp,
   Activity, Briefcase, Calendar, Heart, LayoutGrid, List,
-  Droplets, Scale, ClipboardCheck, AlertCircle
+  Droplets, Scale, ClipboardCheck, AlertCircle, PhoneCall
 } from 'lucide-react';
 import ClientCard from './ClientCard';
 
@@ -25,6 +25,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStatus | 'all'>('all');
   const [coachFilter, setCoachFilter] = useState<string>('all');
+  const [callFilter, setCallFilter] = useState<'all' | 'initial_pending' | 'initial_done' | 'review_due_15' | 'review_overdue'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Helper to resolve coach name
@@ -77,7 +78,34 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
           ? true
           : coachFilter === 'all' || client.coach_id === coachFilter;
 
-      return matchesSearch && matchesCoach;
+      const hasInitialCall = Boolean(
+        client.onboarding_initial_assessment_updated_at ||
+        client.onboarding_call_url ||
+        (client.onboarding_initial_assessment && client.onboarding_initial_assessment.trim().length > 0)
+      );
+
+      const contractReviewLabel = (() => {
+        if (client.status !== ClientStatus.ACTIVE || !client.contract_end_date) return null;
+        const today = new Date();
+        const endDate = new Date(client.contract_end_date);
+        if (Number.isNaN(endDate.getTime())) return null;
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const daysToEnd = Math.ceil((endDate.getTime() - today.getTime()) / msPerDay);
+        if (daysToEnd < 0) return 'overdue';
+        if (daysToEnd <= 15) return 'due_15';
+        return null;
+      })();
+
+      const matchesCallFilter = (() => {
+        if (callFilter === 'all') return true;
+        if (callFilter === 'initial_pending') return !hasInitialCall;
+        if (callFilter === 'initial_done') return hasInitialCall;
+        if (callFilter === 'review_due_15') return contractReviewLabel === 'due_15';
+        if (callFilter === 'review_overdue') return contractReviewLabel === 'overdue';
+        return true;
+      })();
+
+      return matchesSearch && matchesCoach && matchesCallFilter;
     });
 
     return filtered.sort((a, b) => {
@@ -89,7 +117,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
       const dateB = new Date(b.start_date || b.created_at || 0).getTime();
       return dateB - dateA;
     });
-  }, [clients, searchTerm, coachFilter, currentUser.role]);
+  }, [clients, searchTerm, coachFilter, currentUser.role, callFilter]);
 
   const stats = useMemo(() => {
     const calculationDate = new Date();
@@ -155,6 +183,42 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
     const label = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
     if (client.last_checkin_status === 'pending_review') return { label, dot: 'bg-amber-400', text: 'text-amber-600' };
     return { label, dot: 'bg-green-400', text: 'text-green-600' };
+  };
+
+  const getInitialCallInfo = (client: Client) => {
+    const hasInitialCall = Boolean(
+      client.onboarding_initial_assessment_updated_at ||
+      client.onboarding_call_url ||
+      (client.onboarding_initial_assessment && client.onboarding_initial_assessment.trim().length > 0)
+    );
+
+    if (hasInitialCall) {
+      return {
+        label: 'Inicial hecha',
+        dot: 'bg-emerald-400',
+        text: 'text-emerald-700'
+      };
+    }
+
+    return {
+      label: 'Inicial pendiente',
+      dot: 'bg-amber-400',
+      text: 'text-amber-700'
+    };
+  };
+
+  const getContractReviewCallInfo = (client: Client) => {
+    if (client.status !== ClientStatus.ACTIVE || !client.contract_end_date) return null;
+    const today = new Date();
+    const endDate = new Date(client.contract_end_date);
+    if (Number.isNaN(endDate.getTime())) return null;
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysToEnd = Math.ceil((endDate.getTime() - today.getTime()) / msPerDay);
+
+    if (daysToEnd < 0) return { label: `Revisión vencida (${Math.abs(daysToEnd)}d)`, dot: 'bg-rose-500', text: 'text-rose-700' };
+    if (daysToEnd <= 15) return { label: `Revisión en ${daysToEnd}d`, dot: 'bg-amber-500', text: 'text-amber-700' };
+    return null;
   };
 
   // Premium Stat Card Component
@@ -356,6 +420,21 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                   <option value={ClientStatus.DROPOUT}>Abandonos</option>
                 </select>
               </div>
+
+              <div className="relative flex-1 sm:flex-none">
+                <PhoneCall className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={callFilter}
+                  onChange={(e) => setCallFilter(e.target.value as 'all' | 'initial_pending' | 'initial_done' | 'review_due_15' | 'review_overdue')}
+                  className="w-full sm:w-56 pl-11 pr-4 py-3 text-sm border border-slate-200 rounded-xl appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer font-medium"
+                >
+                  <option value="all">Todas las llamadas</option>
+                  <option value="initial_pending">Inicial pendiente</option>
+                  <option value="initial_done">Inicial hecha</option>
+                  <option value="review_due_15">Revisión en 15 días</option>
+                  <option value="review_overdue">Revisión vencida</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -483,6 +562,31 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                       {/* Seguimiento */}
                       <td className="px-6 py-4">
                         <div className="space-y-1.5">
+                          {(() => {
+                            const initialCall = getInitialCallInfo(client);
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <PhoneCall className="w-3 h-3 text-slate-400 shrink-0" />
+                                <div className={`w-2 h-2 rounded-full ${initialCall.dot} shrink-0`} />
+                                <span className={`text-xs font-semibold ${initialCall.text}`}>
+                                  {initialCall.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          {(() => {
+                            const reviewCall = getContractReviewCallInfo(client);
+                            if (!reviewCall) return null;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                                <div className={`w-2 h-2 rounded-full ${reviewCall.dot} shrink-0`} />
+                                <span className={`text-xs font-semibold ${reviewCall.text}`}>
+                                  {reviewCall.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
                           {(() => {
                             const ci = getCheckinInfo(client);
                             return (
