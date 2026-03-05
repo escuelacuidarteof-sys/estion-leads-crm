@@ -1061,7 +1061,6 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
             title: 'Analitica y pruebas',
             rows: [
                { label: 'Analitica adjunta', value: analyticsUrl ? 'Abrir analitica' : 'Sin dato', critical: true, link: analyticsUrl || undefined },
-               { label: 'Enlace analitica', value: normalize(formData.lab_results_url), critical: false, link: analyticsUrl || undefined },
                { label: 'Hemoglobina', value: normalize(medical.lab_hemoglobina), critical: false },
                { label: 'Hierro', value: normalize(medical.lab_hierro), critical: false },
                { label: 'Glucosa', value: normalize(medical.lab_glucosa), critical: false },
