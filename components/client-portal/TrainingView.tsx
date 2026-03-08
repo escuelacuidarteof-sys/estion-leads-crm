@@ -886,6 +886,30 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
     const [completedDayIds, setCompletedDayIds] = useState<Set<string>>(new Set());
+    const [currentCalendarWeek, setCurrentCalendarWeek] = useState(1);
+
+    const getStartOfWeekMonday = (input: Date) => {
+        const date = new Date(input);
+        date.setHours(0, 0, 0, 0);
+        const day = date.getDay(); // 0 = Sunday
+        const diff = day === 0 ? -6 : 1 - day;
+        date.setDate(date.getDate() + diff);
+        return date;
+    };
+
+    const getCalendarDateForDay = (week: number, dayNumber: number) => {
+        const today = new Date();
+        const monday = getStartOfWeekMonday(today);
+        const weekOffset = week - currentCalendarWeek;
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + (weekOffset * 7) + (dayNumber - 1));
+        return date;
+    };
+
+    const formatDayNumber = (date: Date) => date.getDate().toString();
+
+    const formatSpanishDate = (date: Date) =>
+        date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
     const loadActivityLogs = async (dayId: string) => {
         try {
@@ -992,6 +1016,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                 const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
                 const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
                 setSelectedWeek(clampedWeek);
+                setCurrentCalendarWeek(clampedWeek);
                 loadCompletedDays(prog);
             } catch (err) {
                 console.error('Error loading training assignment:', err);
@@ -1191,13 +1216,19 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                             const dayData = getDayData(selectedWeek, dayNum);
                             const activities = dayData?.activities || [];
                             const isDayCompleted = dayData ? completedDayIds.has(dayData.id) : false;
+                            const calendarDate = getCalendarDateForDay(selectedWeek, dayNum);
+                            const today = new Date();
+                            const isToday =
+                                calendarDate.getDate() === today.getDate() &&
+                                calendarDate.getMonth() === today.getMonth() &&
+                                calendarDate.getFullYear() === today.getFullYear();
 
                             return (
                                 <button
                                     key={dayNum}
                                     onClick={() => hasContent ? setSelectedDay(isSelected ? null : dayNum) : undefined}
                                     disabled={!hasContent}
-                                    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${isSelected
+                                    className={`relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isSelected
                                         ? 'bg-brand-green text-white shadow-sm'
                                         : isDayCompleted
                                             ? 'bg-green-50 border-2 border-brand-green/60 text-brand-dark hover:bg-green-100 active:scale-95'
@@ -1213,6 +1244,9 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                     )}
                                     <span className="text-[10px] font-black uppercase tracking-wider">
                                         {DAY_NAMES[dayNum - 1]}
+                                    </span>
+                                    <span className={`text-[11px] font-black leading-none ${isSelected ? 'text-white' : isToday ? 'text-brand-green' : 'text-slate-500'}`}>
+                                        {formatDayNumber(calendarDate)}
                                     </span>
                                     <div className="flex flex-col items-center gap-0.5 min-h-[32px] justify-center">
                                         {hasContent ? (
@@ -1244,7 +1278,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 day={selectedDayData}
                                 workout={selectedWorkout}
                                 workoutLoading={workoutLoading}
-                                dayName={DAY_NAMES_FULL[selectedDay - 1]}
+                                dayName={`${DAY_NAMES_FULL[selectedDay - 1]} ${selectedDay !== null ? `(${formatSpanishDate(getCalendarDateForDay(selectedWeek, selectedDay))})` : ''}`}
                                 clientId={client.id}
                                 activityLogs={activityLogs}
                                 dayLog={dayLog}
