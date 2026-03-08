@@ -145,6 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       'training-management': 'programa',
       'food-calculator': 'programa',
       'materials-library': 'programa',
+      'internal-protocols': 'programa',
       'classes': 'programa',
       'medical-reviews': 'programa',
       'doctor-dashboard': 'doctor-panel',
@@ -474,6 +475,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
+                    <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>
                 )}
@@ -749,6 +751,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
+                    <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>
                 )}
