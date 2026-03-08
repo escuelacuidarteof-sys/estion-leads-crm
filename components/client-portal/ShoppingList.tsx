@@ -18,6 +18,7 @@ import { NutritionRecipe, IngredientSection, RecipeIngredient, MealSlot } from '
 interface ShoppingListProps {
     recipes: NutritionRecipe[];
     planId: string;
+    plannerGrid?: Record<string, string | null>;
 }
 
 interface AggregatedIngredient {
@@ -82,7 +83,7 @@ function getCheckStorageKey(planId: string) {
     return `ec_crm_shopping_${planId}`;
 }
 
-export function ShoppingList({ recipes, planId }: ShoppingListProps) {
+export function ShoppingList({ recipes, planId, plannerGrid }: ShoppingListProps) {
     const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
     // Load checked items from localStorage
@@ -102,8 +103,8 @@ export function ShoppingList({ recipes, planId }: ShoppingListProps) {
         } catch { }
     };
 
-    // Read planner grid from localStorage
-    const plannerGrid = useMemo(() => {
+    // Read planner grid from localStorage as fallback
+    const localPlannerGrid = useMemo(() => {
         try {
             const saved = localStorage.getItem(`ec_crm_weekly_plan_${planId}`);
             return saved ? JSON.parse(saved) as Record<string, string | null> : null;
@@ -112,15 +113,19 @@ export function ShoppingList({ recipes, planId }: ShoppingListProps) {
         }
     }, [planId]);
 
+    const effectivePlannerGrid = plannerGrid && Object.keys(plannerGrid).length > 0
+        ? plannerGrid
+        : localPlannerGrid;
+
     // Get selected recipe IDs from planner
     const selectedRecipeIds = useMemo(() => {
-        if (!plannerGrid) return new Set<string>();
+        if (!effectivePlannerGrid) return new Set<string>();
         const ids = new Set<string>();
-        Object.values(plannerGrid).forEach(recipeId => {
+        Object.values(effectivePlannerGrid).forEach(recipeId => {
             if (recipeId) ids.add(recipeId);
         });
         return ids;
-    }, [plannerGrid]);
+    }, [effectivePlannerGrid]);
 
     // Aggregate ingredients from selected recipes
     const sectionedIngredients = useMemo(() => {
@@ -132,8 +137,8 @@ export function ShoppingList({ recipes, planId }: ShoppingListProps) {
             if (!selectedRecipeIds.has(recipe.id)) return;
 
             // Count how many times this recipe appears in the planner
-            const recipeCount = plannerGrid
-                ? Object.values(plannerGrid).filter(id => id === recipe.id).length
+            const recipeCount = effectivePlannerGrid
+                ? Object.values(effectivePlannerGrid).filter(id => id === recipe.id).length
                 : 1;
 
             recipe.ingredients.forEach(ing => {
@@ -166,7 +171,7 @@ export function ShoppingList({ recipes, planId }: ShoppingListProps) {
         Object.values(grouped).forEach(items => items.sort((a, b) => a.name.localeCompare(b.name)));
 
         return grouped;
-    }, [recipes, selectedRecipeIds, plannerGrid]);
+    }, [recipes, selectedRecipeIds, effectivePlannerGrid]);
 
     const toggleItem = (itemKey: string) => {
         const newChecked = { ...checkedItems, [itemKey]: !checkedItems[itemKey] };

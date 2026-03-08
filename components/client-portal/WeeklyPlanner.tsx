@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
     Trash2,
     Plus,
@@ -17,6 +17,8 @@ import { NutritionRecipe, RecipeCategory, MealSlot } from '../../types';
 interface WeeklyPlannerProps {
     recipes: NutritionRecipe[];
     planId: string;
+    grid: Record<string, string | null>;
+    onGridChange: (grid: Record<string, string | null>) => void;
 }
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -35,28 +37,9 @@ function getStorageKey(planId: string) {
     return `ec_crm_weekly_plan_${planId}`;
 }
 
-export function WeeklyPlanner({ recipes, planId }: WeeklyPlannerProps) {
-    const [grid, setGrid] = useState<Grid>({});
+export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPlannerProps) {
     const [pickerOpen, setPickerOpen] = useState<string | null>(null); // "day-meal" or null
     const [expandedDay, setExpandedDay] = useState<number | null>(null);
-
-    // Load from localStorage
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem(getStorageKey(planId));
-            if (saved) {
-                setGrid(JSON.parse(saved));
-            }
-        } catch { }
-    }, [planId]);
-
-    // Save to localStorage
-    const saveGrid = useCallback((newGrid: Grid) => {
-        setGrid(newGrid);
-        try {
-            localStorage.setItem(getStorageKey(planId), JSON.stringify(newGrid));
-        } catch { }
-    }, [planId]);
 
     const cellKey = (day: number, meal: MealSlot) => `${day}-${meal}`;
 
@@ -68,7 +51,10 @@ export function WeeklyPlanner({ recipes, planId }: WeeklyPlannerProps) {
         } else {
             delete newGrid[key];
         }
-        saveGrid(newGrid);
+        onGridChange(newGrid);
+        try {
+            localStorage.setItem(getStorageKey(planId), JSON.stringify(newGrid));
+        } catch { }
         setPickerOpen(null);
     };
 
@@ -92,7 +78,10 @@ export function WeeklyPlanner({ recipes, planId }: WeeklyPlannerProps) {
 
     const handleClearAll = () => {
         if (Object.keys(grid).length === 0) return;
-        saveGrid({});
+        onGridChange({});
+        try {
+            localStorage.setItem(getStorageKey(planId), JSON.stringify({}));
+        } catch { }
     };
 
     const totalFilledCells = Object.keys(grid).length;

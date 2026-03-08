@@ -352,6 +352,45 @@ export const nutritionService = {
     return null;
   },
 
+  async getClientMealPlanState(clientId: string, planId: string): Promise<Record<string, string | null> | null> {
+    const { data, error } = await supabase
+      .from('client_meal_plan_state')
+      .select('grid')
+      .eq('client_id', clientId)
+      .eq('plan_id', planId)
+      .maybeSingle();
+
+    if (error) {
+      // Table may not exist yet in some environments
+      if (error.code === '42P01') return null;
+      throw error;
+    }
+
+    return (data?.grid as Record<string, string | null>) || null;
+  },
+
+  async saveClientMealPlanState(clientId: string, planId: string, grid: Record<string, string | null>): Promise<boolean> {
+    const { error } = await supabase
+      .from('client_meal_plan_state')
+      .upsert(
+        {
+          client_id: clientId,
+          plan_id: planId,
+          grid,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'client_id,plan_id' }
+      );
+
+    if (error) {
+      // Table may not exist yet in some environments
+      if (error.code === '42P01') return false;
+      throw error;
+    }
+
+    return true;
+  },
+
   async getAssignmentsByPlan(planId: string): Promise<ClientNutritionAssignment[]> {
     const { data, error } = await supabase
       .from('client_nutrition_assignments')

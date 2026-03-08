@@ -8,6 +8,7 @@ interface NutritionPdfGeneratorProps {
     plan: NutritionPlan;
     recipes: NutritionRecipe[];
     planId: string;
+    plannerGrid?: Record<string, string | null>;
 }
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -36,7 +37,7 @@ function inferSection(name: string): IngredientSection {
     return 'Despensa';
 }
 
-export function NutritionPdfGenerator({ client, plan, recipes, planId }: NutritionPdfGeneratorProps) {
+export function NutritionPdfGenerator({ client, plan, recipes, planId, plannerGrid: plannerGridProp }: NutritionPdfGeneratorProps) {
     const [generating, setGenerating] = useState(false);
 
     const generatePdf = async () => {
@@ -169,11 +170,13 @@ export function NutritionPdfGenerator({ client, plan, recipes, planId }: Nutriti
             }
 
             // Weekly Planner Table
-            let plannerGrid: Record<string, string | null> | null = null;
-            try {
-                const saved = localStorage.getItem(`ec_crm_weekly_plan_${planId}`);
-                if (saved) plannerGrid = JSON.parse(saved);
-            } catch { }
+            let plannerGrid: Record<string, string | null> | null = plannerGridProp || null;
+            if (!plannerGrid) {
+                try {
+                    const saved = localStorage.getItem(`ec_crm_weekly_plan_${planId}`);
+                    if (saved) plannerGrid = JSON.parse(saved);
+                } catch { }
+            }
 
             if (plannerGrid && Object.keys(plannerGrid).length > 0) {
                 addNewPageIfNeeded(70);

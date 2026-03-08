@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ArrowLeft,
     Utensils,
@@ -57,6 +57,19 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
     const [pendingApproval, setPendingApproval] = useState(false);
     const [nutritionView, setNutritionView] = useState<NutritionSubView>('recipes');
     const [selectedRecipeDetail, setSelectedRecipeDetail] = useState<RecipeWithOverride | null>(null);
+    const [plannerGrid, setPlannerGrid] = useState<Record<string, string | null>>({});
+    const [plannerSyncStatus, setPlannerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const saveTimerRef = useRef<number | null>(null);
+
+    const getPlannerStorageKey = (planId: string) => `ec_crm_weekly_plan_${planId}`;
+
+    useEffect(() => {
+        return () => {
+            if (saveTimerRef.current) {
+                window.clearTimeout(saveTimerRef.current);
+            }
+        };
+    }, []);
 
     // Legacy food plans state (for fallback)
     const [legacyPlans, setLegacyPlans] = useState<any[]>([]);
@@ -152,6 +165,74 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
 
         fetchNutrition();
     }, [client.id, client.nutrition]);
+
+    useEffect(() => {
+        const loadPlannerState = async () => {
+            if (!plan || usingLegacy || recipes.length === 0) {
+                setPlannerGrid({});
+                return;
+            }
+
+            const localFallback = (() => {
+                try {
+                    const saved = localStorage.getItem(getPlannerStorageKey(plan.id));
+                    return saved ? JSON.parse(saved) as Record<string, string | null> : {};
+                } catch {
+                    return {};
+                }
+            })();
+
+            try {
+                const remoteGrid = await nutritionService.getClientMealPlanState(client.id, plan.id);
+                if (remoteGrid && Object.keys(remoteGrid).length > 0) {
+                    setPlannerGrid(remoteGrid);
+                    try {
+                        localStorage.setItem(getPlannerStorageKey(plan.id), JSON.stringify(remoteGrid));
+                    } catch { }
+                    return;
+                }
+
+                setPlannerGrid(localFallback);
+                if (Object.keys(localFallback).length > 0) {
+                    await nutritionService.saveClientMealPlanState(client.id, plan.id, localFallback);
+                }
+            } catch (e) {
+                console.warn('No se pudo sincronizar planificador remoto, usando local.', e);
+                setPlannerGrid(localFallback);
+            }
+        };
+
+        loadPlannerState();
+    }, [plan?.id, client.id, usingLegacy, recipes.length]);
+
+    const handlePlannerGridChange = (nextGrid: Record<string, string | null>) => {
+        setPlannerGrid(nextGrid);
+        if (!plan) return;
+
+        try {
+            localStorage.setItem(getPlannerStorageKey(plan.id), JSON.stringify(nextGrid));
+        } catch { }
+
+        if (saveTimerRef.current) {
+            window.clearTimeout(saveTimerRef.current);
+        }
+
+        setPlannerSyncStatus('saving');
+        saveTimerRef.current = window.setTimeout(async () => {
+            try {
+                const synced = await nutritionService.saveClientMealPlanState(client.id, plan.id, nextGrid);
+                if (synced) {
+                    setPlannerSyncStatus('saved');
+                    window.setTimeout(() => setPlannerSyncStatus((s) => (s === 'saved' ? 'idle' : s)), 1500);
+                } else {
+                    setPlannerSyncStatus('error');
+                }
+            } catch (e) {
+                console.error('Error syncing planner:', e);
+                setPlannerSyncStatus('error');
+            }
+        }, 700);
+    };
 
     const getRecipesByCategory = (category: RecipeCategory): RecipeWithOverride[] => {
         return recipes
@@ -384,6 +465,7 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                                 plan={plan}
                                 recipes={recipes}
                                 planId={plan.id}
+                                plannerGrid={plannerGrid}
                             />
                         </div>
                     )}
@@ -498,6 +580,13 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                         {/* Sub-Navigation for structured plans with recipes */}
                         {!isBlockPlan && recipes.length > 0 && (
                             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                {nutritionView === 'planner' && (
+                                    <div className="px-4 py-2 text-xs font-semibold border-b border-slate-100 text-slate-500 flex items-center justify-end">
+                                        {plannerSyncStatus === 'saving' && <span>Guardando cambios...</span>}
+                                        {plannerSyncStatus === 'saved' && <span className="text-emerald-600">Guardado</span>}
+                                        {plannerSyncStatus === 'error' && <span className="text-red-500">No se pudo sincronizar. Se guardó localmente.</span>}
+                                    </div>
+                                )}
                                 <div className="flex border-b border-gray-200">
                                     {([
                                         { id: 'recipes' as NutritionSubView, label: 'Recetas', icon: BookOpen },
@@ -523,9 +612,14 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
 
                         {/* Content based on sub-view */}
                         {!isBlockPlan && recipes.length > 0 && nutritionView === 'planner' ? (
-                            <WeeklyPlanner recipes={recipes} planId={plan.id} />
+                            <WeeklyPlanner
+                                recipes={recipes}
+                                planId={plan.id}
+                                grid={plannerGrid}
+                                onGridChange={handlePlannerGridChange}
+                            />
                         ) : !isBlockPlan && recipes.length > 0 && nutritionView === 'shopping' ? (
-                            <ShoppingList recipes={recipes} planId={plan.id} />
+                            <ShoppingList recipes={recipes} planId={plan.id} plannerGrid={plannerGrid} />
                         ) : (
                             <>
                                 {/* Category Tabs */}
