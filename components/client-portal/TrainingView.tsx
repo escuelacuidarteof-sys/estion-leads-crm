@@ -56,10 +56,63 @@ function parseAssessmentPayload(raw?: string) {
 }
 
 function prettyFieldLabel(key: string) {
+    const friendly: Record<string, string> = {
+        p0: 'Pulso en reposo (P0)',
+        p1: 'Pulso al terminar (P1)',
+        p2: 'Pulso al minuto (P2)',
+        index: 'Indice Ruffier',
+        notes: 'Observaciones',
+        time_sec: 'Tiempo (segundos)',
+        distance_m: 'Distancia (metros)',
+        borg_0_10: 'Esfuerzo percibido (0-10)',
+        symptoms: 'Sintomas',
+        left_cm: 'Izquierda (cm)',
+        right_cm: 'Derecha (cm)',
+        pain_0_10: 'Dolor (0-10)',
+        quality: 'Calidad de movimiento',
+        limited_side: 'Lado con mas limitacion',
+        reps: 'Repeticiones',
+        left_reps: 'Reps pierna izquierda',
+        right_reps: 'Reps pierna derecha',
+        balance_quality: 'Estabilidad'
+    };
+
+    if (friendly[key]) return friendly[key];
+
     return key
         .replace(/^_+/, '')
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function prettyFieldValue(key: string, value: any) {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'number') {
+        if (key.includes('time_sec')) return `${value} s`;
+        if (key.includes('_cm')) return `${value} cm`;
+        if (key.includes('distance_m')) return `${value} m`;
+    }
+    if (key === 'quality') {
+        const map: Record<string, string> = { buena: 'Buena', aceptable: 'Aceptable', limitada: 'Limitada' };
+        return map[String(value)] || String(value);
+    }
+    if (key === 'limited_side') {
+        const map: Record<string, string> = {
+            sin_diferencia: 'Sin diferencia',
+            izquierdo: 'Izquierdo',
+            derecho: 'Derecho'
+        };
+        return map[String(value)] || String(value);
+    }
+    if (key === 'balance_quality') {
+        const map: Record<string, string> = {
+            buena: 'Buena',
+            leve: 'Inestabilidad leve',
+            marcada: 'Inestabilidad marcada'
+        };
+        return map[String(value)] || String(value);
+    }
+    return String(value);
 }
 
 function extractYoutubeId(url?: string): string | null {
@@ -783,7 +836,7 @@ function WorkoutActivityCard({ activity, workout, workoutLoading, dayLog, onStar
                                                         {Object.entries(assessment).map(([k, v]) => (
                                                             <div key={k} className="bg-sky-50 border border-sky-100 rounded-lg px-2 py-1">
                                                                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{prettyFieldLabel(k)}</p>
-                                                                <p className="text-slate-700 font-semibold break-words">{String(v)}</p>
+                                                                <p className="text-slate-700 font-semibold break-words">{prettyFieldValue(k, v)}</p>
                                                             </div>
                                                         ))}
                                                     </div>

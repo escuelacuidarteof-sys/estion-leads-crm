@@ -78,6 +78,60 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (m) => m.toUpperCase());
 
+    const friendlyLabel = (key: string) => {
+        const map: Record<string, string> = {
+            p0: 'Pulso en reposo (P0)',
+            p1: 'Pulso al terminar (P1)',
+            p2: 'Pulso al minuto (P2)',
+            index: 'Indice Ruffier',
+            notes: 'Observaciones',
+            time_sec: 'Tiempo (segundos)',
+            distance_m: 'Distancia (metros)',
+            borg_0_10: 'Esfuerzo percibido (0-10)',
+            symptoms: 'Sintomas',
+            left_cm: 'Izquierda (cm)',
+            right_cm: 'Derecha (cm)',
+            pain_0_10: 'Dolor (0-10)',
+            quality: 'Calidad de movimiento',
+            limited_side: 'Lado con mas limitacion',
+            reps: 'Repeticiones',
+            left_reps: 'Reps pierna izquierda',
+            right_reps: 'Reps pierna derecha',
+            balance_quality: 'Estabilidad'
+        };
+        return map[key] || formatFieldLabel(key);
+    };
+
+    const friendlyValue = (key: string, value: any) => {
+        if (value === null || value === undefined || value === '') return '—';
+        if (typeof value === 'number') {
+            if (key.includes('time_sec')) return `${value} s`;
+            if (key.includes('_cm')) return `${value} cm`;
+            if (key.includes('distance_m')) return `${value} m`;
+        }
+        if (key === 'quality') {
+            const map: Record<string, string> = { buena: 'Buena', aceptable: 'Aceptable', limitada: 'Limitada' };
+            return map[String(value)] || String(value);
+        }
+        if (key === 'limited_side') {
+            const map: Record<string, string> = {
+                sin_diferencia: 'Sin diferencia',
+                izquierdo: 'Izquierdo',
+                derecho: 'Derecho'
+            };
+            return map[String(value)] || String(value);
+        }
+        if (key === 'balance_quality') {
+            const map: Record<string, string> = {
+                buena: 'Buena',
+                leve: 'Inestabilidad leve',
+                marcada: 'Inestabilidad marcada'
+            };
+            return map[String(value)] || String(value);
+        }
+        return String(value);
+    };
+
     const getStructuredEntries = (data: Record<string, any>) => Object.entries(data || {})
         .filter(([k, v]) => k !== 'completed' && k !== '_structured' && v !== undefined && v !== null && String(v).trim() !== '');
 
@@ -205,8 +259,8 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
                                                             {Object.entries(ex.assessment_data).map(([k, v]) => (
                                                                 <div key={k} className="text-[10px] bg-white border border-sky-100 rounded-md px-2 py-1">
-                                                                    <p className="uppercase tracking-wider text-slate-400 font-bold">{formatFieldLabel(k)}</p>
-                                                                    <p className="text-slate-700 font-semibold break-words">{String(v)}</p>
+                                                                    <p className="uppercase tracking-wider text-slate-400 font-bold">{friendlyLabel(k)}</p>
+                                                                    <p className="text-slate-700 font-semibold break-words">{friendlyValue(k, v)}</p>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -233,8 +287,8 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                         {item.entries.map(([key, value]) => (
                                                             <div key={key} className="text-xs bg-white rounded-lg border border-sky-100 px-2.5 py-2">
-                                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{formatFieldLabel(key)}</p>
-                                                                <p className="text-slate-700 font-semibold break-words">{String(value)}</p>
+                                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{friendlyLabel(key)}</p>
+                                                                <p className="text-slate-700 font-semibold break-words">{friendlyValue(key, value)}</p>
                                                             </div>
                                                         ))}
                                                     </div>
