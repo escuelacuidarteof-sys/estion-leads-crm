@@ -21,6 +21,11 @@ interface EnrichedDayLog {
     day_name?: string;
     week_number?: number;
     exerciseDetails?: ExerciseDetail[];
+    activityDetails?: {
+        title: string;
+        type: string;
+        data: Record<string, any>;
+    }[];
 }
 
 interface ClientWorkoutHistoryProps {
@@ -66,6 +71,14 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
         if (rpe <= 7) return 'text-orange-600 bg-orange-50';
         return 'text-red-600 bg-red-50';
     };
+
+    const formatFieldLabel = (key: string) => key
+        .replace(/^_+/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (m) => m.toUpperCase());
+
+    const getStructuredEntries = (data: Record<string, any>) => Object.entries(data || {})
+        .filter(([k, v]) => k !== 'completed' && k !== '_structured' && v !== undefined && v !== null && String(v).trim() !== '');
 
     if (loading) {
         return (
@@ -190,6 +203,32 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {(log.activityDetails || []).some((a) => getStructuredEntries(a.data).length > 0) && (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultados de valoración</p>
+                                        {(log.activityDetails || [])
+                                            .map((activity, idx) => ({
+                                                idx,
+                                                title: activity.title,
+                                                entries: getStructuredEntries(activity.data)
+                                            }))
+                                            .filter((item) => item.entries.length > 0)
+                                            .map((item) => (
+                                                <div key={item.idx} className="p-3 rounded-xl border border-sky-100 bg-sky-50/60">
+                                                    <p className="text-xs font-bold text-slate-700 mb-2">{item.title}</p>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        {item.entries.map(([key, value]) => (
+                                                            <div key={key} className="text-xs bg-white rounded-lg border border-sky-100 px-2.5 py-2">
+                                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{formatFieldLabel(key)}</p>
+                                                                <p className="text-slate-700 font-semibold break-words">{String(value)}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 )}
                             </div>

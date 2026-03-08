@@ -574,7 +574,12 @@ export const trainingService = {
         return data || [];
     },
 
-    async getClientAllDayLogs(clientId: string): Promise<(ClientDayLog & { day_name?: string; week_number?: number; exerciseDetails?: { name: string; sets_completed?: number; reps_completed?: string; weight_used?: string; is_completed: boolean }[] })[]> {
+    async getClientAllDayLogs(clientId: string): Promise<(ClientDayLog & {
+        day_name?: string;
+        week_number?: number;
+        exerciseDetails?: { name: string; sets_completed?: number; reps_completed?: string; weight_used?: string; is_completed: boolean }[];
+        activityDetails?: { title: string; type: string; data: Record<string, any> }[];
+    })[]> {
         const { data: logs, error } = await supabase
             .from('training_client_day_logs')
             .select('*')
@@ -620,16 +625,44 @@ export const trainingService = {
             }
         }
 
+        // Get activity logs (custom/walking/metrics/photo/form) linked to the same days
+        const { data: activityLogs } = await supabase
+            .from('training_client_activity_logs')
+            .select('activity_id, day_id, data, completed_at')
+            .eq('client_id', clientId)
+            .in('day_id', dayIds);
+
+        // Resolve activity metadata (title, type)
+        const activityIds = [...new Set((activityLogs || []).map(a => a.activity_id))];
+        let activityMeta: Record<string, { title?: string; type?: string }> = {};
+        if (activityIds.length > 0) {
+            const { data: activities } = await supabase
+                .from('training_program_activities')
+                .select('id, title, type')
+                .in('id', activityIds);
+
+            activityMeta = Object.fromEntries((activities || []).map((a: any) => [a.id, { title: a.title, type: a.type }]));
+        }
+
         const dayMap: Record<string, { name: string; week_number: number }> = {};
         (days || []).forEach(d => { dayMap[d.id] = { name: d.name, week_number: d.week_number }; });
 
         return logs.map(log => {
             const logExercises = (exerciseLogs || []).filter(el => el.log_id === log.id);
+            const logActivities = (activityLogs || [])
+                .filter((a: any) => a.day_id === log.day_id)
+                .map((a: any) => ({
+                    title: activityMeta[a.activity_id]?.title || 'Actividad',
+                    type: activityMeta[a.activity_id]?.type || 'custom',
+                    data: a.data || {}
+                }));
+
             return {
                 ...log,
                 day_name: dayMap[log.day_id]?.name,
                 week_number: dayMap[log.day_id]?.week_number,
                 exercises: logExercises,
+                activityDetails: logActivities,
                 exerciseDetails: logExercises.map(el => ({
                     name: exerciseNames[el.workout_exercise_id] || 'Ejercicio',
                     sets_completed: el.sets_completed,

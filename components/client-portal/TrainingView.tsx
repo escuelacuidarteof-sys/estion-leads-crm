@@ -449,19 +449,169 @@ function PhotoActivityCard({ activity, existingLog, clientId, dayId, onSaved }: 
 function CustomActivityCard({ activity, existingLog, clientId, dayId, onSaved }: {
     activity: ProgramActivity; existingLog?: ClientActivityLog; clientId: string; dayId: string; onSaved: () => void;
 }) {
+    type CustomFieldType = 'number' | 'text' | 'textarea' | 'select' | 'boolean';
+    type CustomFieldOption = { label: string; value: string };
+    type CustomField = {
+        key: string;
+        label: string;
+        type?: CustomFieldType;
+        required?: boolean;
+        placeholder?: string;
+        min?: number;
+        max?: number;
+        step?: number;
+        options?: CustomFieldOption[];
+    };
+
+    const config = activity.config || {};
+    const fields = Array.isArray(config.fields) ? (config.fields as CustomField[]) : [];
+    const requiresForCompletion = !!config.required_for_completion;
+    const hasStructuredFields = fields.length > 0;
+
+    const buildInitialValues = () => {
+        const baseData = existingLog?.data || {};
+        if (!hasStructuredFields) return baseData;
+        const next: Record<string, any> = {};
+        fields.forEach((field) => {
+            const raw = baseData[field.key];
+            if (raw === undefined || raw === null) {
+                next[field.key] = field.type === 'boolean' ? false : '';
+                return;
+            }
+            next[field.key] = raw;
+        });
+        return next;
+    };
+
+    const [values, setValues] = useState<Record<string, any>>(buildInitialValues());
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
     const saved = !!existingLog;
 
     const handleComplete = async () => {
+        if (hasStructuredFields) {
+            const nextErrors: Record<string, string> = {};
+            fields.forEach((field) => {
+                if (!field.required) return;
+                const value = values[field.key];
+                const isEmpty =
+                    value === undefined ||
+                    value === null ||
+                    (typeof value === 'string' && value.trim() === '');
+                if (isEmpty) {
+                    nextErrors[field.key] = 'Campo obligatorio';
+                }
+            });
+            setErrors(nextErrors);
+            if (Object.keys(nextErrors).length > 0) {
+                return;
+            }
+        }
+
         setSaving(true);
         try {
+            const normalizedValues = hasStructuredFields
+                ? fields.reduce<Record<string, any>>((acc, field) => {
+                    const value = values[field.key];
+                    if ((field.type || 'text') === 'number') {
+                        if (value === '' || value === null || value === undefined) {
+                            acc[field.key] = undefined;
+                        } else {
+                            const parsed = Number(value);
+                            acc[field.key] = Number.isNaN(parsed) ? undefined : parsed;
+                        }
+                    } else {
+                        acc[field.key] = value;
+                    }
+                    return acc;
+                }, {})
+                : {};
+
             await trainingService.saveClientActivityLog({
                 client_id: clientId, activity_id: activity.id, day_id: dayId,
-                completed_at: new Date().toISOString(), data: { completed: true }
+                completed_at: new Date().toISOString(),
+                data: hasStructuredFields
+                    ? {
+                        ...normalizedValues,
+                        completed: true,
+                        _structured: true
+                    }
+                    : { completed: true }
             });
             onSaved();
         } catch (e) { console.error(e); alert('Error al guardar'); }
         finally { setSaving(false); }
+    };
+
+    const renderField = (field: CustomField) => {
+        const fieldType = field.type || 'text';
+        const value = values[field.key];
+        const commonClassName = `w-full px-3 py-2.5 bg-slate-50 rounded-xl text-sm text-brand-dark border ${errors[field.key] ? 'border-red-300' : 'border-slate-200'} focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`;
+
+        if (fieldType === 'textarea') {
+            return (
+                <textarea
+                    value={value || ''}
+                    onChange={(e) => {
+                        setValues(prev => ({ ...prev, [field.key]: e.target.value }));
+                        if (errors[field.key]) setErrors(prev => ({ ...prev, [field.key]: '' }));
+                    }}
+                    placeholder={field.placeholder || ''}
+                    rows={3}
+                    className={`${commonClassName} resize-none`}
+                />
+            );
+        }
+
+        if (fieldType === 'select') {
+            return (
+                <select
+                    value={value || ''}
+                    onChange={(e) => {
+                        setValues(prev => ({ ...prev, [field.key]: e.target.value }));
+                        if (errors[field.key]) setErrors(prev => ({ ...prev, [field.key]: '' }));
+                    }}
+                    className={commonClassName}
+                >
+                    <option value="">Selecciona...</option>
+                    {(field.options || []).map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            );
+        }
+
+        if (fieldType === 'boolean') {
+            return (
+                <button
+                    type="button"
+                    onClick={() => setValues(prev => ({ ...prev, [field.key]: !prev[field.key] }))}
+                    className={`w-full px-3 py-2.5 rounded-xl border text-sm font-bold transition-all ${value ? 'bg-brand-green/10 border-brand-green/40 text-brand-dark' : 'bg-slate-50 border-slate-200 text-slate-500'}`}
+                >
+                    {value ? 'Sí' : 'No'}
+                </button>
+            );
+        }
+
+        return (
+            <input
+                type={fieldType === 'number' ? 'number' : 'text'}
+                value={value ?? ''}
+                onChange={(e) => {
+                    const raw = e.target.value;
+                    setValues(prev => ({
+                        ...prev,
+                        [field.key]: fieldType === 'number' ? raw : raw
+                    }));
+                    if (errors[field.key]) setErrors(prev => ({ ...prev, [field.key]: '' }));
+                }}
+                placeholder={field.placeholder || ''}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                className={commonClassName}
+            />
+        );
     };
 
     return (
@@ -473,17 +623,49 @@ function CustomActivityCard({ activity, existingLog, clientId, dayId, onSaved }:
                 <div className="flex-1 min-w-0">
                     <p className="font-black text-brand-dark text-sm">{activity.title || 'Tarea'}</p>
                     {activity.description && <p className="text-xs text-slate-400">{activity.description}</p>}
+                    {requiresForCompletion && (
+                        <p className="text-[10px] font-black text-orange-600 bg-orange-50 inline-block mt-1 px-2 py-0.5 rounded-full border border-orange-100">
+                            Obligatorio para completar el día
+                        </p>
+                    )}
                 </div>
                 {saved ? (
                     <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">Completado</span>
-                ) : (
+                ) : !hasStructuredFields ? (
                     <button onClick={handleComplete} disabled={saving}
                         className="px-4 py-2 bg-brand-green text-white rounded-xl font-bold text-xs hover:bg-emerald-600 active:scale-95 transition-all flex items-center gap-1.5">
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                         Hecho
                     </button>
-                )}
+                ) : null}
             </div>
+
+            {hasStructuredFields && (
+                <div className="px-4 pb-4 space-y-3 border-t border-brand-mint/20">
+                    {fields.map((field) => (
+                        <div key={field.key} className="space-y-1">
+                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                {field.label}{field.required ? ' *' : ''}
+                            </label>
+                            {renderField(field)}
+                            {errors[field.key] && (
+                                <p className="text-[11px] text-red-500 font-semibold">{errors[field.key]}</p>
+                            )}
+                        </div>
+                    ))}
+
+                    {!saved && (
+                        <button
+                            onClick={handleComplete}
+                            disabled={saving}
+                            className="w-full py-3 bg-brand-green text-white rounded-xl font-bold text-sm disabled:opacity-40 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Guardar resultados
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -683,16 +865,53 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
         } catch (e) { console.error('Error loading activity logs:', e); }
     };
 
-    const loadCompletedDays = async () => {
+    const loadCompletedDays = async (currentProgram?: TrainingProgram | null) => {
         try {
             const [dayLogs, actLogs] = await Promise.all([
                 supabase.from('training_client_day_logs').select('day_id').eq('client_id', client.id),
-                supabase.from('training_client_activity_logs').select('day_id').eq('client_id', client.id).then(r => r).catch(() => ({ data: null }))
+                supabase.from('training_client_activity_logs').select('day_id,activity_id').eq('client_id', client.id).then(r => r).catch(() => ({ data: null }))
             ]);
-            const ids = new Set<string>();
-            (dayLogs.data || []).forEach(d => ids.add(d.day_id));
-            (actLogs.data || []).forEach(d => ids.add(d.day_id));
-            setCompletedDayIds(ids);
+
+            const dayLogSet = new Set<string>();
+            (dayLogs.data || []).forEach(d => dayLogSet.add(d.day_id));
+
+            const activityByDay = new Map<string, Set<string>>();
+            (actLogs.data || []).forEach((d: any) => {
+                const existing = activityByDay.get(d.day_id) || new Set<string>();
+                existing.add(d.activity_id);
+                activityByDay.set(d.day_id, existing);
+            });
+
+            if (!currentProgram) {
+                const ids = new Set<string>([...dayLogSet]);
+                [...activityByDay.keys()].forEach((dayId) => ids.add(dayId));
+                setCompletedDayIds(ids);
+                return;
+            }
+
+            const completed = new Set<string>();
+            currentProgram.days.forEach((day) => {
+                const requiredActivities = (day.activities || []).filter((a) => a.config?.required_for_completion);
+                const completedActs = activityByDay.get(day.id) || new Set<string>();
+
+                if (requiredActivities.length > 0) {
+                    const allRequiredDone = requiredActivities.every((a) => completedActs.has(a.id));
+                    if (allRequiredDone) completed.add(day.id);
+                    return;
+                }
+
+                const hasWorkout = (day.activities || []).some((a) => a.type === 'workout');
+                if (hasWorkout) {
+                    if (dayLogSet.has(day.id)) completed.add(day.id);
+                    return;
+                }
+
+                if (dayLogSet.has(day.id) || completedActs.size > 0) {
+                    completed.add(day.id);
+                }
+            });
+
+            setCompletedDayIds(completed);
         } catch (e) { console.error('Error loading completed days:', e); }
     };
 
@@ -740,7 +959,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                 const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
                 const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
                 setSelectedWeek(clampedWeek);
-                loadCompletedDays();
+                loadCompletedDays(prog);
             } catch (err) {
                 console.error('Error loading training assignment:', err);
             } finally {
@@ -998,7 +1217,10 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 dayLog={dayLog}
                                 onStartWorkout={(workout) => setActiveWorkout({ workout, dayId: selectedDayData!.id })}
                                 onOpenCheckin={() => setShowCheckin(true)}
-                                onActivitySaved={() => loadActivityLogs(selectedDayData.id)}
+                                onActivitySaved={() => {
+                                    loadActivityLogs(selectedDayData.id);
+                                    loadCompletedDays(program);
+                                }}
                             />
                         ) : (
                             <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
@@ -1174,7 +1396,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                         const dayId = activeWorkout.dayId;
                         setActiveWorkout(null);
                         loadActivityLogs(dayId);
-                        loadCompletedDays();
+                        loadCompletedDays(program);
                     }}
                 />
             )}
