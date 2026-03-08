@@ -9,6 +9,7 @@ type AssessmentFieldType = 'number' | 'text' | 'textarea' | 'select';
 type AssessmentField = {
     key: string;
     label: string;
+    helpText?: string;
     type?: AssessmentFieldType;
     required?: boolean;
     min?: number;
@@ -18,8 +19,68 @@ type AssessmentField = {
     options?: { label: string; value: string }[];
 };
 type AssessmentTemplate = {
+    introText?: string;
     fields: AssessmentField[];
     requiredForFinish?: boolean;
+};
+
+type SessionGuide = {
+    title: string;
+    intro: string;
+    checklist: string[];
+};
+
+const getSessionGuide = (workoutName?: string): SessionGuide => {
+    const n = normalizeExerciseName(workoutName);
+
+    if (n.includes('cardio') || n.includes('cardiovascular')) {
+        return {
+            title: 'Valoración cardiovascular',
+            intro: 'Hoy vamos a medir cómo responde tu cuerpo al esfuerzo. Haz cada test con calma y buena técnica.',
+            checklist: [
+                'Mira el video antes de empezar cada ejercicio.',
+                'Al terminar cada test, completa sus casillas de resultado.',
+                'Usa números simples: segundos, repeticiones o pulsaciones por minuto.',
+                'Si notas mareo, dolor fuerte o malestar, para y escribe lo que ocurrió en observaciones.'
+            ]
+        };
+    }
+
+    if (n.includes('movilidad')) {
+        return {
+            title: 'Valoración de movilidad articular',
+            intro: 'Hoy evaluamos movilidad y control de movimiento, no fuerza máxima. Prioriza calidad y sin dolor.',
+            checklist: [
+                'Haz cada movimiento despacio y con control.',
+                'Completa las casillas de cada test al terminar.',
+                'Si un movimiento molesta, para en el rango cómodo.',
+                'En observaciones puedes indicar en qué lado notaste más limitación.'
+            ]
+        };
+    }
+
+    if (n.includes('fuerza')) {
+        return {
+            title: 'Valoración de fuerza funcional',
+            intro: 'Hoy medimos fuerza y control en ejercicios básicos. No buscamos agotarte, buscamos datos útiles.',
+            checklist: [
+                'Revisa el video y coloca bien el cuerpo antes de empezar.',
+                'Anota el resultado de cada test en sus casillas.',
+                'Si pierdes técnica, descansa y repite con control.',
+                'En observaciones escribe cualquier dificultad o dolor.'
+            ]
+        };
+    }
+
+    return {
+        title: 'Sesión de valoración',
+        intro: 'Completa cada ejercicio y registra los datos para que tu coach pueda adaptar tu plan.',
+        checklist: [
+            'Mira el video de cada ejercicio.',
+            'Rellena las casillas de resultados con calma.',
+            'Prioriza técnica y seguridad por encima de la intensidad.'
+        ]
+    };
 };
 
 const normalizeExerciseName = (name?: string) =>
@@ -33,10 +94,11 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('6mwt') || (n.includes('marcha') && n.includes('6 minutos'))) {
         return {
+            introText: 'Escribe los datos al terminar la caminata de 6 minutos.',
             fields: [
-                { key: 'distance_m', label: 'Distancia (m)', type: 'number', required: true, min: 0 },
-                { key: 'borg_0_10', label: 'Borg 0-10', type: 'number', required: true, min: 0, max: 10 },
-                { key: 'symptoms', label: 'Sintomas', type: 'textarea' }
+                { key: 'distance_m', label: '¿Cuántos metros caminaste?', helpText: 'Escribe la distancia total en metros.', type: 'number', required: true, min: 0, placeholder: 'Ej: 420' },
+                { key: 'borg_0_10', label: '¿Cómo de intenso fue? (0-10)', helpText: '0 = muy fácil, 10 = máximo esfuerzo.', type: 'number', required: true, min: 0, max: 10, placeholder: 'Ej: 6' },
+                { key: 'symptoms', label: 'Síntomas durante o después (opcional)', helpText: 'Ejemplo: mareo, falta de aire, dolor.', type: 'textarea', placeholder: 'Escribe aquí si notaste algo importante' }
             ],
             requiredForFinish: true
         };
@@ -44,19 +106,21 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('timed up and go') || n.includes('(tug)')) {
         return {
-            fields: [{ key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 }],
+            introText: 'Anota el tiempo que tardaste en completar el recorrido.',
+            fields: [{ key: 'time_sec', label: 'Tiempo total (segundos)', helpText: 'Desde que te levantas hasta que vuelves a sentarte.', type: 'number', required: true, min: 0, placeholder: 'Ej: 9.8' }],
             requiredForFinish: true
         };
     }
 
     if (n.includes('ruffier')) {
         return {
+            introText: 'Necesitamos 3 pulsos para calcular tu índice de Ruffier.',
             fields: [
-                { key: 'p0', label: 'P0 (ppm)', type: 'number', required: true, min: 0 },
-                { key: 'p1', label: 'P1 (ppm)', type: 'number', required: true, min: 0 },
-                { key: 'p2', label: 'P2 (ppm)', type: 'number', required: true, min: 0 },
-                { key: 'index', label: 'Indice Ruffier', type: 'number', required: true },
-                { key: 'notes', label: 'Observaciones', type: 'textarea' }
+                { key: 'p0', label: 'Pulso en reposo (P0)', helpText: 'Antes de empezar, en pulsaciones por minuto.', type: 'number', required: true, min: 0, placeholder: 'Ej: 72' },
+                { key: 'p1', label: 'Pulso justo al terminar (P1)', helpText: 'Nada más acabar las sentadillas.', type: 'number', required: true, min: 0, placeholder: 'Ej: 128' },
+                { key: 'p2', label: 'Pulso al minuto de recuperación (P2)', helpText: 'Tras 1 minuto de descanso.', type: 'number', required: true, min: 0, placeholder: 'Ej: 94' },
+                { key: 'index', label: 'Índice Ruffier', helpText: 'Si no lo calculas, tu coach lo revisa después.', type: 'number', required: true, placeholder: 'Ej: 9.4' },
+                { key: 'notes', label: 'Observaciones (opcional)', type: 'textarea', placeholder: 'Cómo te sentiste durante el test' }
             ],
             requiredForFinish: true
         };
@@ -64,17 +128,19 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('sppb')) {
         return {
-            fields: [{ key: 'score', label: 'Puntuacion SPPB', type: 'number', required: true, min: 0 }],
+            introText: 'Anota la puntuación final del test SPPB.',
+            fields: [{ key: 'score', label: 'Puntuación SPPB', helpText: 'Escribe el resultado final obtenido.', type: 'number', required: true, min: 0, placeholder: 'Ej: 10' }],
             requiredForFinish: true
         };
     }
 
-    if (n.includes('dorsiflexion') && n.includes('tobillo')) {
+    if ((n.includes('dorsiflexion') && n.includes('tobillo')) || (n.includes('movilidad') && n.includes('tobillo'))) {
         return {
+            introText: 'Compara ambas piernas para ver si hay diferencias.',
             fields: [
-                { key: 'left_cm', label: 'Izquierda (cm)', type: 'number', required: true, min: 0 },
-                { key: 'right_cm', label: 'Derecha (cm)', type: 'number', required: true, min: 0 },
-                { key: 'pain_0_10', label: 'Dolor 0-10', type: 'number', min: 0, max: 10 }
+                { key: 'left_cm', label: 'Pierna izquierda (cm)', helpText: 'Distancia dedo-pared en la pierna izquierda.', type: 'number', required: true, min: 0, placeholder: 'Ej: 8' },
+                { key: 'right_cm', label: 'Pierna derecha (cm)', helpText: 'Distancia dedo-pared en la pierna derecha.', type: 'number', required: true, min: 0, placeholder: 'Ej: 7' },
+                { key: 'pain_0_10', label: 'Dolor durante el test (0-10)', type: 'number', min: 0, max: 10, placeholder: 'Ej: 2' }
             ],
             requiredForFinish: true
         };
@@ -82,10 +148,12 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('movilidad') && n.includes('hombro') && n.includes('pared')) {
         return {
+            introText: 'Valora cómo se mueve el hombro y si aparece molestia.',
             fields: [
                 {
                     key: 'quality',
-                    label: 'Calidad de movimiento',
+                    label: 'Calidad del movimiento',
+                    helpText: 'Elige la opción que mejor describa cómo te moviste.',
                     type: 'select',
                     required: true,
                     options: [
@@ -94,7 +162,60 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
                         { label: 'Limitada', value: 'limitada' }
                     ]
                 },
-                { key: 'pain_0_10', label: 'Dolor 0-10', type: 'number', min: 0, max: 10 }
+                { key: 'pain_0_10', label: 'Dolor durante el movimiento (0-10)', type: 'number', min: 0, max: 10, placeholder: 'Ej: 1' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('movilidad') && n.includes('hombro') && n.includes('pica')) {
+        return {
+            introText: 'Queremos valorar la movilidad de hombro con el movimiento de pica.',
+            fields: [
+                {
+                    key: 'quality',
+                    label: 'Calidad del movimiento',
+                    helpText: 'Elige la opción que mejor describa cómo te moviste.',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { label: 'Buena', value: 'buena' },
+                        { label: 'Aceptable', value: 'aceptable' },
+                        { label: 'Limitada', value: 'limitada' }
+                    ]
+                },
+                { key: 'pain_0_10', label: 'Dolor durante el movimiento (0-10)', type: 'number', min: 0, max: 10, placeholder: 'Ej: 2' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('hombro-espalda')) {
+        return {
+            introText: 'Marca cómo te sentiste en la movilidad hombro-espalda.',
+            fields: [
+                {
+                    key: 'quality',
+                    label: 'Calidad del movimiento',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { label: 'Buena', value: 'buena' },
+                        { label: 'Aceptable', value: 'aceptable' },
+                        { label: 'Limitada', value: 'limitada' }
+                    ]
+                },
+                {
+                    key: 'limited_side',
+                    label: '¿Dónde notaste más limitación?',
+                    type: 'select',
+                    options: [
+                        { label: 'Sin diferencia', value: 'sin_diferencia' },
+                        { label: 'Lado izquierdo', value: 'izquierdo' },
+                        { label: 'Lado derecho', value: 'derecho' }
+                    ]
+                },
+                { key: 'pain_0_10', label: 'Dolor durante el movimiento (0-10)', type: 'number', min: 0, max: 10, placeholder: 'Ej: 1' }
             ],
             requiredForFinish: true
         };
@@ -102,23 +223,48 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('y-balance')) {
         return {
-            fields: [{ key: 'result_note', label: 'Resultado (opcional)', type: 'text', placeholder: 'Alcance y observaciones' }],
+            introText: 'Este resultado es opcional en esta sesión.',
+            fields: [{ key: 'result_note', label: 'Resultado (opcional)', helpText: 'Puedes escribir alcance y observaciones.', type: 'text', placeholder: 'Ej: mejor alcance pierna derecha' }],
             requiredForFinish: false
         };
     }
 
     if (n.includes('5xsts') || (n.includes('sentarse') && n.includes('5 veces'))) {
         return {
-            fields: [{ key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 }],
+            introText: 'Anota el tiempo total en segundos.',
+            fields: [{ key: 'time_sec', label: 'Tiempo total (segundos)', helpText: 'De la primera a la quinta repetición.', type: 'number', required: true, min: 0, placeholder: 'Ej: 13.2' }],
             requiredForFinish: true
         };
     }
 
     if (n.includes('tumbarse') && n.includes('levantarse')) {
         return {
+            introText: 'Queremos saber tiempo y apoyos que usaste para levantarte.',
             fields: [
-                { key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 },
-                { key: 'supports', label: 'Apoyos utilizados', type: 'text', placeholder: 'Ej: mano en silla' }
+                { key: 'time_sec', label: 'Tiempo total (segundos)', type: 'number', required: true, min: 0, placeholder: 'Ej: 7.5' },
+                { key: 'supports', label: '¿Qué apoyos usaste? (opcional)', type: 'text', placeholder: 'Ej: mano en la silla' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('levantarse con una pierna')) {
+        return {
+            introText: 'Anota cuántas repeticiones completas pudiste hacer por cada pierna.',
+            fields: [
+                { key: 'left_reps', label: 'Repeticiones válidas pierna izquierda', type: 'number', required: true, min: 0, placeholder: 'Ej: 2' },
+                { key: 'right_reps', label: 'Repeticiones válidas pierna derecha', type: 'number', required: true, min: 0, placeholder: 'Ej: 3' },
+                {
+                    key: 'balance_quality',
+                    label: 'Estabilidad durante el ejercicio',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { label: 'Buena', value: 'buena' },
+                        { label: 'Con inestabilidad leve', value: 'leve' },
+                        { label: 'Con inestabilidad marcada', value: 'marcada' }
+                    ]
+                }
             ],
             requiredForFinish: true
         };
@@ -126,7 +272,8 @@ const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null
 
     if (n.includes('flexiones en pared')) {
         return {
-            fields: [{ key: 'reps', label: 'Repeticiones realizadas', type: 'number', required: true, min: 0 }],
+            introText: 'Anota cuántas repeticiones completas hiciste con buena técnica.',
+            fields: [{ key: 'reps', label: 'Repeticiones completas', type: 'number', required: true, min: 0, placeholder: 'Ej: 5' }],
             requiredForFinish: true
         };
     }
@@ -206,6 +353,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
     const [supersetRound, setSupersetRound] = useState<Record<string, number>>({});
 
     const groupedBlocks = groupWorkoutBlocks(workout.blocks || []);
+    const sessionGuide = getSessionGuide(workout.name);
 
     // Timer logic
     useEffect(() => {
@@ -516,6 +664,19 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                     <h2 className="text-2xl font-black text-brand-dark mb-2 tracking-tight">{workout.name}</h2>
                     <p className="text-slate-500 mb-8 whitespace-pre-line">{workout.description || '¿Listo para empezar tu entrenamiento de hoy?'}</p>
 
+                    <div className="w-full text-left bg-sky-50 border border-sky-100 rounded-2xl p-4 mb-6">
+                        <p className="text-xs font-black uppercase tracking-wider text-sky-700 mb-1">{sessionGuide.title}</p>
+                        <p className="text-xs text-slate-600 mb-3 leading-relaxed">{sessionGuide.intro}</p>
+                        <ul className="space-y-1.5">
+                            {sessionGuide.checklist.map((item, idx) => (
+                                <li key={idx} className="text-xs text-slate-600 flex items-start gap-2 leading-relaxed">
+                                    <span className="text-sky-600 font-black">•</span>
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
                     <div className="flex gap-4 w-full">
                         <button onClick={onClose} className="flex-1 py-3 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">
                             Cancelar
@@ -566,6 +727,11 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto w-full max-w-3xl mx-auto px-4 py-6 pb-32">
+                <div className="mb-5 bg-sky-50 border border-sky-100 rounded-2xl p-4">
+                    <p className="text-xs font-black uppercase tracking-wider text-sky-700 mb-1">{sessionGuide.title}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{sessionGuide.intro}</p>
+                </div>
+
                 {isPaused && (
                     <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center gap-3 text-orange-800">
                         <div className="w-10 h-10 bg-orange-100 rounded-full flex justify-center items-center shrink-0">
@@ -1262,6 +1428,13 @@ function SupersetExerciseRoundEntry({
                 </div>
             )}
 
+            {exercise.exercise?.instructions && (
+                <div className="bg-sky-50 text-slate-700 text-xs p-2.5 rounded-lg border border-sky-100 flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-sky-600" />
+                    <p className="leading-relaxed whitespace-pre-line">{exercise.exercise.instructions}</p>
+                </div>
+            )}
+
             {videoOpen && youtubeId && (
                 <div className="rounded-xl overflow-hidden aspect-video w-full">
                     <iframe
@@ -1419,6 +1592,13 @@ function ExerciseEntry({
                 </div>
             )}
 
+            {exercise.exercise?.instructions && (
+                <div className={`bg-sky-50 text-slate-700 text-xs sm:text-sm p-3 rounded-xl border border-sky-100 flex items-start gap-2 ${isSupersetChild ? 'mx-2' : ''}`}>
+                    <Info className="w-4 h-4 mt-0.5 shrink-0 text-sky-600" />
+                    <p className="leading-relaxed whitespace-pre-line">{exercise.exercise.instructions}</p>
+                </div>
+            )}
+
             {videoOpen && youtubeId && (
                 <div className={`mt-1 mb-2 rounded-xl overflow-hidden aspect-video w-full ${isSupersetChild ? 'px-2' : ''}`}>
                     <iframe
@@ -1434,13 +1614,19 @@ function ExerciseEntry({
             {isAssessmentExercise ? (
                 <div className={`mt-2 space-y-3 ${isSupersetChild ? 'px-2' : ''}`}>
                     <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
-                        <p className="text-[10px] font-black text-sky-700 uppercase tracking-wider mb-2">Resultados del test</p>
+                        <p className="text-[10px] font-black text-sky-700 uppercase tracking-wider mb-2">Completa estos datos del test</p>
+                        {assessmentTemplate?.introText && (
+                            <p className="text-xs text-slate-600 mb-3 leading-relaxed">{assessmentTemplate.introText}</p>
+                        )}
                         <div className="space-y-2.5">
                             {(assessmentTemplate?.fields || []).map((field) => (
                                 <div key={field.key}>
-                                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                    <label className="text-xs font-bold text-slate-700 block mb-1">
                                         {field.label}{field.required ? ' *' : ''}
                                     </label>
+                                    {field.helpText && (
+                                        <p className="text-[11px] text-slate-500 mb-1.5 leading-relaxed">{field.helpText}</p>
+                                    )}
                                     {renderAssessmentField(field)}
                                     {assessmentErrors?.[field.key] && (
                                         <p className="text-[11px] font-semibold text-red-500 mt-1">{assessmentErrors[field.key]}</p>

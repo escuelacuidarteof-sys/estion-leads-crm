@@ -183,6 +183,16 @@ supabase.from('clientes_ado_notion')
 
 ---
 
+## Referencia de Videos de Ejercicios
+
+- **Canales de referencia principales para buscar ejercicios**:
+  - `https://www.youtube.com/@proetejercicioterapeutico5675`
+  - `https://www.youtube.com/@institutoentrenamientopersonal`
+- **Criterio de uso**:
+  - Priorizar videos de estos canales cuando se carguen o actualicen `media_url` en la biblioteca de ejercicios.
+
+---
+
 ## Identidad Visual (Brandbook)
 
 ### IMPORTANTE: Seguir siempre estas directrices en cualquier cambio de UI.
