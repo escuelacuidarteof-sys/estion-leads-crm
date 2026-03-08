@@ -328,6 +328,30 @@ export const nutritionService = {
 
   // --- ASSIGNMENTS ---
 
+  async resolveValidAssignerId(assignedBy?: string, assignedByEmail?: string): Promise<string | null> {
+    if (assignedBy) {
+      const { data: byId, error: idErr } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', assignedBy)
+        .maybeSingle();
+
+      if (!idErr && byId?.id) return byId.id;
+    }
+
+    if (assignedByEmail) {
+      const { data: byEmail, error: emailErr } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', assignedByEmail.toLowerCase().trim())
+        .maybeSingle();
+
+      if (!emailErr && byEmail?.id) return byEmail.id;
+    }
+
+    return null;
+  },
+
   async getAssignmentsByPlan(planId: string): Promise<ClientNutritionAssignment[]> {
     const { data, error } = await supabase
       .from('client_nutrition_assignments')
@@ -365,14 +389,16 @@ export const nutritionService = {
     };
   },
 
-  async assignPlanToClient(clientId: string, planId: string, assignedBy: string): Promise<ClientNutritionAssignment> {
+  async assignPlanToClient(clientId: string, planId: string, assignedBy: string, assignedByEmail?: string): Promise<ClientNutritionAssignment> {
+    const safeAssignerId = await this.resolveValidAssignerId(assignedBy, assignedByEmail);
+
     // Upsert to handle reassignment
     const { data, error } = await supabase
       .from('client_nutrition_assignments')
       .upsert({
         client_id: clientId,
         plan_id: planId,
-        assigned_by: assignedBy,
+        assigned_by: safeAssignerId,
         assigned_at: new Date().toISOString()
       }, { onConflict: 'client_id' })
       .select()
@@ -382,11 +408,13 @@ export const nutritionService = {
     return data;
   },
 
-  async assignPlanToMultipleClients(clientIds: string[], planId: string, assignedBy: string): Promise<void> {
+  async assignPlanToMultipleClients(clientIds: string[], planId: string, assignedBy: string, assignedByEmail?: string): Promise<void> {
+    const safeAssignerId = await this.resolveValidAssignerId(assignedBy, assignedByEmail);
+
     const assignments = clientIds.map(clientId => ({
       client_id: clientId,
       plan_id: planId,
-      assigned_by: assignedBy,
+      assigned_by: safeAssignerId,
       assigned_at: new Date().toISOString()
     }));
 
@@ -681,7 +709,20 @@ export const nutritionService = {
       })
       .eq('id', clientId);
 
-    if (error) throw error;
+    if (!error) return;
+
+    // Backward-compatibility for environments where timestamp/by columns are not yet migrated
+    if (error.code === '42703') {
+      const { error: fallbackError } = await supabase
+        .from('clientes')
+        .update({ nutrition_approved: true })
+        .eq('id', clientId);
+
+      if (!fallbackError) return;
+      throw fallbackError;
+    }
+
+    throw error;
   },
 
   async getAutoPlanForClient(identifier: string, explicitCalories?: number): Promise<NutritionPlan | null> {

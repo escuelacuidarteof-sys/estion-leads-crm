@@ -107,7 +107,8 @@ export function PlanAssigner({ plan, currentUser, onClose }: PlanAssignerProps) 
         await nutritionService.assignPlanToMultipleClients(
           toAssign.map(c => c.id),
           plan.id,
-          currentUser.id
+          currentUser.id,
+          currentUser.email
         );
       }
 

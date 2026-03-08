@@ -85,12 +85,13 @@ export function ClientNutritionSelector({
         try {
             setIsAssigning(true);
             setError(null);
-            await nutritionService.assignPlanToClient(clientId, planId, currentUser.id);
+            await nutritionService.assignPlanToClient(clientId, planId, currentUser.id, currentUser.email);
             const newAssignment = await nutritionService.getAssignmentByClient(clientId);
             setCurrentAssignment(newAssignment);
             if (onPlanAssigned) onPlanAssigned(planId);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error assigning plan:', err);
+            setError(err?.message || 'No se pudo asignar el plan nutricional');
         } finally {
             setIsAssigning(false);
         }
@@ -102,8 +103,9 @@ export function ClientNutritionSelector({
             await nutritionService.unassignClient(clientId);
             setCurrentAssignment(null);
             if (onPlanAssigned) onPlanAssigned('');
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error unassigning plan:', err);
+            setError(err?.message || 'No se pudo quitar la asignacion');
         } finally {
             setIsAssigning(false);
         }
