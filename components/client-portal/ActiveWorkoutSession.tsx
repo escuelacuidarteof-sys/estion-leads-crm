@@ -3,6 +3,137 @@ import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Cal
 import { Workout, WorkoutBlock, WorkoutExercise, ClientDayLog, ClientExerciseLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
 
+const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
+
+type AssessmentFieldType = 'number' | 'text' | 'textarea' | 'select';
+type AssessmentField = {
+    key: string;
+    label: string;
+    type?: AssessmentFieldType;
+    required?: boolean;
+    min?: number;
+    max?: number;
+    step?: number;
+    placeholder?: string;
+    options?: { label: string; value: string }[];
+};
+type AssessmentTemplate = {
+    fields: AssessmentField[];
+    requiredForFinish?: boolean;
+};
+
+const normalizeExerciseName = (name?: string) =>
+    (name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+const getAssessmentTemplate = (exerciseName?: string): AssessmentTemplate | null => {
+    const n = normalizeExerciseName(exerciseName);
+
+    if (n.includes('6mwt') || (n.includes('marcha') && n.includes('6 minutos'))) {
+        return {
+            fields: [
+                { key: 'distance_m', label: 'Distancia (m)', type: 'number', required: true, min: 0 },
+                { key: 'borg_0_10', label: 'Borg 0-10', type: 'number', required: true, min: 0, max: 10 },
+                { key: 'symptoms', label: 'Sintomas', type: 'textarea' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('timed up and go') || n.includes('(tug)')) {
+        return {
+            fields: [{ key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 }],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('ruffier')) {
+        return {
+            fields: [
+                { key: 'p0', label: 'P0 (ppm)', type: 'number', required: true, min: 0 },
+                { key: 'p1', label: 'P1 (ppm)', type: 'number', required: true, min: 0 },
+                { key: 'p2', label: 'P2 (ppm)', type: 'number', required: true, min: 0 },
+                { key: 'index', label: 'Indice Ruffier', type: 'number', required: true },
+                { key: 'notes', label: 'Observaciones', type: 'textarea' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('sppb')) {
+        return {
+            fields: [{ key: 'score', label: 'Puntuacion SPPB', type: 'number', required: true, min: 0 }],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('dorsiflexion') && n.includes('tobillo')) {
+        return {
+            fields: [
+                { key: 'left_cm', label: 'Izquierda (cm)', type: 'number', required: true, min: 0 },
+                { key: 'right_cm', label: 'Derecha (cm)', type: 'number', required: true, min: 0 },
+                { key: 'pain_0_10', label: 'Dolor 0-10', type: 'number', min: 0, max: 10 }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('movilidad') && n.includes('hombro') && n.includes('pared')) {
+        return {
+            fields: [
+                {
+                    key: 'quality',
+                    label: 'Calidad de movimiento',
+                    type: 'select',
+                    required: true,
+                    options: [
+                        { label: 'Buena', value: 'buena' },
+                        { label: 'Aceptable', value: 'aceptable' },
+                        { label: 'Limitada', value: 'limitada' }
+                    ]
+                },
+                { key: 'pain_0_10', label: 'Dolor 0-10', type: 'number', min: 0, max: 10 }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('y-balance')) {
+        return {
+            fields: [{ key: 'result_note', label: 'Resultado (opcional)', type: 'text', placeholder: 'Alcance y observaciones' }],
+            requiredForFinish: false
+        };
+    }
+
+    if (n.includes('5xsts') || (n.includes('sentarse') && n.includes('5 veces'))) {
+        return {
+            fields: [{ key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 }],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('tumbarse') && n.includes('levantarse')) {
+        return {
+            fields: [
+                { key: 'time_sec', label: 'Tiempo (s)', type: 'number', required: true, min: 0 },
+                { key: 'supports', label: 'Apoyos utilizados', type: 'text', placeholder: 'Ej: mano en silla' }
+            ],
+            requiredForFinish: true
+        };
+    }
+
+    if (n.includes('flexiones en pared')) {
+        return {
+            fields: [{ key: 'reps', label: 'Repeticiones realizadas', type: 'number', required: true, min: 0 }],
+            requiredForFinish: true
+        };
+    }
+
+    return null;
+};
+
 interface ActiveWorkoutSessionProps {
     workout: Workout;
     clientId: string;
@@ -69,6 +200,8 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
     const [saving, setSaving] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [completedSets, setCompletedSets] = useState<Record<string, { weight: number | null, reps: number | null, completed: boolean }[]>>({});
+    const [assessmentResults, setAssessmentResults] = useState<Record<string, { values: Record<string, any>; completed: boolean }>>({});
+    const [assessmentErrors, setAssessmentErrors] = useState<Record<string, Record<string, string>>>({});
     // Track current round for each superset (keyed by superset_id)
     const [supersetRound, setSupersetRound] = useState<Record<string, number>>({});
 
@@ -114,15 +247,99 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         });
     };
 
+    const handleAssessmentFieldChange = (exerciseId: string, fieldKey: string, value: any) => {
+        setAssessmentResults(prev => {
+            const current = prev[exerciseId] || { values: {}, completed: false };
+            return {
+                ...prev,
+                [exerciseId]: {
+                    ...current,
+                    completed: false,
+                    values: {
+                        ...current.values,
+                        [fieldKey]: value
+                    }
+                }
+            };
+        });
+
+        setAssessmentErrors(prev => {
+            if (!prev[exerciseId]?.[fieldKey]) return prev;
+            return {
+                ...prev,
+                [exerciseId]: {
+                    ...prev[exerciseId],
+                    [fieldKey]: ''
+                }
+            };
+        });
+    };
+
+    const validateAssessment = (exerciseId: string, template: AssessmentTemplate): boolean => {
+        const values = assessmentResults[exerciseId]?.values || {};
+        const nextErrors: Record<string, string> = {};
+
+        template.fields.forEach((field) => {
+            if (!field.required) return;
+            const value = values[field.key];
+            const empty = value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+            if (empty) {
+                nextErrors[field.key] = 'Campo obligatorio';
+            }
+        });
+
+        setAssessmentErrors(prev => ({ ...prev, [exerciseId]: nextErrors }));
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const handleAssessmentComplete = (exercise: WorkoutExercise, template: AssessmentTemplate) => {
+        const isValid = validateAssessment(exercise.id, template);
+        if (!isValid) return;
+
+        setAssessmentResults(prev => ({
+            ...prev,
+            [exercise.id]: {
+                values: prev[exercise.id]?.values || {},
+                completed: true
+            }
+        }));
+
+        setCompletedSets(prev => ({
+            ...prev,
+            [exercise.id]: [{ weight: null, reps: null, completed: true }]
+        }));
+    };
+
     const handleFinish = async () => {
         if (!clientId) return;
 
         try {
             setSaving(true);
 
+            const workoutExercises = (workout.blocks || []).flatMap(block => block.exercises || []);
+
+            const requiredAssessmentExercises = workoutExercises
+                .map(we => ({ we, template: getAssessmentTemplate(we.exercise?.name) }))
+                .filter((item): item is { we: WorkoutExercise; template: AssessmentTemplate } => !!item.template)
+                .filter(item => item.template.requiredForFinish !== false);
+
+            const missingAssessments = requiredAssessmentExercises.filter(item => !assessmentResults[item.we.id]?.completed);
+            if (missingAssessments.length > 0) {
+                setSaving(false);
+                alert(`Faltan resultados por registrar en: ${missingAssessments.map(m => m.we.exercise?.name || 'Test').join(', ')}`);
+                return;
+            }
+
             const exerciseLogs: Omit<ClientExerciseLog, 'id' | 'created_at'>[] = [];
+            const assessmentExerciseIds = new Set(
+                workoutExercises
+                    .filter((we) => !!getAssessmentTemplate(we.exercise?.name))
+                    .map((we) => we.id)
+            );
 
             Object.entries(completedSets).forEach(([exerciseId, setsData]) => {
+                if (assessmentExerciseIds.has(exerciseId)) return;
+
                 const completedSetsCount = setsData.filter(s => s.completed).length;
                 if (completedSetsCount === 0) return;
 
@@ -137,6 +354,28 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                     reps_completed: reps.join(',') || undefined,
                     weight_used: weights.join(',') || undefined,
                     is_completed: true,
+                });
+            });
+
+            Object.entries(assessmentResults).forEach(([exerciseId, result]) => {
+                if (!result.completed) return;
+                const normalized: Record<string, any> = {};
+                Object.entries(result.values || {}).forEach(([key, raw]) => {
+                    if (raw === '' || raw === undefined || raw === null) return;
+                    if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
+                        normalized[key] = Number(raw);
+                    } else {
+                        normalized[key] = raw;
+                    }
+                });
+
+                exerciseLogs.push({
+                    log_id: '',
+                    workout_exercise_id: exerciseId,
+                    sets_completed: 1,
+                    reps_completed: `${ASSESSMENT_PREFIX}${JSON.stringify(normalized)}`,
+                    weight_used: undefined,
+                    is_completed: true
                 });
             });
 
@@ -442,11 +681,27 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                         return (
                                             <div key={group.items[0].id} className="bg-white rounded-3xl border border-brand-mint/40 shadow-sm overflow-hidden p-2">
                                                 <div className="p-2 sm:p-4">
+                                                    {(() => {
+                                                        const exercise = group.items[0];
+                                                        const assessmentTemplate = getAssessmentTemplate(exercise.exercise?.name);
+                                                        const assessmentState = assessmentResults[exercise.id] || { values: {}, completed: false };
+                                                        const fieldErrors = assessmentErrors[exercise.id] || {};
+
+                                                        return (
                                                     <ExerciseEntry
-                                                        exercise={group.items[0]}
-                                                        completedSets={completedSets[group.items[0].id] || []}
-                                                        onSetUpdate={(setIdx, field, val) => handleSetUpdate(group.items[0].id, setIdx, field, val)}
+                                                        exercise={exercise}
+                                                        completedSets={completedSets[exercise.id] || []}
+                                                        onSetUpdate={(setIdx, field, val) => handleSetUpdate(exercise.id, setIdx, field, val)}
+                                                        assessmentTemplate={assessmentTemplate}
+                                                        assessmentState={assessmentState}
+                                                        assessmentErrors={fieldErrors}
+                                                        onAssessmentFieldChange={(fieldKey, value) => handleAssessmentFieldChange(exercise.id, fieldKey, value)}
+                                                        onAssessmentComplete={() => {
+                                                            if (assessmentTemplate) handleAssessmentComplete(exercise, assessmentTemplate);
+                                                        }}
                                                     />
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         );
@@ -1027,11 +1282,21 @@ function ExerciseEntry({
     exercise,
     completedSets,
     onSetUpdate,
+    assessmentTemplate,
+    assessmentState,
+    assessmentErrors,
+    onAssessmentFieldChange,
+    onAssessmentComplete,
     isSupersetChild = false
 }: {
     exercise: WorkoutExercise;
     completedSets: any[];
     onSetUpdate: (idx: number, f: 'weight' | 'reps' | 'completed', v: any) => void;
+    assessmentTemplate?: AssessmentTemplate | null;
+    assessmentState?: { values: Record<string, any>; completed: boolean };
+    assessmentErrors?: Record<string, string>;
+    onAssessmentFieldChange?: (fieldKey: string, value: any) => void;
+    onAssessmentComplete?: () => void;
     isSupersetChild?: boolean;
 }) {
     const setsArray = Array.from({ length: exercise.sets || 1 });
@@ -1043,6 +1308,55 @@ function ExerciseEntry({
     const youtubeId = exercise.exercise?.media_type === 'youtube' ? extractYoutubeId(exercise.exercise?.media_url) : null;
     const thumbUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null;
     const [videoOpen, setVideoOpen] = useState(false);
+
+    const isAssessmentExercise = !!assessmentTemplate;
+
+    const renderAssessmentField = (field: AssessmentField) => {
+        const type = field.type || 'text';
+        const current = assessmentState?.values?.[field.key] ?? '';
+        const error = assessmentErrors?.[field.key];
+        const className = `w-full bg-white border ${error ? 'border-red-300' : 'border-slate-200'} rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`;
+
+        if (type === 'textarea') {
+            return (
+                <textarea
+                    value={current}
+                    onChange={(e) => onAssessmentFieldChange?.(field.key, e.target.value)}
+                    placeholder={field.placeholder || ''}
+                    rows={3}
+                    className={`${className} resize-none`}
+                />
+            );
+        }
+
+        if (type === 'select') {
+            return (
+                <select
+                    value={current}
+                    onChange={(e) => onAssessmentFieldChange?.(field.key, e.target.value)}
+                    className={className}
+                >
+                    <option value="">Selecciona...</option>
+                    {(field.options || []).map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            );
+        }
+
+        return (
+            <input
+                type={type === 'number' ? 'number' : 'text'}
+                value={current}
+                onChange={(e) => onAssessmentFieldChange?.(field.key, e.target.value)}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                placeholder={field.placeholder || ''}
+                className={className}
+            />
+        );
+    };
 
     return (
         <div className="flex flex-col gap-3">
@@ -1117,7 +1431,34 @@ function ExerciseEntry({
                 </div>
             )}
 
-            {/* Sets Logging Table */}
+            {isAssessmentExercise ? (
+                <div className={`mt-2 space-y-3 ${isSupersetChild ? 'px-2' : ''}`}>
+                    <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
+                        <p className="text-[10px] font-black text-sky-700 uppercase tracking-wider mb-2">Resultados del test</p>
+                        <div className="space-y-2.5">
+                            {(assessmentTemplate?.fields || []).map((field) => (
+                                <div key={field.key}>
+                                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                        {field.label}{field.required ? ' *' : ''}
+                                    </label>
+                                    {renderAssessmentField(field)}
+                                    {assessmentErrors?.[field.key] && (
+                                        <p className="text-[11px] font-semibold text-red-500 mt-1">{assessmentErrors[field.key]}</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={onAssessmentComplete}
+                        className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${assessmentState?.completed ? 'bg-brand-green/10 text-brand-green border border-brand-green/30' : 'bg-brand-green text-white hover:bg-emerald-600 active:scale-[0.98]'}`}
+                    >
+                        <CheckCircle className={`w-5 h-5 ${assessmentState?.completed ? '' : 'fill-current'}`} />
+                        {assessmentState?.completed ? 'Resultados guardados' : 'Guardar resultado del test'}
+                    </button>
+                </div>
+            ) : (
             <div className={`mt-2 ${isSupersetChild ? 'px-2' : ''}`}>
                 <div className="grid grid-cols-[1fr_2fr_2fr_1fr] md:grid-cols-[1fr_2fr_2fr_1fr] gap-2 mb-2 px-2 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider text-center">
                     <span>Set</span>
@@ -1168,6 +1509,7 @@ function ExerciseEntry({
                     })}
                 </div>
             </div>
+            )}
         </div>
     );
 }

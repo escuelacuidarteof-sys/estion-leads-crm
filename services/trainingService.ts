@@ -13,6 +13,19 @@ import {
     ClientActivityLog
 } from '../types';
 
+const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
+
+const parseAssessmentPayload = (raw?: string | null): Record<string, any> | undefined => {
+    if (!raw || !raw.startsWith(ASSESSMENT_PREFIX)) return undefined;
+    try {
+        const parsed = JSON.parse(raw.slice(ASSESSMENT_PREFIX.length));
+        if (parsed && typeof parsed === 'object') return parsed;
+    } catch {
+        // no-op
+    }
+    return undefined;
+};
+
 export const trainingService = {
     // --- EXERCISES ---
     async getExercises(): Promise<Exercise[]> {
@@ -577,7 +590,7 @@ export const trainingService = {
     async getClientAllDayLogs(clientId: string): Promise<(ClientDayLog & {
         day_name?: string;
         week_number?: number;
-        exerciseDetails?: { name: string; sets_completed?: number; reps_completed?: string; weight_used?: string; is_completed: boolean }[];
+        exerciseDetails?: { name: string; sets_completed?: number; reps_completed?: string; weight_used?: string; is_completed: boolean; assessment_data?: Record<string, any> }[];
         activityDetails?: { title: string; type: string; data: Record<string, any> }[];
     })[]> {
         const { data: logs, error } = await supabase
@@ -664,9 +677,10 @@ export const trainingService = {
                 exercises: logExercises,
                 activityDetails: logActivities,
                 exerciseDetails: logExercises.map(el => ({
+                    assessment_data: parseAssessmentPayload(el.reps_completed),
                     name: exerciseNames[el.workout_exercise_id] || 'Ejercicio',
                     sets_completed: el.sets_completed,
-                    reps_completed: el.reps_completed,
+                    reps_completed: parseAssessmentPayload(el.reps_completed) ? undefined : el.reps_completed,
                     weight_used: el.weight_used,
                     is_completed: el.is_completed
                 }))

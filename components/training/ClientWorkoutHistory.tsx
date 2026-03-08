@@ -7,6 +7,7 @@ interface ExerciseDetail {
     sets_completed?: number;
     reps_completed?: string;
     weight_used?: string;
+    assessment_data?: Record<string, any>;
     is_completed: boolean;
 }
 
@@ -177,7 +178,7 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
                                     <div className="space-y-2">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ejercicios</p>
                                         {log.exerciseDetails!.map((ex, i) => (
-                                            <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl ${ex.is_completed ? 'bg-green-50 border border-green-100' : 'bg-slate-50 border border-slate-100'}`}>
+                                            <div key={i} className={`flex items-start gap-3 p-2.5 rounded-xl ${ex.is_completed ? 'bg-green-50 border border-green-100' : 'bg-slate-50 border border-slate-100'}`}>
                                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${ex.is_completed ? 'bg-green-200 text-green-700' : 'bg-slate-200 text-slate-500'}`}>
                                                     {i + 1}
                                                 </div>
@@ -200,6 +201,16 @@ export const ClientWorkoutHistory: React.FC<ClientWorkoutHistoryProps> = ({ clie
                                                             </span>
                                                         )}
                                                     </div>
+                                                    {ex.assessment_data && Object.keys(ex.assessment_data).length > 0 && (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
+                                                            {Object.entries(ex.assessment_data).map(([k, v]) => (
+                                                                <div key={k} className="text-[10px] bg-white border border-sky-100 rounded-md px-2 py-1">
+                                                                    <p className="uppercase tracking-wider text-slate-400 font-bold">{formatFieldLabel(k)}</p>
+                                                                    <p className="text-slate-700 font-semibold break-words">{String(v)}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

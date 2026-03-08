@@ -43,6 +43,24 @@ const ACTIVITY_META: Record<ActivityType, { label: string; Icon: React.FC<any> }
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const DAY_NAMES_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
+
+function parseAssessmentPayload(raw?: string) {
+    if (!raw || !raw.startsWith(ASSESSMENT_PREFIX)) return null;
+    try {
+        const parsed = JSON.parse(raw.slice(ASSESSMENT_PREFIX.length));
+        return typeof parsed === 'object' && parsed !== null ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function prettyFieldLabel(key: string) {
+    return key
+        .replace(/^_+/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (m) => m.toUpperCase());
+}
 
 function extractYoutubeId(url?: string): string | null {
     if (!url) return null;
@@ -747,14 +765,29 @@ function WorkoutActivityCard({ activity, workout, workoutLoading, dayLog, onStar
                                     <p className="text-[10px] font-black text-brand-green uppercase tracking-wider">Resultados</p>
                                     {dayLog.exercises.map((exLog) => {
                                         const we = (workout.blocks || []).flatMap(b => b.exercises || []).find(e => e.id === exLog.workout_exercise_id);
+                                        const assessment = parseAssessmentPayload(exLog.reps_completed);
                                         return (
-                                            <div key={exLog.id} className="flex items-center justify-between text-sm">
-                                                <span className="text-brand-dark font-medium truncate flex-1">{we?.exercise?.name || 'Ejercicio'}</span>
-                                                <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
-                                                    {exLog.sets_completed && <span>{exLog.sets_completed}×</span>}
-                                                    {exLog.weight_used && <span>{exLog.weight_used} kg</span>}
-                                                    {exLog.reps_completed && <span>{exLog.reps_completed} reps</span>}
+                                            <div key={exLog.id} className="space-y-1.5">
+                                                <div className="flex items-center justify-between text-sm gap-2">
+                                                    <span className="text-brand-dark font-medium truncate flex-1">{we?.exercise?.name || 'Ejercicio'}</span>
+                                                    {!assessment && (
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+                                                            {exLog.sets_completed && <span>{exLog.sets_completed}×</span>}
+                                                            {exLog.weight_used && <span>{exLog.weight_used} kg</span>}
+                                                            {exLog.reps_completed && <span>{exLog.reps_completed} reps</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
+                                                {assessment && (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                                                        {Object.entries(assessment).map(([k, v]) => (
+                                                            <div key={k} className="bg-sky-50 border border-sky-100 rounded-lg px-2 py-1">
+                                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{prettyFieldLabel(k)}</p>
+                                                                <p className="text-slate-700 font-semibold break-words">{String(v)}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
