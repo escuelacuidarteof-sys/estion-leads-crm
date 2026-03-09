@@ -16,8 +16,11 @@ interface CreateAnnouncementProps {
         message: string;
         target?: 'all_active' | 'my_clients' | 'all_team';
         telegram?: boolean;
+        sentBy?: string;
     };
 }
+
+const TELEGRAM_ALLOWED_SENDERS = ['Odile', 'Jesús', 'Jose Pedro'] as const;
 
 const ANNOUNCEMENT_TYPES = [
     { value: 'info', label: 'Información', icon: '💡', color: 'blue' },
@@ -54,8 +57,14 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
     const [error, setError] = useState('');
     const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
     const [selectedSlackChannels, setSelectedSlackChannels] = useState<string[]>([]);
-    const [telegramToken, setTelegramToken] = useState<string | null>(null);
+    const [telegramWebhookUrl, setTelegramWebhookUrl] = useState<string | null>(null);
+    const [telegramWebhookEnabled, setTelegramWebhookEnabled] = useState(false);
     const [sendByTelegram, setSendByTelegram] = useState(prefill?.telegram || false);
+    const [telegramSender, setTelegramSender] = useState<string>(
+        TELEGRAM_ALLOWED_SENDERS.includes(prefill?.sentBy as typeof TELEGRAM_ALLOWED_SENDERS[number])
+            ? (prefill?.sentBy as string)
+            : 'Odile'
+    );
     const [isSendingTelegram, setIsSendingTelegram] = useState(false);
     const toast = useToast();
 
@@ -72,15 +81,18 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                 }
             }
 
-            // Always fetch Telegram token if it exists
             const { data: settingsData } = await supabase
                 .from('app_settings')
-                .select('*')
-                .eq('setting_key', 'telegram_bot_token')
-                .single();
+                .select('setting_key, setting_value')
+                .in('setting_key', ['n8n_webhook_telegram_broadcast', 'n8n_webhook_telegram_enabled', 'n8n_webhook_enabled']);
 
-            if (settingsData && settingsData.setting_value) {
-                setTelegramToken(settingsData.setting_value);
+            if (settingsData) {
+                const webhookUrl = settingsData.find((s: any) => s.setting_key === 'n8n_webhook_telegram_broadcast')?.setting_value;
+                const webhookEnabled = settingsData.find((s: any) => s.setting_key === 'n8n_webhook_telegram_enabled')?.setting_value;
+                const fallbackEnabled = settingsData.find((s: any) => s.setting_key === 'n8n_webhook_enabled')?.setting_value;
+
+                setTelegramWebhookUrl(webhookUrl || null);
+                setTelegramWebhookEnabled(webhookEnabled === 'true' || fallbackEnabled === 'true');
             }
         };
         fetchData();
@@ -152,29 +164,55 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
 
             if (insertError) throw insertError;
 
-            // Send to Telegram if selected
-            if (sendByTelegram && telegramToken && targetClientIds.length > 0) {
+            // Send to Telegram via n8n webhook if selected
+            if (sendByTelegram && targetClientIds.length > 0) {
                 setIsSendingTelegram(true);
-                const targetedClients = activeClients.filter(c => targetClientIds.includes(c.id));
-                const telegramPromises = targetedClients
-                    .filter(c => c.telegram_group_id && c.telegram_group_id.startsWith('-100'))
-                    .map(client => {
-                        const text = `<b>${title}</b>\n\n${message}`;
-                        return fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+                try {
+                    if (!telegramWebhookUrl || !telegramWebhookEnabled) {
+                        throw new Error('Webhook grupal de Telegram no configurado o desactivado. Revisa Ajustes > Automatización.');
+                    }
+
+                    if (!TELEGRAM_ALLOWED_SENDERS.includes(telegramSender as typeof TELEGRAM_ALLOWED_SENDERS[number])) {
+                        throw new Error('Selecciona quién envía el mensaje: Odile, Jesús o Jose Pedro.');
+                    }
+
+                    const targetedClients = activeClients
+                        .filter(c => targetClientIds.includes(c.id))
+                        .filter(c => c.telegram_group_id && c.telegram_group_id.startsWith('-100'));
+
+                    if (targetedClients.length > 0) {
+                        const payload = {
+                            type: 'TELEGRAM_BROADCAST',
+                            title: title.trim(),
+                            message: message.trim(),
+                            target_client_ids: targetedClients.map(c => c.id),
+                            targets: targetedClients.map(client => ({
+                                client_id: client.id,
+                                chat_id: client.telegram_group_id
+                            })),
+                            sent_by: telegramSender,
+                            source: 'crm_mass_communication',
+                            sent_at: new Date().toISOString()
+                        };
+
+                        const response = await fetch(telegramWebhookUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chat_id: client.telegram_group_id,
-                                text: text,
-                                parse_mode: 'HTML'
-                            })
+                            body: JSON.stringify(payload)
                         });
-                    });
 
-                if (telegramPromises.length > 0) {
-                    const results = await Promise.allSettled(telegramPromises);
-                    const successCount = results.filter(r => r.status === 'fulfilled').length;
-                    console.log(`Telegram messages sent: ${successCount}/${telegramPromises.length}`);
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`n8n respondió ${response.status}: ${errorText || 'Error desconocido'}`);
+                        }
+
+                        console.log(`Telegram broadcast sent to ${targetedClients.length} groups via n8n webhook.`);
+                    } else {
+                        toast.error('No hay grupos de Telegram válidos para los clientes seleccionados.');
+                    }
+                } catch (telegramError: any) {
+                    console.error('Error sending Telegram broadcast:', telegramError);
+                    toast.error(telegramError?.message || 'No se pudo enviar el mensaje por Telegram');
                 }
                 setIsSendingTelegram(false);
             }
@@ -358,7 +396,7 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                     )}
 
                     {/* Telegram Toggle */}
-                    {telegramToken && (targetAudience === 'my_clients' || targetAudience === 'all_active') && (
+                    {telegramWebhookUrl && telegramWebhookEnabled && (targetAudience === 'my_clients' || targetAudience === 'all_active') && (
                         <div className="mb-6">
                             <label className="flex items-center gap-3 p-4 bg-sky-50 rounded-xl border border-sky-200 cursor-pointer hover:bg-sky-100 transition-colors shadow-sm">
                                 <input
@@ -382,6 +420,32 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                                     * Solo se enviará a clientes que tengan un ID de grupo configurado.
                                 </p>
                             )}
+
+                            {sendByTelegram && (
+                                <div className="mt-3">
+                                    <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                                        Enviar como
+                                    </label>
+                                    <select
+                                        value={telegramSender}
+                                        onChange={(e) => setTelegramSender(e.target.value)}
+                                        className="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 bg-white"
+                                    >
+                                        {TELEGRAM_ALLOWED_SENDERS.map(sender => (
+                                            <option key={sender} value={sender}>{sender}</option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-[10px] text-slate-500">
+                                        Este nombre se enviará a n8n en el campo <code>sent_by</code>.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {!telegramWebhookUrl && (targetAudience === 'my_clients' || targetAudience === 'all_active') && (
+                        <div className="mb-6 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs">
+                            Configura `n8n_webhook_telegram_broadcast` en Ajustes para habilitar envíos grupales por Telegram.
                         </div>
                     )}
 
