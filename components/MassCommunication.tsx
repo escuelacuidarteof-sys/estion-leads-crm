@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Link2, Send, Users, X } from 'lucide-react';
+import { AlertCircle, Link2, Send, X } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { Client, ClientStatus } from '../types';
 import { useToast } from './ToastProvider';
@@ -24,12 +24,9 @@ const TELEGRAM_ALLOWED_SENDERS = ['Odile', 'Jesús', 'Jose Pedro'] as const;
 const TELEGRAM_BROADCAST_WEBHOOK_FALLBACK = 'https://escuelacuidarte-n8n.pqtiji.easypanel.host/webhook/mensaje_clientes';
 
 export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
-    currentUser,
-    isAdmin,
     clients,
     onClose,
     onSuccess,
-    defaultAudience,
     prefill,
 }) => {
     const [title, setTitle] = useState(prefill?.title || '');
@@ -41,11 +38,6 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
         TELEGRAM_ALLOWED_SENDERS.includes(prefill?.sentBy as typeof TELEGRAM_ALLOWED_SENDERS[number])
             ? (prefill?.sentBy as string)
             : 'Odile'
-    );
-    const [targetAudience, setTargetAudience] = useState<'my_clients' | 'all_active'>(
-        prefill?.target === 'my_clients' || defaultAudience === 'my_clients'
-            ? 'my_clients'
-            : (isAdmin ? 'all_active' : 'my_clients')
     );
     const [isSaving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -76,16 +68,9 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
 
     const activeClients = useMemo(() => clients.filter(c => c.status === ClientStatus.ACTIVE), [clients]);
 
-    const targetedClients = useMemo(() => {
-        if (targetAudience === 'my_clients') {
-            return activeClients.filter(c => c.coach_id === currentUser);
-        }
-        return activeClients;
-    }, [activeClients, currentUser, targetAudience]);
-
     const validTelegramTargets = useMemo(
-        () => targetedClients.filter(c => c.telegram_group_id && c.telegram_group_id.startsWith('-100')),
-        [targetedClients]
+        () => activeClients.filter(c => c.telegram_group_id && c.telegram_group_id.startsWith('-100')),
+        [activeClients]
     );
 
     const handleSend = async () => {
@@ -135,8 +120,6 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                 link: link.trim() || null,
                 source: 'crm_mass_communication',
                 sent_at: new Date().toISOString(),
-                target_audience: targetAudience,
-                target_client_ids: validTelegramTargets.map(c => c.id),
             };
 
             const response = await fetch(telegramWebhookUrl, {
@@ -186,39 +169,6 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                 </div>
 
                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6">
-                    {isAdmin && (
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Destinatarios</label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <button
-                                    onClick={() => setTargetAudience('my_clients')}
-                                    className={`p-4 rounded-xl border-2 transition-all ${targetAudience === 'my_clients' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-sky-200'}`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Users className={`w-5 h-5 ${targetAudience === 'my_clients' ? 'text-sky-600' : 'text-slate-400'}`} />
-                                        <div className="text-left">
-                                            <p className="font-bold text-slate-800">Mis clientes</p>
-                                            <p className="text-xs text-slate-500">{activeClients.filter(c => c.coach_id === currentUser).length} clientes</p>
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => setTargetAudience('all_active')}
-                                    className={`p-4 rounded-xl border-2 transition-all ${targetAudience === 'all_active' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-sky-200'}`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Users className={`w-5 h-5 ${targetAudience === 'all_active' ? 'text-sky-600' : 'text-slate-400'}`} />
-                                        <div className="text-left">
-                                            <p className="font-bold text-slate-800">Todos los clientes activos</p>
-                                            <p className="text-xs text-slate-500">{activeClients.length} clientes</p>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Enviar como</label>
                         <select
