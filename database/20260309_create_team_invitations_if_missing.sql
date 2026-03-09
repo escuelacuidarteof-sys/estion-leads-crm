@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.team_invitations (
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   accepted_at timestamptz,
-  invited_by text REFERENCES public.users(id)
+  invited_by text
 );
 
 ALTER TABLE public.team_invitations
@@ -23,16 +23,46 @@ ALTER TABLE public.team_invitations
   ADD COLUMN IF NOT EXISTS invited_by text;
 
 DO $$
+DECLARE
+  users_id_udt text;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'team_invitations_invited_by_fkey'
-      AND conrelid = 'public.team_invitations'::regclass
-  ) THEN
-    ALTER TABLE public.team_invitations
-      ADD CONSTRAINT team_invitations_invited_by_fkey
-      FOREIGN KEY (invited_by) REFERENCES public.users(id);
+  SELECT c.udt_name
+  INTO users_id_udt
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'users'
+    AND c.column_name = 'id';
+
+  IF users_id_udt = 'uuid' THEN
+    UPDATE public.team_invitations
+    SET invited_by = null
+    WHERE invited_by IS NOT NULL
+      AND invited_by !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+
+    EXECUTE 'ALTER TABLE public.team_invitations ALTER COLUMN invited_by TYPE uuid USING invited_by::uuid';
+  ELSE
+    EXECUTE 'ALTER TABLE public.team_invitations ALTER COLUMN invited_by TYPE text USING invited_by::text';
+  END IF;
+END $$;
+
+ALTER TABLE public.team_invitations
+  DROP CONSTRAINT IF EXISTS team_invitations_invited_by_fkey;
+
+DO $$
+DECLARE
+  users_id_udt text;
+BEGIN
+  SELECT c.udt_name
+  INTO users_id_udt
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'users'
+    AND c.column_name = 'id';
+
+  IF users_id_udt = 'uuid' THEN
+    EXECUTE 'ALTER TABLE public.team_invitations ADD CONSTRAINT team_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id)';
+  ELSIF users_id_udt IN ('text', 'varchar', 'bpchar') THEN
+    EXECUTE 'ALTER TABLE public.team_invitations ADD CONSTRAINT team_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id)';
   END IF;
 END $$;
 
