@@ -21,6 +21,7 @@ interface CreateAnnouncementProps {
 }
 
 const TELEGRAM_ALLOWED_SENDERS = ['Odile', 'Jesús', 'Jose Pedro'] as const;
+const TELEGRAM_BROADCAST_WEBHOOK_FALLBACK = 'https://escuelacuidarte-n8n.pqtiji.easypanel.host/webhook/mensaje_clientes';
 
 const ANNOUNCEMENT_TYPES = [
     { value: 'info', label: 'Información', icon: '💡', color: 'blue' },
@@ -91,8 +92,15 @@ export const CreateAnnouncement: React.FC<CreateAnnouncementProps> = ({
                 const webhookEnabled = settingsData.find((s: any) => s.setting_key === 'n8n_webhook_telegram_enabled')?.setting_value;
                 const fallbackEnabled = settingsData.find((s: any) => s.setting_key === 'n8n_webhook_enabled')?.setting_value;
 
-                setTelegramWebhookUrl(webhookUrl || null);
-                setTelegramWebhookEnabled(webhookEnabled === 'true' || fallbackEnabled === 'true');
+                setTelegramWebhookUrl(webhookUrl || TELEGRAM_BROADCAST_WEBHOOK_FALLBACK);
+                setTelegramWebhookEnabled(
+                    webhookEnabled === 'true' ||
+                    fallbackEnabled === 'true' ||
+                    Boolean(webhookUrl)
+                );
+            } else {
+                setTelegramWebhookUrl(TELEGRAM_BROADCAST_WEBHOOK_FALLBACK);
+                setTelegramWebhookEnabled(true);
             }
         };
         fetchData();
