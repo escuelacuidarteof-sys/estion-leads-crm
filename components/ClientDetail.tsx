@@ -296,7 +296,6 @@ const DataField: React.FC<DataFieldProps> = ({
    );
 };
 
-import ClientPortalView from './ClientPortalView';
 
 // --- RENEWAL CARD (CRM VIEW) ---
 const RenewalCard = ({
@@ -770,7 +769,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
    const isCoach = currentUser?.role === UserRole.COACH || currentUser?.role === UserRole.HEAD_COACH || currentUser?.role === UserRole.ADMIN;
    const canManageMedical = currentUser ? checkPermission(currentUser, PERMISSIONS.MANAGE_MEDICAL) : false;
-   const readOnlyMedical = isCoach && !canManageMedical;
+   const readOnlyMedical = readOnly || (isCoach && !canManageMedical);
 
    // Status Change Modal State
    const [showStatusModal, setShowStatusModal] = useState(false);
@@ -1564,12 +1563,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       return Math.round(((now - start) / (end - start)) * 100);
    }, [formData.start_date, adjustedEndDate, formData.contract_end_date]);
 
-   // --- RENDER CLIENT PORTAL IF READ ONLY ---
-   if (readOnly) {
-      return <ClientPortalView client={client} />;
-   }
-
-   // --- REST OF THE COMPONENT (ADMIN/COACH VIEW) ---
+   // --- REST OF THE COMPONENT (ADMIN/COACH/AUDITOR VIEW) ---
    useEffect(() => {
       setFormData(client);
    }, [client]);

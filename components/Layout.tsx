@@ -194,6 +194,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
   const isCloser = roleLower === 'closer';
   const isRRSS = roleLower === 'rrss';
   const isDoctor = roleLower === 'doctor';
+  const isExternalAuditor = roleLower === 'auditor_externo';
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -302,7 +303,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
       {/* Menú lateral móvil */}
       <aside className={`md:hidden fixed top-14 left-0 bottom-0 w-72 bg-brand-dark z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <nav className="px-4 py-4 space-y-1">
-          {isDireccion ? (
+          {isExternalAuditor ? (
+            <>
+              <MenuSection
+                title="Auditoría"
+                icon={Shield}
+                isOpen={expandedSections.includes('auditoria')}
+                onToggle={() => toggleSection('auditoria')}
+                show={true}
+              >
+                <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />
+                <NavItem view="clients" icon={Users} label="Cartera de Clientes" />
+              </MenuSection>
+            </>
+          ) : isDireccion ? (
             <>
 
 
@@ -580,7 +594,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-          {isDireccion ? (
+          {isExternalAuditor ? (
+            <>
+              <MenuSection
+                title="Auditoría"
+                icon={Shield}
+                isOpen={expandedSections.includes('auditoria')}
+                onToggle={() => toggleSection('auditoria')}
+                show={true}
+              >
+                <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />
+                <NavItem view="clients" icon={Users} label="Cartera de Clientes" />
+              </MenuSection>
+            </>
+          ) : isDireccion ? (
             <>
 
 

@@ -27,6 +27,8 @@ const ROLE_DETAILS: Record<string, { icon: any, color: string, description: stri
     [UserRole.PSICOLOGO]: { icon: Brain, color: 'bg-purple-600', description: 'Apoyo psicológico a alumnos' },
     [UserRole.RRSS]: { icon: Bell, color: 'bg-pink-600', description: 'Gestión de anuncios y comunidad' },
     [UserRole.DIRECCION]: { icon: Building2, color: 'bg-slate-800', description: 'Visión ejecutiva y control de negocio' }
+    ,
+    [UserRole.AUDITOR_EXTERNO]: { icon: Shield, color: 'bg-sky-700', description: 'Solo lectura de dashboard y clientes' }
 };
 
 export default function StaffManagementView({ currentUser, onUpdateUser, onDeleteUser }: StaffManagementViewProps) {

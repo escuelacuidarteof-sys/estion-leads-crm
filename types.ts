@@ -2,6 +2,7 @@ export enum UserRole {
   ADMIN = 'admin',
   COACH = 'coach',
   HEAD_COACH = 'head_coach',
+  AUDITOR_EXTERNO = 'auditor_externo',
   CLIENT = 'client',
   CLOSER = 'closer',
   CONTABILIDAD = 'contabilidad',

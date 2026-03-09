@@ -27,6 +27,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
   const [coachFilter, setCoachFilter] = useState<string>('all');
   const [callFilter, setCallFilter] = useState<'all' | 'initial_pending' | 'initial_done' | 'review_due_15' | 'review_overdue'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const canManageStatus = currentUser.role !== UserRole.AUDITOR_EXTERNO;
 
   // Helper to resolve coach name
   const getCoachName = (id: string | null | undefined): string => {
@@ -616,7 +617,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
 
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          {client.status === ClientStatus.ACTIVE && (
+                          {canManageStatus && client.status === ClientStatus.ACTIVE && (
                             <>
                               <button
                                 title="Pausar"
@@ -639,7 +640,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                               </button>
                             </>
                           )}
-                          {client.status !== ClientStatus.ACTIVE && (
+                          {canManageStatus && client.status !== ClientStatus.ACTIVE && (
                             <button
                               title="Reactivar"
                               onClick={(e) => { e.stopPropagation(); onUpdateStatus(client.id, ClientStatus.ACTIVE); }}
@@ -648,7 +649,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                               <PlayCircle className="w-5 h-5" />
                             </button>
                           )}
-                          <div className="w-px h-6 bg-slate-200 mx-1" />
+                          {canManageStatus && <div className="w-px h-6 bg-slate-200 mx-1" />}
                           <button
                             onClick={() => onSelectClient(client)}
                             className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
@@ -689,6 +690,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, currentUser, onUpdateS
                     currentUser={currentUser}
                     onSelectClient={onSelectClient}
                     onUpdateStatus={onUpdateStatus}
+                    canManageStatus={canManageStatus}
                     getStatusColor={getStatusColor}
                     getStatusLabel={getStatusLabel}
                     coachName={getCoachName(client.coach_id) || 'Sin Asignar'}
