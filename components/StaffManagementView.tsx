@@ -58,6 +58,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
     const [reassignTargetId, setReassignTargetId] = useState<string>('');
     const [isReassigning, setIsReassigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [invitationsTableMissing, setInvitationsTableMissing] = useState(false);
 
     const [editFormData, setEditFormData] = useState({
         name: '',
@@ -88,8 +89,19 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                 .from('team_invitations')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (invError) throw invError;
-            setInvitations(invData || []);
+            if (invError) {
+                const msg = String(invError.message || '').toLowerCase();
+                const missing = msg.includes("could not find the table") || msg.includes('relation') || msg.includes('schema cache');
+                if (missing) {
+                    setInvitations([]);
+                    setInvitationsTableMissing(true);
+                } else {
+                    throw invError;
+                }
+            } else {
+                setInvitations(invData || []);
+                setInvitationsTableMissing(false);
+            }
 
         } catch (error) {
             console.error('Error fetching staff data:', error);
@@ -104,6 +116,10 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
 
         setIsSubmittingInvite(true);
         try {
+            if (invitationsTableMissing) {
+                throw new Error("La tabla team_invitations no existe en producción. Ejecuta el script database/20260309_create_team_invitations_if_missing.sql en Supabase.");
+            }
+
             const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             const link = `${window.location.origin}/#/equipo/unirse/${token}`;
             const emailLower = invitationFormData.email.toLowerCase().trim();
@@ -127,7 +143,13 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
             setInvitationFormData({ email: '', role: UserRole.COACH, name: '' });
             fetchData();
         } catch (error: any) {
-            alert("Error al crear invitación: " + error.message);
+            const msg = String(error?.message || 'Error desconocido');
+            if (msg.toLowerCase().includes("could not find the table") || msg.toLowerCase().includes('schema cache')) {
+                setInvitationsTableMissing(true);
+                alert("Falta la tabla team_invitations en Supabase. Ejecuta el script database/20260309_create_team_invitations_if_missing.sql y vuelve a intentar.");
+            } else {
+                alert("Error al crear invitación: " + msg);
+            }
         } finally {
             setIsSubmittingInvite(false);
         }
@@ -281,6 +303,12 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                     Invitar al Equipo
                 </button>
             </div>
+
+            {invitationsTableMissing && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 text-sm">
+                    Falta la tabla <code>team_invitations</code> en Supabase. Ejecuta <code>database/20260309_create_team_invitations_if_missing.sql</code> para habilitar invitaciones del equipo.
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
