@@ -279,8 +279,7 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                             <ArrowLeft className="w-5 h-5 text-gray-600" />
                         </button>
                         <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                            <Utensils className="w-6 h-6 text-green-600" />
-                            Tu Nutrici&oacute;n
+                            Tu Nutrición
                         </h1>
                     </div>
                 </div>
@@ -289,10 +288,10 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                         <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
                             <Clock className="w-8 h-8 text-amber-600" />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-3">Tu plan nutricional est&aacute; siendo preparado</h2>
+                        <h2 className="text-xl font-bold text-gray-800 mb-3">Tu plan nutricional está siendo preparado</h2>
                         <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                            Tu coach est&aacute; revisando tu perfil para personalizar tu plan de alimentaci&oacute;n.
-                            Te notificaremos cuando est&eacute; listo.
+                            Tu coach está revisando tu perfil para personalizar tu plan de alimentación.
+                            Te notificaremos cuando esté listo.
                         </p>
                     </div>
                 </div>
@@ -524,30 +523,30 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                                 Como usar tu plan (importante)
                             </h3>
                             <p className="text-slate-600 leading-relaxed mb-4">
-                                Este plan esta pensado para darte flexibilidad, no para ser una dieta rigida. Tu construyes tu semana segun tus horarios y tu realidad.
+                                Este plan está pensado para darte flexibilidad, no para ser una dieta rígida. Tú construyes tu semana según tus horarios y tu realidad.
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-                                    <p className="text-sm font-bold text-emerald-800 mb-2">Que hacer</p>
+                                    <p className="text-sm font-bold text-emerald-800 mb-2">Qué hacer</p>
                                     <ul className="space-y-1.5 text-sm text-slate-700 leading-relaxed">
                                         <li>• Entra en <b>Planificador</b> y elige desayuno, comida, cena y snack.</li>
                                         <li>• Puedes cambiar tus elecciones en cualquier momento.</li>
-                                        <li>• Si un dia se complica, cambia por otra opcion del mismo bloque.</li>
+                                        <li>• Si un día se complica, cambia por otra opción del mismo bloque.</li>
                                     </ul>
                                 </div>
                                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                                    <p className="text-sm font-bold text-indigo-800 mb-2">Por que funciona mejor asi</p>
+                                    <p className="text-sm font-bold text-indigo-800 mb-2">Por qué funciona mejor así</p>
                                     <ul className="space-y-1.5 text-sm text-slate-700 leading-relaxed">
-                                        <li>• Al elegir tu misma, hay mas adherencia y menos abandono.</li>
-                                        <li>• Aprendes a organizarte con autonomia.</li>
-                                        <li>• Buscamos constancia: mejor 80% sostenido que 100% dos dias.</li>
+                                        <li>• Al elegir tú misma, hay más adherencia y menos abandono.</li>
+                                        <li>• Aprendes a organizarte con autonomía.</li>
+                                        <li>• Buscamos constancia: mejor 80% sostenido que 100% dos días.</li>
                                     </ul>
                                 </div>
                             </div>
 
                             <p className="text-xs text-slate-500 leading-relaxed">
-                                Si notas mala tolerancia digestiva, hambre excesiva o falta de energia, avisa a tu coach para ajustar tu plan.
+                                Si notas mala tolerancia digestiva, hambre excesiva o falta de energía, avisa a tu coach para ajustar tu plan.
                             </p>
                         </div>
 
