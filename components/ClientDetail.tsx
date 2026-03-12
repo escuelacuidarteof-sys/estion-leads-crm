@@ -14,7 +14,7 @@ import {
    Quote, Zap, Award, Flame, ChevronRight, Droplets, Droplet, Moon, Video, PlayCircle, Lock,
    FileText, ExternalLink, Trophy, Stethoscope, CreditCard, Image as ImageIcon,
    Loader2, Upload, History, Play, UserPlus, FileCheck, FileX, Rocket, MessageSquare,
-   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2, MessageCircle
+   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2, MessageCircle, Pill
 } from 'lucide-react';
 import { pauseService } from '../services/pauseService';
 import { normalizePhone, isValidPhone, PHONE_HELP_TEXT, PHONE_PLACEHOLDER } from '../utils/phoneUtils';
@@ -38,7 +38,7 @@ import { getContractHistory, saveContractToHistory, deleteContractFromHistory, C
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
 import ClientMaterials from './ClientMaterials';
 import { ClientStatusBanner } from './client-detail/ClientStatusBanner';
-import TreatmentView from './client-portal/TreatmentView';
+import { TreatmentView } from './client-portal/TreatmentView';
 
 interface ClientDetailProps {
    client: Client;
@@ -49,7 +49,7 @@ interface ClientDetailProps {
    onViewAsClient?: () => void;
    currentUser?: CRMUser;
    coaches: CRMUser[];
-   initialTab?: 'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials';
+   initialTab?: 'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials' | 'treatment';
    onDeleteClient?: (clientId: string, userId?: string) => void;
 }
 
@@ -710,7 +710,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    initialTab,
    onDeleteClient
 }) => {
-   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials'>(initialTab || 'overview');
+   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials' | 'treatment'>(initialTab || 'overview');
    const [isEditing, setIsEditing] = useState(false);
    const [formData, setFormData] = useState<Client>(client);
    const { toast } = useToast();
@@ -3085,6 +3085,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                <TabButton id="checkins" label="Evolución" icon={<CalendarCheck className="w-4 h-4" />} isActive={activeTab === 'checkins'} onClick={setActiveTab} />
                <TabButton id="health" label="Salud Detallada" icon={<HeartPulse className="w-4 h-4" />} isActive={activeTab === 'health'} onClick={setActiveTab} />
                <TabButton id="program" label="Plan Terapéutico" icon={<Target className="w-4 h-4" />} isActive={activeTab === 'program'} onClick={setActiveTab} />
+               <TabButton id="treatment" label="Tratamiento" icon={<Pill className="w-4 h-4" />} isActive={activeTab === 'treatment'} onClick={setActiveTab} />
                <TabButton id="materials" label="Documentos" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'materials'} onClick={setActiveTab} />
                <TabButton id="contract" label="Contrato" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'contract'} onClick={setActiveTab} />
             </div>
@@ -5502,6 +5503,19 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            currentUser={currentUser!}
                         />
                      </div>
+                  </div>
+               )}
+
+               {/* --- TREATMENT TAB (patient treatment tracking) --- */}
+               {activeTab === 'treatment' && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                     <div className="flex items-center justify-between mb-6">
+                        <SectionTitle title="Seguimiento de Tratamiento" icon={<Pill className="w-4 h-4 text-purple-500" />} />
+                        <div className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-bold border border-purple-100">
+                           Registro del paciente
+                        </div>
+                     </div>
+                     <TreatmentView clientId={client.id} />
                   </div>
                )}
 
