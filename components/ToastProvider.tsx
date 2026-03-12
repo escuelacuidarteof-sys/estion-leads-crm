@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { CheckCircle2, XCircle, AlertCircle, Info, X } from 'lucide-react';
+import { CircleCheck, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -116,7 +116,7 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
     const config = {
         success: {
-            icon: CheckCircle2,
+            icon: CircleCheck,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-500',
             textColor: 'text-green-800',

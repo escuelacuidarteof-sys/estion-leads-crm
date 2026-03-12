@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, MedicalReview, UserRole } from '../types';
 import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
-import { MessageCircle, FileText, Send, Clock, CheckCircle2, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, FileText, Send, Clock, CircleCheck, AlertCircle, Video, Plus, X, UploadCloud, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MedicalReviewsProps {
     client: Client;
@@ -88,7 +88,7 @@ const MedicalReviews: React.FC<MedicalReviewsProps> = ({ client, currentUserRole
     };
 
     const getStatusBadge = (status: string) => {
-        if (status === 'reviewed') return <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-emerald-200"><CheckCircle2 className="w-3 h-3" /> Revisado</span>;
+        if (status === 'reviewed') return <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-emerald-200"><CircleCheck className="w-3 h-3" /> Revisado</span>;
         return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-amber-200"><Clock className="w-3 h-3" /> Pendiente</span>;
     };
 

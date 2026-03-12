@@ -46,7 +46,7 @@ export function SymptomInsights({ clientId, nutritionPlanId }: SymptomInsightsPr
           .select('fatigue_level, nausea_level, pain_level, energy_level')
           .eq('client_id', clientId)
           .eq('log_date', dateStr)
-          .single();
+          .maybeSingle();
 
         // Training
         const { data: training } = await supabase
@@ -125,7 +125,6 @@ export function SymptomInsights({ clientId, nutritionPlanId }: SymptomInsightsPr
   if (!hasData) return null;
 
   const selected = selectedDate ? data.find(d => d.date === selectedDate) : null;
-  const allInsights = data.flatMap(d => d.insights);
 
   const symptomColor = (val: number | null) => {
     if (val == null) return 'bg-slate-200 dark:bg-slate-700';
@@ -140,93 +139,92 @@ export function SymptomInsights({ clientId, nutritionPlanId }: SymptomInsightsPr
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-indigo-600" />
           <h3 className="font-bold text-sm text-indigo-800 dark:text-indigo-300">Correlaciones</h3>
-          {allInsights.length > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">{allInsights.length} obs.</span>
-          )}
         </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+        {expanded ? <ChevronUp className="w-4 h-4 text-indigo-500" /> : <ChevronDown className="w-4 h-4 text-indigo-500" />}
       </button>
 
       {expanded && (
-        <div className="p-4 space-y-4">
-          {/* Week chart */}
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Últimos 7 días</p>
-            <div className="flex gap-1">
-              {data.map(d => (
-                <button
-                  key={d.date}
-                  onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}
-                  className={`flex-1 flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-colors ${selectedDate === d.date ? 'bg-indigo-50 dark:bg-indigo-950/40 ring-2 ring-indigo-300' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                  {/* Fatigue dot */}
-                  <div className={`w-full h-3 rounded-sm ${symptomColor(d.fatigue)}`} title={`Fatiga: ${d.fatigue ?? '—'}`} />
-                  {/* Icons */}
-                  <div className="flex gap-0.5">
-                    {d.trained && <Dumbbell className="w-2.5 h-2.5 text-emerald-500" />}
-                    {d.hadTreatment && <Zap className="w-2.5 h-2.5 text-purple-500" />}
-                  </div>
-                  <span className="text-[8px] text-slate-400">
-                    {new Date(d.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'narrow' })}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 mt-2 text-[9px] text-slate-400">
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-400" /> 0-3</span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400" /> 4-6</span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-400" /> 7-10</span>
-              <span className="flex items-center gap-1"><Dumbbell className="w-2.5 h-2.5 text-emerald-500" /> Entreno</span>
-              <span className="flex items-center gap-1"><Zap className="w-2.5 h-2.5 text-purple-500" /> Tto.</span>
-            </div>
+        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+          <p className="text-[11px] text-slate-500 mb-2">Selecciona un día para ver la relación entre tus síntomas, comidas y ejercicio.</p>
+          
+          <div className="flex gap-1.5 h-12">
+            {data.map(d => (
+              <button
+                key={d.date}
+                onClick={() => setSelectedDate(d.date === selectedDate ? null : d.date)}
+                className={`flex-1 flex flex-col items-center justify-end rounded-lg transition-all border-2 ${selectedDate === d.date ? 'border-indigo-500 shadow-md' : 'border-transparent'}`}
+              >
+                <div className={`w-full rounded-md transition-all ${symptomColor(d.fatigue)}`} style={{ height: `${(d.fatigue || 0) * 10}%`, minHeight: '4px' }} />
+                <span className="text-[8px] font-bold text-slate-400 mt-1">{new Date(d.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'narrow' })}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Selected day detail */}
-          {selected && (
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                {new Date(selected.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
+          {selected ? (
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b dark:border-slate-700 pb-2">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(selected.date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</p>
+                {selected.insights.length > 0 && <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 dark:bg-red-950/50 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Patrón detectado</span>}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {/* Síntomas */}
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">Síntomas</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">Fatiga: {selected.fatigue ?? '—'}/10</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">Náusea: {selected.nausea ?? '—'}/10</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">Dolor: {selected.pain ?? '—'}/10</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Zap className="w-3 h-3" /> Síntomas</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">Fatiga</span>
+                      <span className={`font-bold ${selected.fatigue && selected.fatigue > 7 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{selected.fatigue || '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">Náuseas</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{selected.nausea || '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">Energía</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{selected.energy || '-'}</span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Dieta */}
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">Actividad</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{selected.trained ? 'Entrenó' : 'No entrenó'}</p>
-                  {selected.hadTreatment && <p className="text-xs text-purple-600 font-semibold">Tratamiento</p>}
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Utensils className="w-3 h-3" /> Dieta</p>
+                  <div className="space-y-0.5 min-h-[30px]">
+                    {selected.meals.lunch ? (
+                      <p className="text-[10px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-tight">Almuerzo: {selected.meals.lunch}</p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 italic">Sin registro</p>
+                    )}
+                  </div>
                 </div>
+
+                {/* Entrenamiento */}
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">Comidas</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{selected.meals.breakfast ? 'Desayuno ✓' : '—'}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{selected.meals.lunch ? 'Comida ✓' : '—'}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{selected.meals.dinner ? 'Cena ✓' : '—'}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Dumbbell className="w-3 h-3" /> Ejercicio</p>
+                  <div className="flex items-center gap-1">
+                    {selected.trained ? (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">Completado</span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 italic">No realizado</span>
+                    )}
+                  </div>
                 </div>
               </div>
+
               {selected.insights.length > 0 && (
-                <div className="space-y-1 mt-2">
-                  {selected.insights.map((ins, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">
-                      <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {ins}
-                    </div>
+                <div className="pt-2 border-t dark:border-slate-700">
+                  {selected.insights.map((insight, idx) => (
+                    <p key={idx} className="text-[10px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                      • {insight}
+                    </p>
                   ))}
                 </div>
               )}
             </div>
-          )}
-
-          {/* Aggregated insights */}
-          {allInsights.length > 0 && !selected && (
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Observaciones de la semana</p>
-              {[...new Set(allInsights)].map((ins, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">
-                  <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {ins}
-                </div>
-              ))}
+          ) : (
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 italic justify-center py-4">
+              <TrendingUp className="w-3.5 h-3.5" /> Pulsa en una barra para analizar patrones
             </div>
           )}
         </div>

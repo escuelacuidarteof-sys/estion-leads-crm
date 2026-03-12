@@ -3,7 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import {
     LayoutDashboard, TrendingUp, DollarSign, Users,
     Globe, PhoneCall, PieChart, BarChart2,
-    Calendar, Save, AlertCircle, CheckCircle2,
+    Calendar, Save, AlertCircle, CircleCheck,
     RefreshCw, Filter, Video, MousePointerClick,
     MessageCircle, Hash, Star
 } from 'lucide-react';

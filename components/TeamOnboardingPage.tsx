@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { UserRole } from '../types';
 import {
-    User, Mail, Lock, Camera, Loader2, CheckCircle2,
+    User, Mail, Lock, Camera, Loader2, CircleCheck,
     ArrowRight, Sparkles, Briefcase, Phone, MessageSquare, Smartphone
 } from 'lucide-react';
 import InstallationGuide from './InstallationGuide';
@@ -194,7 +194,7 @@ export default function TeamOnboardingPage() {
             <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
                 <div className="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full text-center border border-slate-100 animate-in zoom-in-95 duration-500">
                     <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500">
-                        <CheckCircle2 className="w-12 h-12" />
+                        <CircleCheck className="w-12 h-12" />
                     </div>
                     <h2 className="text-3xl font-extrabold text-slate-900 mb-4">¡Bienvenido al Equipo!</h2>
                     <p className="text-slate-500 mb-10 leading-relaxed">

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Client, ClientStatus } from '../types';
-import { CheckCircle2, AlertCircle, Clock, ChevronRight, User as UserIcon } from 'lucide-react';
+import { CircleCheck, AlertCircle, Clock, ChevronRight, User as UserIcon } from 'lucide-react';
 
 interface ReviewsViewProps {
     clients: Client[];
@@ -134,7 +134,7 @@ const ReviewsView: React.FC<ReviewsViewProps> = ({ clients, onNavigateToClient }
                     <div className="p-4 border-b border-slate-100 bg-green-50/50 rounded-t-2xl flex items-center justify-between sticky top-0">
                         <div className="flex items-center gap-2">
                             <div className="p-2 bg-green-100 rounded-lg text-green-600">
-                                <CheckCircle2 className="w-5 h-5" />
+                                <CircleCheck className="w-5 h-5" />
                             </div>
                             <h3 className="font-bold text-slate-700">Revisados (Esta Semana)</h3>
                         </div>
@@ -163,7 +163,7 @@ const ReviewsView: React.FC<ReviewsViewProps> = ({ clients, onNavigateToClient }
                                         <div className="min-w-0">
                                             <p className="font-bold text-slate-800 text-sm truncate">{client.name}</p>
                                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full mt-1">
-                                                <CheckCircle2 className="w-3 h-3" /> Revisado
+                                                <CircleCheck className="w-3 h-3" /> Revisado
                                             </span>
                                         </div>
                                     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    MessageSquare, Tag, Clock, CheckCircle2,
+    MessageSquare, Tag, Clock, CircleCheck,
     Plus, Filter, Search, User, Calendar,
     AlertCircle, AlertTriangle, ArrowRight,
     Loader2, X, Briefcase
@@ -436,7 +436,7 @@ export function SupportTicketsView({ user, clients }: SupportTicketsViewProps) {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-start gap-4">
                                     <div className={`p-3 rounded-xl border ${getStatusStyle(ticket.status)}`}>
-                                        {ticket.status === 'open' ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                                        {ticket.status === 'open' ? <AlertCircle className="w-6 h-6" /> : <CircleCheck className="w-6 h-6" />}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">

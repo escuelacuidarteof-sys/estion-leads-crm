@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, ArrowLeft, CheckCircle2, Activity, Loader2 } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft, CircleCheck, Activity, Loader2 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 export const ForgotPasswordPage: React.FC = () => {
@@ -55,7 +55,7 @@ export const ForgotPasswordPage: React.FC = () => {
                     {submitted ? (
                         <div className="text-center py-4 animate-in zoom-in-95 duration-500">
                             <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/10 rotate-12">
-                                <CheckCircle2 className="w-10 h-10" />
+                                <CircleCheck className="w-10 h-10" />
                             </div>
                             <h2 className="text-2xl font-bold text-white mb-2">¡Comprueba tu correo!</h2>
                             <p className="text-slate-400 mb-8 text-sm">

@@ -7,7 +7,7 @@ import {
     Briefcase, Calendar, Target, Flame, Quote,
     Activity, TrendingDown, Dumbbell, Zap,
     PlayCircle, Video, Lock, Utensils, FileText,
-    Award, Moon, Droplets, AlertCircle, CheckCircle2,
+    Award, Moon, Droplets, AlertCircle, CircleCheck,
     HeartPulse, Stethoscope, X
 } from 'lucide-react';
 import {
@@ -453,7 +453,7 @@ const ClientPortalView: React.FC<ClientPortalViewProps> = ({ client }) => {
                                         </div>
                                         {showReasonSaved && (
                                             <p className="mt-3 text-emerald-600 font-bold flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                                                <CheckCircle2 className="w-4 h-4" /> ¡Gracias! Tu coach ha sido informado.
+                                                <CircleCheck className="w-4 h-4" /> ¡Gracias! Tu coach ha sido informado.
                                             </p>
                                         )}
                                     </div>
@@ -554,7 +554,7 @@ const ClientPortalView: React.FC<ClientPortalViewProps> = ({ client }) => {
                                                     disabled={isSavingTargetWeight}
                                                     className="bg-blue-600 text-white p-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                                                 >
-                                                    {isSavingTargetWeight ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                                    {isSavingTargetWeight ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CircleCheck className="w-3.5 h-3.5" />}
                                                 </button>
                                                 <button
                                                     onClick={() => { setIsEditingTargetWeight(false); setTempTargetWeight(localTargetWeight?.toString() || ''); }}

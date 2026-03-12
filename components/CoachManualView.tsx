@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, CheckCircle2, FileText, Search } from 'lucide-react';
+import { BookOpen, CircleCheck, FileText, Search } from 'lucide-react';
 import { User } from '../types';
 import manualCoach from '../docs/manuales/MANUAL_COACH_PORTAL.md?raw';
 import sopCoach from '../docs/manuales/SOP_COACH_SEMANAL.md?raw';
@@ -153,7 +153,7 @@ export function CoachManualView({ user }: CoachManualViewProps) {
                     </span>
                     {normalizedSearch && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <CircleCheck className="w-3.5 h-3.5" />
                             Coincidencias: {visibleBlocks.filter(b => b.text).length}
                         </span>
                     )}

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Save, Scale, HelpCircle, Heart, Zap, Moon, Leaf, MessageSquare, Star } from 'lucide-react';
+import { ArrowLeft, CircleCheck, Save, Scale, HelpCircle, Heart, Zap, Moon, Leaf, MessageSquare, Star } from 'lucide-react';
 import { mockDb } from '../../services/mockSupabase';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -155,7 +155,7 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
         return (
             <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center justify-center text-center">
                 <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                    <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+                    <CircleCheck className="w-12 h-12 text-emerald-600" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-800 mb-4">¡Reporte Enviado!</h2>
                 <p className="text-slate-600 max-w-md mb-8">

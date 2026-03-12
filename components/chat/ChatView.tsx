@@ -4,7 +4,7 @@ import {
     Search, MoreVertical, Phone, Video,
     Check, CheckCheck, Clock, User, Users,
     MessageSquare, Plus, ChevronLeft, Loader2,
-    ArrowLeft, X, CheckCircle2, Trash2, XCircle,
+    ArrowLeft, X, CircleCheck, Trash2, XCircle,
     CheckSquare
 } from 'lucide-react';
 import { ChatRoom, ChatMessage, ChatParticipant, User as UserType, UserRole } from '../../types';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stethoscope, Thermometer, Upload, FileText, Loader2, CheckCircle2, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Stethoscope, Thermometer, Upload, FileText, Loader2, CircleCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 
 interface Props {
@@ -369,7 +369,7 @@ export function MedicalDataStep({ formData, updateField, toggleArrayField }: Pro
                     ) : formData.labResultsFile ? (
                         <div className="flex flex-col items-center gap-2 text-center">
                             <div className="p-3 bg-emerald-100 rounded-full">
-                                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                                <CircleCheck className="w-6 h-6 text-emerald-600" />
                             </div>
                             <p className="text-sm font-bold text-emerald-900">¡Documento subido correctamente!</p>
                             <button onClick={() => updateField('labResultsFile', '')} className="text-xs text-red-500 font-bold hover:underline">

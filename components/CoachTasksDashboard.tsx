@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    CheckCircle2, Circle, Clock, AlertCircle,
+    CircleCheck, Circle, Clock, AlertCircle,
     Plus, Trash2, Calendar, User, ListTodo,
     ChevronDown, ChevronUp, MoreVertical,
     Check, Pencil
@@ -156,7 +156,7 @@ export function CoachTasksDashboard({ user }: CoachTasksDashboardProps) {
                     </div>
                 ) : filteredTasks.length === 0 ? (
                     <div className="p-12 text-center text-slate-400">
-                        <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-10" />
+                        <CircleCheck className="w-12 h-12 mx-auto mb-3 opacity-10" />
                         <p className="font-medium">No hay tareas aquí</p>
                     </div>
                 ) : (
@@ -167,7 +167,7 @@ export function CoachTasksDashboard({ user }: CoachTasksDashboardProps) {
                                     onClick={() => toggleTaskStatus(task)}
                                     className={`mt-0.5 transition-all ${task.status === 'completed' ? 'text-green-500' : 'text-slate-300 hover:text-indigo-500'}`}
                                 >
-                                    {task.status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                                    {task.status === 'completed' ? <CircleCheck className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                                 </button>
 
                                 <div className="flex-1 min-w-0">

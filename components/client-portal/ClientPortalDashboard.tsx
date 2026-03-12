@@ -41,6 +41,12 @@ import { CycleTrackingView } from './CycleTrackingView';
 import { TrainingView } from './TrainingView';
 import { DiaryView } from './DiaryView';
 import { TreatmentView } from './TreatmentView';
+import { TodayTimeline } from './TodayTimeline';
+import { NotificationBell } from './NotificationPanel';
+import { WeeklySummaryCard } from './WeeklySummaryCard';
+import { ProgressPhotos } from './ProgressPhotos';
+import { SymptomInsights } from './SymptomInsights';
+
 
 interface WeightEntry {
     id: string;
@@ -58,7 +64,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const toast = useToast();
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation' | 'progress_photos'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
@@ -231,13 +237,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     const loadUnreadCounts = async () => {
         try {
-            // 1. Informes médicos (PDFs) no leídos
+            // 1. Informes mÃ©dicos (PDFs) no leÃ­dos
             const reportsLastSeen = localStorage.getItem(REPORTS_READ_KEY);
             let reportsQuery = supabase
                 .from('medical_reviews')
                 .select('id', { count: 'exact', head: true })
                 .eq('client_id', client.id)
-                .eq('report_type', 'Informe Médico')
+                .eq('report_type', 'Informe MÃ©dico')
                 .eq('status', 'reviewed');
             if (reportsLastSeen) {
                 reportsQuery = reportsQuery.gt('reviewed_at', reportsLastSeen);
@@ -245,13 +251,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             const { count: reportsCount } = await reportsQuery;
             setUnreadReportsCount(reportsCount || 0);
 
-            // 2. Revisiones no leídas (valoración inicial + analíticas del profesional de salud)
+            // 2. Revisiones no leÃ­das (valoraciÃ³n inicial + analÃ­ticas del profesional de salud)
             const reviewsLastSeen = localStorage.getItem(REVIEWS_READ_KEY);
             let medicalQuery = supabase
                 .from('medical_reviews')
                 .select('id', { count: 'exact', head: true })
                 .eq('client_id', client.id)
-                .neq('report_type', 'Informe Médico')
+                .neq('report_type', 'Informe MÃ©dico')
                 .eq('status', 'reviewed');
             if (reviewsLastSeen) {
                 medicalQuery = medicalQuery.gt('reviewed_at', reviewsLastSeen);
@@ -342,12 +348,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
             if (error) throw error;
 
-            toast.success('Medicación actualizada correctamente');
+            toast.success('MedicaciÃ³n actualizada correctamente');
             setIsEditingMedication(false);
             if (onRefresh) onRefresh();
         } catch (error: any) {
             console.error('Error saving medication:', error);
-            toast.error('Error al guardar la medicación');
+            toast.error('Error al guardar la medicaciÃ³n');
         } finally {
             setIsSavingMedication(false);
         }
@@ -355,7 +361,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     const handleTargetWeightSave = async () => {
         const weightVal = parseFloat(tempTargetWeight);
-        if (isNaN(weightVal)) return toast.error('Peso no válido');
+        if (isNaN(weightVal)) return toast.error('Peso no vÃ¡lido');
 
         setIsSavingTargetWeight(true);
         try {
@@ -433,7 +439,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     };
 
     // --- CONTRACT & PHASE CALCULATIONS ---
-    // Función para obtener los datos del contrato ACTIVO ACTUAL
+    // FunciÃ³n para obtener los datos del contrato ACTIVO ACTUAL
     const getActiveContractData = () => {
         const today = new Date();
         const c = client as any;
@@ -447,7 +453,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 endDate: program.f1_endDate,
                 duration: client.program_duration_months || 0,
                 name: program.contract1_name || `${client.program_duration_months || 3} meses`,
-                isRenewed: true // F1 siempre está activo si existe
+                isRenewed: true // F1 siempre estÃ¡ activo si existe
             },
             {
                 phase: 'F2',
@@ -483,7 +489,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             }
         ];
 
-        // Filtrar solo contratos renovados/activos con fechas válidas
+        // Filtrar solo contratos renovados/activos con fechas vÃ¡lidas
         const activeContracts = contracts.filter(contract =>
             contract.isRenewed &&
             contract.startDate &&
@@ -503,14 +509,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             };
         }
 
-        // Encontrar el contrato VIGENTE (donde hoy está entre start y end)
+        // Encontrar el contrato VIGENTE (donde hoy estÃ¡ entre start y end)
         const currentContract = activeContracts.find(contract => {
             const start = new Date(contract.startDate);
             const end = new Date(contract.endDate);
             return today >= start && today <= end;
         });
 
-        // Si no hay contrato vigente actualmente, tomar el último contrato renovado
+        // Si no hay contrato vigente actualmente, tomar el Ãºltimo contrato renovado
         const activeContract = currentContract || activeContracts[activeContracts.length - 1];
 
         return {
@@ -672,7 +678,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             console.log('Update result:', { status: 'success', id: client.id });
 
             // 3. UI Feedback
-            toast.success("¡Comprobante subido correctamente! Tu coach lo revisará pronto para activar tu nueva fase.");
+            toast.success("Â¡Comprobante subido correctamente! Tu coach lo revisarÃ¡ pronto para activar tu nueva fase.");
             setIsPaymentModalOpen(false);
             setPaymentFile(null);
 
@@ -787,6 +793,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             onBack={() => setActiveView('dashboard')}
         />
     );
+    if (activeView === 'progress_photos') return (
+        <div className="max-w-4xl mx-auto py-6 px-4">
+            <ProgressPhotos clientId={client.id} onBack={() => setActiveView('dashboard')} />
+        </div>
+    );
 
     // --- HELPERS ---
     // Parse real metrics from the last check-in responses
@@ -794,7 +805,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         if (!lastCheckin?.responses?.question_1) return { fatigue: null, sleep: null };
         const q1 = lastCheckin.responses.question_1;
         const fatigueMatch = q1.match(/Fatiga:\s*(\d+)/);
-        const sleepMatch = q1.match(/Sueño:\s*(\d+)/);
+        const sleepMatch = q1.match(/SueÃ±o:\s*(\d+)/);
         return {
             fatigue: fatigueMatch ? parseInt(fatigueMatch[1]) : null,
             sleep: sleepMatch ? parseInt(sleepMatch[1]) : null,
@@ -814,7 +825,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         ? Math.min(100, Math.max(0, Math.round(((client.initial_weight - latestWeight) / (client.initial_weight - displayTargetWeight)) * 100)))
         : null;
 
-    // Calcular próxima cita
+    // Calcular prÃ³xima cita
     const nextAppt = cAny.next_appointment_date ? {
         date: new Date(cAny.next_appointment_date),
         time: cAny.next_appointment_time || '',
@@ -822,14 +833,22 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         videoUrl: cAny.next_appointment_video_url || '',
     } : null;
     const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
-    const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
+    const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'MaÃ±ana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} dÃ­as` : null;
     const hourNow = new Date().getHours();
-    const greeting = hourNow < 12 ? 'Buenos días' : hourNow < 20 ? 'Buenas tardes' : 'Buenas noches';
-    const warmthLine = hourNow < 12
-        ? 'Empezamos el día juntas, paso a paso.'
-        : hourNow < 20
-            ? 'Seguimos avanzando juntas esta tarde.'
-            : 'Cierra el día con calma y foco en ti.';
+    const dayName = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+    const greeting = (() => {
+        if (hourNow >= 6 && hourNow < 12) return 'Â¡Buenos dÃ­as!';
+        if (hourNow >= 12 && hourNow < 20) return 'Â¡Buenas tardes!';
+        return 'Â¡Buenas noches!';
+    })();
+
+    const warmthLine = (() => {
+        if (hourNow >= 6 && hourNow < 12) return `Feliz ${dayName}. Aquí tienes tu hoja de ruta para hoy.`;
+        if (hourNow >= 12 && hourNow < 20) return `Esperamos que estés teniendo un gran ${dayName}.`;
+        return "Día completado. Descansa y recarga energías para mañana.";
+    })();
 
     // Calendar helpers
     const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -854,7 +873,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         weekMonday.setDate(now.getDate() + mondayOffset);
         weekMonday.setHours(0, 0, 0, 0);
 
-        // Calcular qué semana del programa es
+        // Calcular quÃ© semana del programa es
         const startMs = new Date(startDate).setHours(0, 0, 0, 0);
         const diffDays = Math.floor((weekMonday.getTime() - startMs) / 86400000);
         const calculatedWeek = Math.max(1, Math.floor(diffDays / 7) + 1);
@@ -863,7 +882,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         return { week: clampedWeek, days: Array.from({ length: 7 }, (_, i) => {
             const date = new Date(weekMonday);
             date.setDate(date.getDate() + i);
-            // Mapear fecha real a día del programa: días transcurridos desde start_date + 1
+            // Mapear fecha real a dÃ­a del programa: dÃ­as transcurridos desde start_date + 1
             const daysSinceStart = Math.floor((date.getTime() - startMs) / 86400000);
             const programDayNumber = daysSinceStart + 1;
             const dayData = weekProgram.days?.find(
@@ -936,17 +955,17 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-[10px] uppercase tracking-[0.16em] font-black text-amber-700/80">Beneficio exclusivo</p>
-                    <p className={`font-black text-brand-dark ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>Suplementación recomendada en OFM Health</p>
-                    <p className="text-xs text-slate-600 mt-0.5">Usa tu código para obtener descuento directo.</p>
+                    <p className={`font-black text-brand-dark ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>SuplementaciÃ³n recomendada en OFM Health</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Usa tu cÃ³digo para obtener descuento directo.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={async () => {
                             try {
                                 await navigator.clipboard.writeText('CUIDARTE10');
-                                toast.success('Código CUIDARTE10 copiado');
+                                toast.success('CÃ³digo CUIDARTE10 copiado');
                             } catch {
-                                toast.error('No se pudo copiar automáticamente');
+                                toast.error('No se pudo copiar automÃ¡ticamente');
                             }
                         }}
                         className="px-3 py-2 rounded-xl bg-white text-amber-800 text-xs font-black border border-amber-200 hover:bg-amber-50 transition-colors"
@@ -978,30 +997,45 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         return (
             <div className="space-y-4 sm:space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-5 sm:p-6 shadow-sm">
-                    <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-brand-green/10 blur-2xl" />
-                    <div className="absolute -bottom-10 -left-8 w-40 h-40 rounded-full bg-brand-gold/10 blur-2xl" />
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <p className="text-[11px] font-black uppercase tracking-widest text-brand-green">{greeting}</p>
-                            <h2 className="text-[1.65rem] sm:text-3xl font-heading font-black text-brand-dark mt-1 leading-tight">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
-                            <p className="text-sm text-slate-600 mt-2">{warmthLine}</p>
+                            <p className="text-xs font-black text-brand-green uppercase tracking-[0.2em] mb-1">Tu Dashboard</p>
+                            <h1 className="text-2xl sm:text-3xl font-heading font-black text-brand-dark leading-tight flex flex-wrap items-center gap-x-2">
+                                {greeting}, {client.firstName}<span className="inline-block animate-bounce-subtle">âœ¨</span>
+                            </h1>
+                            <p className="text-slate-600 font-medium mt-1">{warmthLine}</p>
                         </div>
-                        {nextAppt && (
-                            <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 w-full md:w-auto md:min-w-[180px]">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Próxima revisión</p>
-                                <p className="text-sm font-bold text-brand-dark mt-1">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
-                                <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            <NotificationBell 
+                                clientId={client.id} 
+                                onNavigate={(tab, view) => {
+                                    if (tab) setActiveTab(tab as any);
+                                    if (view) setActiveView(view as any);
+                                }} 
+                            />
+                            {nextAppt && (
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-emerald-100 p-3 sm:p-4 text-center ring-4 ring-emerald-50/50">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Siguiente cita</p>
+                                    <p className="text-lg font-black text-brand-dark leading-none">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                                    <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
+
+                <WeeklySummaryCard clientId={client.id} />
+
+                <TodayTimeline clientId={client.id} />
+
+                <SymptomInsights clientId={client.id} />
 
                 <OfmPromoCard compact />
 
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rÃ¡pidos</p>
                     <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Acciones de hoy</h2>
-                    <p className="text-sm text-slate-600 mt-1">Elige una y seguimos contigo paso a paso.</p>
+                    <p className="text-sm text-slate-600 mt-1">Elige una tarea para continuar con tu progreso.</p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-4 sm:mt-5">
                         {[
@@ -1014,11 +1048,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                                     : 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm'
                             }] : []),
-                            { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
-                            { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
-                            { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
+                            { label: 'Escribir en tu diario', desc: 'CÃ³mo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
+                            { label: 'Ver prÃ³xima revisiÃ³n', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `Â· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
+                            { label: 'Ver mi plan de acciÃ³n', desc: 'NutriciÃ³n, hÃ¡bitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
                             { label: 'Entrenamiento de hoy', desc: 'Programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
-                            { label: 'Meditación / Calma', desc: 'Tu momento de paz', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                            { label: 'MeditaciÃ³n / Calma', desc: 'Tu momento de paz', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
                             { label: 'Materiales de apoyo', desc: 'Recursos de tu equipo', icon: FileHeart, action: () => setActiveView('materials'), tone: 'bg-slate-50 border-slate-200 text-slate-800' }
                         ].map(({ label, desc, icon: Icon, action, tone }) => (
                             <button
@@ -1053,31 +1087,31 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">NutriciÃ³n</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Tu equipo aÃºn no ha cargado una acciÃ³n especÃ­fica en nutriciÃ³n.'}</p>
                             </div>
                             <div className="rounded-xl bg-amber-50/60 border border-amber-200/60 p-3">
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">HÃ¡bitos</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Tu equipo aÃºn no ha cargado una acciÃ³n especÃ­fica en hÃ¡bitos.'}</p>
                             </div>
                             <div className="rounded-xl bg-sky-50/60 border border-sky-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu equipo aÃºn no ha cargado una acciÃ³n especÃ­fica en entrenamiento.'}</p>
                             </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-[11px]">
-                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Tu equipo añadirá el plan detallado aquí'}</span>
+                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Tu equipo aÃ±adirÃ¡ el plan detallado aquÃ­'}</span>
                             {hasActionPlan && <span className="font-bold text-brand-green group-hover:underline">Ver plan completo</span>}
                         </div>
                     </button>
 
                     <div className="space-y-4">
                         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Próxima revisión</p>
+                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">PrÃ³xima revisiÃ³n</p>
                             {nextAppt ? (
                                 <>
                                     <p className="text-sm font-bold text-brand-dark">{nextAppt.date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                    <p className="text-xs text-slate-500 mt-1">{nextAppt.time ? `${nextAppt.time}h` : 'Hora pendiente'} {apptLabel ? `· ${apptLabel}` : ''}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{nextAppt.time ? `${nextAppt.time}h` : 'Hora pendiente'} {apptLabel ? `Â· ${apptLabel}` : ''}</p>
                                     {nextAppt.videoUrl && (
                                         <a href={nextAppt.videoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold px-3 py-2 rounded-lg bg-brand-dark text-white hover:bg-black">
                                             <Video className="w-3.5 h-3.5" /> Unirme
@@ -1085,14 +1119,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     )}
                                 </>
                             ) : (
-                                <p className="text-sm text-slate-600">Tu equipo te avisará cuando esté programada.</p>
+                                <p className="text-sm text-slate-600">Tu equipo te avisarÃ¡ cuando estÃ© programada.</p>
                             )}
                         </div>
 
                         {initialAssessmentSnippet ? (
                             <button onClick={() => setShowFullAssessment(true)} className="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
                                 <div className="flex items-center justify-between mb-2">
-                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valoración inicial</p>
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">ValoraciÃ³n inicial</p>
                                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                 </div>
                                 <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{compact(cAny.onboarding_initial_assessment, 180)}</p>
@@ -1103,8 +1137,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             </button>
                         ) : (
                             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
-                                <p className="text-sm text-slate-600">Aún no hay valoración inicial compartida en portal.</p>
+                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">ValoraciÃ³n inicial</p>
+                                <p className="text-sm text-slate-600">AÃºn no hay valoraciÃ³n inicial compartida en portal.</p>
                             </div>
                         )}
                     </div>
@@ -1120,7 +1154,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <div className="p-2 bg-white/20 rounded-xl"><FileText className="w-6 h-6" /></div>
                                     <div>
                                         <h2 className="text-lg font-black">Tu Plan Actual</h2>
-                                        <p className="text-sm text-white/80">Plan de acción personalizado</p>
+                                        <p className="text-sm text-white/80">Plan de acciÃ³n personalizado</p>
                                     </div>
                                 </div>
                             </div>
@@ -1129,7 +1163,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <div>
                                         <div className="flex items-center gap-2 mb-3">
                                             <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><Utensils className="w-4 h-4 text-emerald-600" /></div>
-                                            <h3 className="text-sm font-black text-emerald-700 uppercase tracking-wider">Nutrición</h3>
+                                            <h3 className="text-sm font-black text-emerald-700 uppercase tracking-wider">NutriciÃ³n</h3>
                                         </div>
                                         <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-4">
                                             <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.action_plan_nutrition}</p>
@@ -1140,7 +1174,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <div>
                                         <div className="flex items-center gap-2 mb-3">
                                             <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center"><Sparkles className="w-4 h-4 text-amber-600" /></div>
-                                            <h3 className="text-sm font-black text-amber-700 uppercase tracking-wider">Hábitos</h3>
+                                            <h3 className="text-sm font-black text-amber-700 uppercase tracking-wider">HÃ¡bitos</h3>
                                         </div>
                                         <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-4">
                                             <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{cAny.action_plan_habits}</p>
@@ -1163,7 +1197,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 )}
 
-                {/* Modal: Valoración inicial completa */}
+                {/* Modal: ValoraciÃ³n inicial completa */}
                 {showFullAssessment && cAny.onboarding_initial_assessment && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowFullAssessment(false)}>
                         <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -1172,7 +1206,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/20 rounded-xl"><Stethoscope className="w-6 h-6" /></div>
                                     <div>
-                                        <h2 className="text-lg font-black">Valoración Inicial</h2>
+                                        <h2 className="text-lg font-black">ValoraciÃ³n Inicial</h2>
                                         <p className="text-sm text-white/80">Resumen de tu caso para el equipo</p>
                                     </div>
                                 </div>
@@ -1186,7 +1220,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-                        <h4 className="text-sm font-black text-brand-dark">Tablón de la Escuela</h4>
+                        <h4 className="text-sm font-black text-brand-dark">TablÃ³n de la Escuela</h4>
                         <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
                     </div>
                     <div className="p-2">
@@ -1205,7 +1239,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <div>
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Peso Actual</p>
                         <div className="flex items-end gap-2 mt-0.5">
-                            <span className="text-4xl font-heading font-black text-brand-dark">{latestWeight ?? '—'}</span>
+                            <span className="text-4xl font-heading font-black text-brand-dark">{latestWeight ?? 'â€”'}</span>
                             <span className="text-slate-400 font-medium mb-1">kg</span>
                             {weightDelta !== null && (
                                 <span className={`text-sm font-black mb-1 flex items-center gap-0.5 ${weightDelta < 0 ? 'text-brand-green' : 'text-red-500'}`}>
@@ -1235,10 +1269,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 )}
             </div>
 
-            {/* Gráfico */}
+            {/* GrÃ¡fico */}
             {chartData.length > 1 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-                    <p className="text-sm font-black text-brand-dark mb-3">Evolución del peso</p>
+                    <p className="text-sm font-black text-brand-dark mb-3">EvoluciÃ³n del peso</p>
                     <ResponsiveContainer width="100%" height={140}>
                         <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
                             <defs>
@@ -1269,7 +1303,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     {[
                         { key: '3m', label: '3 Meses', goal: client.goals?.goal_3_months, color: 'border-brand-green', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
                         { key: '6m', label: '6 Meses', goal: client.goals?.goal_6_months, color: 'border-brand-gold', badgeBg: 'bg-amber-50', badgeText: 'text-amber-700' },
-                        { key: '1y', label: '1 Año', goal: client.goals?.goal_1_year, color: 'border-purple-400', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700' },
+                        { key: '1y', label: '1 AÃ±o', goal: client.goals?.goal_1_year, color: 'border-purple-400', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700' },
                     ].map(({ key, label, goal, color, badgeBg, badgeText }) => (
                         <div key={key} className={`border-l-4 ${color} bg-slate-50/50 rounded-xl p-3`}>
                             <div className="flex items-center justify-between mb-1">
@@ -1282,6 +1316,20 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             </div>
 
             <AchievementsCard clientId={client.id} />
+            
+            <button
+                onClick={() => setActiveView('progress_photos')}
+                className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left"
+            >
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Camera className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                    <p className="font-black text-brand-dark text-sm">Fotos de Progreso</p>
+                    <p className="text-xs text-slate-500">Registra tu cambio físico</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+            </button>
             <StepsCard clientId={client.id} isClientView={true} />
         </div>
     );
@@ -1330,8 +1378,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                         { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'from-violet-50 to-white', iconBg: 'bg-violet-100/80', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
-                        { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'from-orange-50 to-white', iconBg: 'bg-orange-100/80', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
-                        { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'from-emerald-50 to-white', iconBg: 'bg-emerald-100/80', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
+                        { label: 'Mi NutriciÃ³n', desc: 'Tu plan alimentario', icon: Utensils, bg: 'from-orange-50 to-white', iconBg: 'bg-orange-100/80', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
+                        { label: 'MeditaciÃ³n', desc: 'Paz y enfoque', icon: Leaf, bg: 'from-emerald-50 to-white', iconBg: 'bg-emerald-100/80', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
                         { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'from-indigo-50 to-white', iconBg: 'bg-indigo-100/80', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
                         { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CircleCheck, bg: 'from-sky-50 to-white', iconBg: 'bg-sky-100/80', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
                     ].map(({ label, desc, icon: Icon, bg, iconBg, color, border, action, badge }) => (
@@ -1386,8 +1434,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             {client.hormonal_status === 'pre_menopausica'
                                 ? 'Seguimiento menstrual'
                                 : client.hormonal_status === 'perimenopausica'
-                                    ? 'Seguimiento perimenopáusico'
-                                    : 'Configura tu situación hormonal'}
+                                    ? 'Seguimiento perimenopÃ¡usico'
+                                    : 'Configura tu situaciÃ³n hormonal'}
                         </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
@@ -1410,7 +1458,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             <MedicalReviews client={client} />
             <div className="border-t border-slate-100 pt-4 mt-2">
                 <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-purple-500" /> Mis Informes Médicos
+                    <FileText className="w-4 h-4 text-purple-500" /> Mis Informes MÃ©dicos
                     {unreadReportsCount > 0 && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-black">{unreadReportsCount} nuevo{unreadReportsCount > 1 ? 's' : ''}</span>}
                 </p>
                 <button onClick={() => setActiveView('reports')} className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-4 border border-purple-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
@@ -1420,7 +1468,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                     <div className="flex-1">
                         <p className="font-black text-purple-900 text-sm">Ver informes descargables</p>
-                        <p className="text-xs text-purple-600">{unreadReportsCount > 0 ? `${unreadReportsCount} nuevo${unreadReportsCount > 1 ? 's' : ''} disponible${unreadReportsCount > 1 ? 's' : ''}` : 'Informes médicos en PDF'}</p>
+                        <p className="text-xs text-purple-600">{unreadReportsCount > 0 ? `${unreadReportsCount} nuevo${unreadReportsCount > 1 ? 's' : ''} disponible${unreadReportsCount > 1 ? 's' : ''}` : 'Informes mÃ©dicos en PDF'}</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-purple-300 flex-shrink-0" />
                 </button>
@@ -1445,7 +1493,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-50">
                     {[
                         { icon: Mail, label: 'Email', value: client.email },
-                        { icon: Phone, label: 'Teléfono', value: client.phone },
+                        { icon: Phone, label: 'TelÃ©fono', value: client.phone },
                         { icon: MapPin, label: 'Ciudad', value: client.city || client.province },
                     ].filter(d => d.value).map(({ icon: Icon, label, value }) => (
                         <div key={label} className="flex items-center gap-3 px-4 py-3">
@@ -1466,25 +1514,25 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <div className="flex-1">
                         <p className="font-black text-brand-dark text-sm">Mi Contrato</p>
                         <p className={`text-xs font-bold ${cAny.program?.contract_signed ? 'text-brand-green' : 'text-amber-600'}`}>
-                            {cAny.program?.contract_signed ? '✓ Firmado' : '⏳ Pendiente de firma'}
+                            {cAny.program?.contract_signed ? 'âœ“ Firmado' : 'â³ Pendiente de firma'}
                         </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
                 </button>
 
-                {/* Pago / Renovación */}
+                {/* Pago / RenovaciÃ³n */}
                 {hasRenewal && (
                     <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border-2 border-amber-200 p-4">
-                        <p className="font-black text-amber-900 text-sm mb-1 flex items-center gap-2"><Award className="w-4 h-4" /> Renovación disponible</p>
-                        <p className="text-xs text-amber-700 mb-3">Continúa tu transformación con el programa {cAny.renewal_phase_name || 'siguiente'}.</p>
+                        <p className="font-black text-amber-900 text-sm mb-1 flex items-center gap-2"><Award className="w-4 h-4" /> RenovaciÃ³n disponible</p>
+                        <p className="text-xs text-amber-700 mb-3">ContinÃºa tu transformaciÃ³n con el programa {cAny.renewal_phase_name || 'siguiente'}.</p>
                         {paymentStatus === 'uploaded' ? (
                             <div className="flex items-center gap-2 bg-emerald-50 rounded-xl p-3 border border-emerald-200">
                                 <CircleCheck className="w-4 h-4 text-emerald-600" />
-                                <p className="text-xs text-emerald-700 font-bold">Comprobante enviado — en verificación</p>
+                                <p className="text-xs text-emerald-700 font-bold">Comprobante enviado â€” en verificaciÃ³n</p>
                             </div>
                         ) : (
                             <div className="w-full py-3 bg-white text-amber-800 font-bold rounded-xl text-sm border border-amber-200 text-center">
-                                Tu equipo te indicará el siguiente paso de renovación.
+                                Tu equipo te indicarÃ¡ el siguiente paso de renovaciÃ³n.
                             </div>
                         )}
                     </div>
@@ -1609,7 +1657,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
                                     autoFocus
                                 />
-                                <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                <p className="text-center text-slate-400 text-xs">kilos Â· {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                 <div className="flex gap-3">
                                     <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
                                     <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">

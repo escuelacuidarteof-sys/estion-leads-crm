@@ -10,7 +10,7 @@ import {
     Tag,
     Loader2,
     Trash2,
-    CheckCircle2,
+    CircleCheck,
     Leaf,
     Flame,
     Utensils,

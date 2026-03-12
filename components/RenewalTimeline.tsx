@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    CheckCircle2, Circle, ChevronDown, ChevronUp, Calendar,
+    CircleCheck, Circle, ChevronDown, ChevronUp, Calendar,
     CreditCard, FileText, FileCheck, FileX, Upload, Loader2,
     Zap, AlertCircle, ExternalLink, Send, Clock, Eye, Link
 } from 'lucide-react';
@@ -224,7 +224,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                                 ? 'bg-amber-100 border-2 border-amber-300 text-amber-600'
                                 : 'bg-slate-100 border-2 border-slate-200 text-slate-400'
                         }`}>
-                        {isContracted ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
+                        {isContracted ? <CircleCheck className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                     </div>
 
                     {/* Title & Info */}

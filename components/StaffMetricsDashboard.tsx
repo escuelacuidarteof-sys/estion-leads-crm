@@ -3,7 +3,7 @@ import { User, Client, UserRole, SupportTicket, ClientStatus, CoachInvoice } fro
 import { mockEvolution } from '../services/mockSupabase';
 import {
     TrendingUp, BarChart3, Star, Phone, FileText, Upload,
-    CheckCircle2, Clock, AlertCircle, ChevronRight, Filter,
+    CircleCheck, Clock, AlertCircle, ChevronRight, Filter,
     Download, Trash2, ExternalLink, Calendar, Wallet
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -300,7 +300,7 @@ export function StaffMetricsDashboard({ user, clients }: StaffMetricsDashboardPr
                             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                                 <div className="flex items-center gap-4 mb-4">
                                     <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
-                                        <CheckCircle2 className="w-6 h-6" />
+                                        <CircleCheck className="w-6 h-6" />
                                     </div>
                                     <h4 className="font-bold text-slate-500 text-sm">Cerradas</h4>
                                 </div>
@@ -410,7 +410,7 @@ export function StaffMetricsDashboard({ user, clients }: StaffMetricsDashboardPr
                                                 <div className="flex flex-col gap-2">
                                                     <div>
                                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border inline-flex items-center gap-1.5 ${getStatusStyle(invoice.status)}`}>
-                                                            {invoice.status === 'paid' && <CheckCircle2 className="w-3 h-3" />}
+                                                            {invoice.status === 'paid' && <CircleCheck className="w-3 h-3" />}
                                                             {invoice.status === 'rejected' && <AlertCircle className="w-3 h-3" />}
                                                             {invoice.status === 'paid' ? 'Pagada' :
                                                                 invoice.status === 'approved' ? 'Aprobada' :

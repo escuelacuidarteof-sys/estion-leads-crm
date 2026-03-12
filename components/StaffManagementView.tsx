@@ -5,7 +5,7 @@ import {
     Users, UserPlus, Mail, Shield, ShieldCheck,
     Trash2, Copy, X, Loader2, Search,
     Briefcase, Target, Calculator, Stethoscope,
-    Brain, Share2, Bell, CheckCircle2, RefreshCw, Smartphone,
+    Brain, Share2, Bell, CircleCheck, RefreshCw, Smartphone,
     Building2
 } from 'lucide-react';
 import InstallationGuide from './InstallationGuide';
@@ -332,7 +332,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
                     <div className="p-4 bg-emerald-100 rounded-2xl text-emerald-600">
-                        <CheckCircle2 className="w-6 h-6" />
+                        <CircleCheck className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Estado Sistema</p>
@@ -591,7 +591,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                         ) : (
                             <div className="p-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
                                 <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4">
-                                    <CheckCircle2 className="w-12 h-12" />
+                                    <CircleCheck className="w-12 h-12" />
                                 </div>
                                 <div>
                                     <h4 className="text-3xl font-black text-slate-800">¡Enlace Generado!</h4>

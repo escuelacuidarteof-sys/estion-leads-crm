@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, FileText, CheckCircle2, AlertCircle, Download, Loader2 } from 'lucide-react';
+import { ChevronRight, FileText, CircleCheck, AlertCircle, Download, Loader2 } from 'lucide-react';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { SignaturePad } from '../shared/SignaturePad';
@@ -492,7 +492,7 @@ export function ContractView({ client, onBack, onRefresh, readOnly = false }: Co
             {isSigned && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                        <CircleCheck className="w-8 h-8 text-emerald-500" />
                         <div>
                             <p className="font-bold text-emerald-900">Contrato Firmado</p>
                             <p className="text-sm text-emerald-700">
@@ -606,7 +606,7 @@ export function ContractView({ client, onBack, onRefresh, readOnly = false }: Co
                                 {isSigning ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Firmando...</>
                                 ) : (
-                                    <><CheckCircle2 className="w-5 h-5" /> Firmar Contrato</>
+                                    <><CircleCheck className="w-5 h-5" /> Firmar Contrato</>
                                 )}
                             </button>
                         </div>

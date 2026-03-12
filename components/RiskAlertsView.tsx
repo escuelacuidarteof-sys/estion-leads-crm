@@ -3,7 +3,7 @@ import { ClientRiskAlert, Client, User, RiskReasonCategory, RiskAlertStatus, Use
 import { riskAlertService, RISK_CATEGORIES } from '../services/riskAlertService';
 import {
     ShieldAlert, AlertTriangle, Clock, ChevronRight, Users, ArrowUpCircle,
-    CheckCircle2, Filter, Search, X, ExternalLink, RefreshCw, MessageSquare, Send, User as UserIcon
+    CircleCheck, Filter, Search, X, ExternalLink, RefreshCw, MessageSquare, Send, User as UserIcon
 } from 'lucide-react';
 
 interface RiskAlertsViewProps {
@@ -417,7 +417,7 @@ export function RiskAlertsView({ clients, coaches, currentUser, onNavigateToClie
                                                                 className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
                                                                 title="Resolver"
                                                             >
-                                                                <CheckCircle2 className="w-4 h-4" />
+                                                                <CircleCheck className="w-4 h-4" />
                                                             </button>
                                                             {alert.status !== 'escalated' && (
                                                                 <button
@@ -450,7 +450,7 @@ export function RiskAlertsView({ clients, coaches, currentUser, onNavigateToClie
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                        <CircleCheck className="w-5 h-5 text-green-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-800">Resolver Alerta</h3>
@@ -490,7 +490,7 @@ export function RiskAlertsView({ clients, coaches, currentUser, onNavigateToClie
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <CheckCircle2 className="w-4 h-4" />
+                                        <CircleCheck className="w-4 h-4" />
                                         Marcar como Resuelta
                                     </>
                                 )}

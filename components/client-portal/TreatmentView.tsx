@@ -4,7 +4,7 @@ import {
   ClipboardList, ScanLine, TestTube, CalendarCheck, FileText, Calendar,
   X, ChevronDown, ChevronUp, Clock, MapPin, MessageSquare, Activity,
   Frown, Flame, Brain, Heart, Moon, Hand, UtensilsCrossed, AlertCircle,
-  CheckCircle2, BarChart3, Paperclip, Upload, Trash2, Eye, FileImage, File
+  CircleCheck, BarChart3, Paperclip, Upload, Trash2, Eye, FileImage, File
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { TreatmentSession, TreatmentSymptomLog, OncologyReview, TreatmentType, ReviewType, ReviewAttachment } from '../../types';
@@ -1068,7 +1068,7 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
               disabled={!sessionForm.treatment_type || saving}
               className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-black text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CircleCheck className="w-5 h-5" />}
               {saving ? 'Guardando...' : 'Guardar sesión'}
             </button>
           </div>
@@ -1292,7 +1292,7 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
               disabled={!reviewForm.review_type || saving}
               className="w-full py-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-black text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CircleCheck className="w-5 h-5" />}
               {saving ? 'Guardando...' : 'Guardar revisión'}
             </button>
           </div>
@@ -1410,7 +1410,7 @@ export function TreatmentView({ clientId, onBack }: TreatmentViewProps) {
               disabled={saving}
               className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-black text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CircleCheck className="w-5 h-5" />}
               {saving ? 'Guardando...' : 'Guardar síntomas'}
             </button>
           </div>

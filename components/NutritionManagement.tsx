@@ -17,7 +17,7 @@ import {
   Calendar,
   ArrowRight,
   Loader2,
-  CheckCircle2
+  CircleCheck
 } from 'lucide-react';
 import { NutritionPlan, User, DietType } from '../types';
 import { nutritionService } from '../services/nutritionService';
@@ -353,7 +353,7 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
                 {advancing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CircleCheck className="w-4 h-4" />
                 )}
                 Confirmar
               </button>

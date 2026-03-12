@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Client, User, UserRole } from '../types';
 import {
   Calendar, Clock, User as UserIcon, ChevronRight, Search, Filter,
-  CheckCircle2, XCircle, Video, ExternalLink, ChevronLeft, FileText,
+  CircleCheck, XCircle, Video, ExternalLink, ChevronLeft, FileText,
   Phone, AlertTriangle
 } from 'lucide-react';
 import { normalizeRole } from '../utils/roleUtils';
@@ -430,7 +430,7 @@ const CoachAgenda: React.FC<CoachAgendaProps> = ({ clients, user, onNavigateToCl
                                 }`}>
                                   {client.firstName} {client.surname}
                                 </p>
-                                {isCompleted && <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />}
+                                {isCompleted && <CircleCheck className="w-4 h-4 text-green-500 shrink-0" />}
                                 {isMissed && <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
                               </div>
 
@@ -448,7 +448,7 @@ const CoachAgenda: React.FC<CoachAgendaProps> = ({ clients, user, onNavigateToCl
                                 )}
                                 {isCompleted && (
                                   <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-md">
-                                    <CheckCircle2 className="w-3 h-3" /> Realizada
+                                    <CircleCheck className="w-3 h-3" /> Realizada
                                   </span>
                                 )}
                                 {isMissed && (
@@ -507,7 +507,7 @@ const CoachAgenda: React.FC<CoachAgendaProps> = ({ clients, user, onNavigateToCl
             <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
               {filterStatus === 'completed' ? (
                 <>
-                  <CheckCircle2 className="w-12 h-12 text-green-300 mx-auto mb-4" />
+                  <CircleCheck className="w-12 h-12 text-green-300 mx-auto mb-4" />
                   <p className="text-lg font-bold text-slate-400">No hay citas realizadas</p>
                 </>
               ) : (

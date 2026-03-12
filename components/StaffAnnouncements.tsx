@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, Info, BellRing, CheckCircle2, AlertTriangle, ChevronRight, User as UserIcon, Calendar } from 'lucide-react';
+import { Bell, X, Info, BellRing, CircleCheck, AlertTriangle, ChevronRight, User as UserIcon, Calendar } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { User, UserRole, UnifiedNotification } from '../types';
 import { useToast } from './ToastProvider';
@@ -338,7 +338,7 @@ export function StaffAnnouncements({ user, onNavigate }: StaffAnnouncementsProps
         if (item.feedType === 'notification') {
             const styles = {
                 system: { bg: 'bg-indigo-50', text: 'text-indigo-800', icon: <Info className="w-5 h-5" />, border: 'border-indigo-100' },
-                assignment: { bg: 'bg-emerald-50', text: 'text-emerald-800', icon: <CheckCircle2 className="w-5 h-5" />, border: 'border-emerald-100' },
+                assignment: { bg: 'bg-emerald-50', text: 'text-emerald-800', icon: <CircleCheck className="w-5 h-5" />, border: 'border-emerald-100' },
                 task: { bg: 'bg-amber-50', text: 'text-amber-800', icon: <BellRing className="w-5 h-5" />, border: 'border-amber-100' },
                 checkin: { bg: 'bg-blue-50', text: 'text-blue-800', icon: <Calendar className="w-5 h-5" />, border: 'border-blue-100' },
                 ticket: { bg: 'bg-rose-50', text: 'text-rose-800', icon: <AlertTriangle className="w-5 h-5" />, border: 'border-rose-100' },
@@ -371,7 +371,7 @@ export function StaffAnnouncements({ user, onNavigate }: StaffAnnouncementsProps
                 bg: 'bg-green-50',
                 border: 'border-green-200',
                 text: 'text-green-800',
-                icon: <CheckCircle2 className="w-5 h-5" />
+                icon: <CircleCheck className="w-5 h-5" />
             }
         };
 
@@ -505,7 +505,7 @@ export function StaffAnnouncements({ user, onNavigate }: StaffAnnouncementsProps
                                                                 </span>
                                                                 {!isUnread ? (
                                                                     <span className="flex items-center gap-1.5 text-emerald-600 font-black bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100/50 uppercase tracking-tighter">
-                                                                        <CheckCircle2 className="w-3 h-3" /> Leído
+                                                                        <CircleCheck className="w-3 h-3" /> Leído
                                                                     </span>
                                                                 ) : (
                                                                     <span className="text-amber-600 font-black bg-amber-50 px-2.5 py-1 rounded-lg uppercase tracking-[0.1em] text-[8px] border border-amber-100/50">
@@ -571,7 +571,7 @@ export function StaffAnnouncements({ user, onNavigate }: StaffAnnouncementsProps
                                             onClick={dismissModal}
                                             className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200"
                                         >
-                                            <CheckCircle2 className="w-5 h-5" />
+                                            <CircleCheck className="w-5 h-5" />
                                             Confirmar Lectura
                                         </button>
                                     </div>

@@ -4,7 +4,7 @@ import { mockDb } from '../services/mockSupabase';
 import { ClassSession, User } from '../types';
 import {
     Calendar, Video, PlayCircle, Plus, Edit, Trash2,
-    Save, X, Clock, User as UserIcon, CheckCircle2
+    Save, X, Clock, User as UserIcon, CircleCheck
 } from 'lucide-react';
 import { useToast } from './ToastProvider';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import {
-  Database, CheckCircle2, Send, FileText, Loader2, RefreshCw, DollarSign
+  Database, CircleCheck, Send, FileText, Loader2, RefreshCw, DollarSign
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { PaymentMethodsManager } from './PaymentMethodsManager';
@@ -222,7 +222,7 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser }) => {
                   disabled={savingSettings}
                   className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                 >
-                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <CircleCheck className="w-5 h-5" />}
                   Guardar Configuración
                 </button>
               </div>

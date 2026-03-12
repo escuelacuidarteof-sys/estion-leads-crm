@@ -4,34 +4,37 @@
 -- Solo aplica a mujeres. El campo hormonal_status determina qué panel se muestra.
 -- =============================================================================
 
--- 1. Añadir campos a clientes_ado_notion
-ALTER TABLE clientes_ado_notion ADD COLUMN IF NOT EXISTS hormonal_status TEXT;
+-- 1. Asegurar campos en tabla clientes
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS hormonal_status TEXT;
 -- Valores: 'pre_menopausica', 'perimenopausica', 'menopausica', NULL (hombres o no configurado)
 
-ALTER TABLE clientes_ado_notion ADD COLUMN IF NOT EXISTS average_cycle_length INTEGER DEFAULT 28;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS average_cycle_length INTEGER DEFAULT 28;
 -- Solo relevante para pre/perimenopáusica
 
-ALTER TABLE clientes_ado_notion ADD COLUMN IF NOT EXISTS hrt_treatment TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS hrt_treatment TEXT;
 -- Terapia Hormonal Sustitutiva (solo menopáusica/perimenopáusica)
 
-ALTER TABLE clientes_ado_notion ADD COLUMN IF NOT EXISTS last_period_start_date DATE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS last_period_start_date DATE;
 -- Desnormalizado: se actualiza al registrar periodo. Para vista rápida coach sin JOIN.
 
 -- 2. Tabla de ciclos menstruales
-CREATE TABLE IF NOT EXISTS public.menstrual_cycles (
+DROP TABLE IF EXISTS public.menstrual_cycles CASCADE;
+CREATE TABLE public.menstrual_cycles (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    client_id UUID REFERENCES public.clientes_ado_notion(id) ON DELETE CASCADE NOT NULL,
+    client_id UUID REFERENCES public.clientes(id) ON DELETE CASCADE NOT NULL,
     period_start_date DATE NOT NULL,
     period_end_date DATE,
     cycle_length INTEGER, -- Calculado: días desde el inicio del ciclo anterior
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(client_id, period_start_date)
 );
 
 -- 3. Tabla de síntomas hormonales (sirve para TODOS los estados)
-CREATE TABLE IF NOT EXISTS public.hormonal_symptoms (
+DROP TABLE IF EXISTS public.hormonal_symptoms CASCADE;
+CREATE TABLE public.hormonal_symptoms (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    client_id UUID REFERENCES public.clientes_ado_notion(id) ON DELETE CASCADE NOT NULL,
+    client_id UUID REFERENCES public.clientes(id) ON DELETE CASCADE NOT NULL,
     date DATE NOT NULL DEFAULT CURRENT_DATE,
 
     -- Síntomas comunes ciclo menstrual
@@ -54,7 +57,8 @@ CREATE TABLE IF NOT EXISTS public.hormonal_symptoms (
     irritability BOOLEAN DEFAULT FALSE,      -- Irritabilidad
 
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(client_id, date)
 );
 
 -- 4. Índices
@@ -69,23 +73,23 @@ ALTER TABLE public.hormonal_symptoms ENABLE ROW LEVEL SECURITY;
 
 -- Clientes ven solo sus datos
 CREATE POLICY "Clientes ven sus ciclos" ON public.menstrual_cycles
-FOR SELECT USING (client_id::text = auth.uid()::text);
+FOR SELECT USING (client_id = auth.uid());
 
 CREATE POLICY "Clientes registran sus ciclos" ON public.menstrual_cycles
-FOR INSERT WITH CHECK (client_id::text = auth.uid()::text);
+FOR INSERT WITH CHECK (client_id = auth.uid());
 
 CREATE POLICY "Clientes ven sus síntomas" ON public.hormonal_symptoms
-FOR SELECT USING (client_id::text = auth.uid()::text);
+FOR SELECT USING (client_id = auth.uid());
 
 CREATE POLICY "Clientes registran sus síntomas" ON public.hormonal_symptoms
-FOR INSERT WITH CHECK (client_id::text = auth.uid()::text);
+FOR INSERT WITH CHECK (client_id = auth.uid());
 
 -- Staff gestiona todo
 CREATE POLICY "Staff gestiona ciclos" ON public.menstrual_cycles
 FOR ALL USING (
     EXISTS (
         SELECT 1 FROM public.users
-        WHERE id::text = auth.uid()::text
+        WHERE id = auth.uid()
         AND role IN ('admin', 'head_coach', 'coach', 'endocrino')
     )
 );
@@ -94,7 +98,7 @@ CREATE POLICY "Staff gestiona síntomas" ON public.hormonal_symptoms
 FOR ALL USING (
     EXISTS (
         SELECT 1 FROM public.users
-        WHERE id::text = auth.uid()::text
+        WHERE id = auth.uid()
         AND role IN ('admin', 'head_coach', 'coach', 'endocrino')
     )
 );

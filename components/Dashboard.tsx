@@ -5,7 +5,7 @@ import { Client, ClientStatus, User, UserRole } from '../types';
 import { supabase } from '../services/supabaseClient';
 import {
    Users, UserPlus, UserMinus, AlertOctagon, UserCheck,
-   Clock, CheckCircle2, AlertTriangle, X,
+   Clock, CircleCheck, AlertTriangle, X,
    Target, TrendingUp, TrendingDown, Activity,
    Sparkles, Zap, Award, Bell, FileText, MessageSquare, Loader, Eye, ChevronRight, Calendar
 } from 'lucide-react';
@@ -1108,11 +1108,11 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, user, onNavigateToClient
                   className="flex-1 p-6 rounded-xl border-b md:border-b-0 md:border-r border-slate-100 relative overflow-hidden cursor-pointer hover:bg-green-50/50 transition-colors"
                >
                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                     <CheckCircle2 className="w-16 h-16 text-green-500" />
+                     <CircleCheck className="w-16 h-16 text-green-500" />
                   </div>
                   <div className="flex items-center gap-2 mb-3">
                      <div className="p-2 bg-green-100 rounded-lg">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CircleCheck className="w-5 h-5 text-green-600" />
                      </div>
                      <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Ya Renovados</span>
                   </div>
@@ -1282,7 +1282,7 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, user, onNavigateToClient
                                     }}
                                     className={`mt-4 w-full py-3 text-white rounded-xl font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 ${sale.transaction_type === 'renewal' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}
                                  >
-                                    <CheckCircle2 className="w-5 h-5" />
+                                    <CircleCheck className="w-5 h-5" />
                                     Entendido, ver ficha
                                  </button>
                               </div>
