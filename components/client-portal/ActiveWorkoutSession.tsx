@@ -285,6 +285,7 @@ interface ActiveWorkoutSessionProps {
     workout: Workout;
     clientId: string;
     dayId: string;
+    activityId?: string;
     onClose: () => void;
     onComplete: () => void;
 }
@@ -315,7 +316,7 @@ function groupWorkoutBlocks(blocks: WorkoutBlock[]) {
     });
 }
 
-export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComplete }: ActiveWorkoutSessionProps) {
+export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onClose, onComplete }: ActiveWorkoutSessionProps) {
     const [showSafetyPass, setShowSafetyPass] = useState(false);
     const [safetyPassData, setSafetyPassData] = useState({
         exclusion: {
@@ -354,6 +355,58 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
     const groupedBlocks = groupWorkoutBlocks(workout.blocks || []);
     const sessionGuide = getSessionGuide(workout.name);
+
+    const normalizeAssessmentValues = (rawValues: Record<string, any>) => {
+        const normalized: Record<string, any> = {};
+        Object.entries(rawValues || {}).forEach(([key, raw]) => {
+            if (raw === '' || raw === undefined || raw === null) return;
+            if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
+                normalized[key] = Number(raw);
+            } else {
+                normalized[key] = raw;
+            }
+        });
+        return normalized;
+    };
+
+    useEffect(() => {
+        if (!clientId || !dayId || !activityId) return;
+
+        let mounted = true;
+
+        const loadAssessmentDraft = async () => {
+            try {
+                const logs = await trainingService.getClientActivityLogs(clientId, dayId);
+                const workoutLog = logs.find((l) => l.activity_id === activityId);
+                const draft = workoutLog?.data?.assessment_draft;
+
+                if (!mounted || !draft || typeof draft !== 'object') return;
+
+                const nextAssessmentResults: Record<string, { values: Record<string, any>; completed: boolean }> = {};
+                const nextCompletedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]> = {};
+
+                Object.entries(draft).forEach(([exerciseId, values]) => {
+                    nextAssessmentResults[exerciseId] = {
+                        values: (values as Record<string, any>) || {},
+                        completed: true,
+                    };
+                    nextCompletedSets[exerciseId] = [{ weight: null, reps: null, completed: true }];
+                });
+
+                if (Object.keys(nextAssessmentResults).length > 0) {
+                    setAssessmentResults((prev) => ({ ...prev, ...nextAssessmentResults }));
+                    setCompletedSets((prev) => ({ ...prev, ...nextCompletedSets }));
+                }
+            } catch (err) {
+                console.error('Error loading assessment draft:', err);
+            }
+        };
+
+        loadAssessmentDraft();
+        return () => {
+            mounted = false;
+        };
+    }, [clientId, dayId, activityId]);
 
     // Timer logic
     useEffect(() => {
@@ -440,14 +493,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         return Object.keys(nextErrors).length === 0;
     };
 
-    const handleAssessmentComplete = (exercise: WorkoutExercise, template: AssessmentTemplate) => {
+    const handleAssessmentComplete = async (exercise: WorkoutExercise, template: AssessmentTemplate) => {
         const isValid = validateAssessment(exercise.id, template);
         if (!isValid) return;
+
+        const normalizedValues = normalizeAssessmentValues(assessmentResults[exercise.id]?.values || {});
 
         setAssessmentResults(prev => ({
             ...prev,
             [exercise.id]: {
-                values: prev[exercise.id]?.values || {},
+                values: normalizedValues,
                 completed: true
             }
         }));
@@ -456,6 +511,34 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             ...prev,
             [exercise.id]: [{ weight: null, reps: null, completed: true }]
         }));
+
+        if (clientId && dayId && activityId) {
+            try {
+                const dayLogs = await trainingService.getClientActivityLogs(clientId, dayId);
+                const workoutLog = dayLogs.find((l) => l.activity_id === activityId);
+                const previousData = workoutLog?.data || {};
+                const previousDraft = (previousData.assessment_draft && typeof previousData.assessment_draft === 'object')
+                    ? previousData.assessment_draft
+                    : {};
+
+                await trainingService.saveClientActivityLog({
+                    client_id: clientId,
+                    activity_id: activityId,
+                    day_id: dayId,
+                    completed_at: new Date().toISOString(),
+                    data: {
+                        ...previousData,
+                        assessment_draft: {
+                            ...previousDraft,
+                            [exercise.id]: normalizedValues,
+                        },
+                        draft_saved_at: new Date().toISOString(),
+                    },
+                });
+            } catch (err) {
+                console.error('Error saving assessment draft:', err);
+            }
+        }
     };
 
     const handleFinish = async () => {
@@ -507,15 +590,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
             Object.entries(assessmentResults).forEach(([exerciseId, result]) => {
                 if (!result.completed) return;
-                const normalized: Record<string, any> = {};
-                Object.entries(result.values || {}).forEach(([key, raw]) => {
-                    if (raw === '' || raw === undefined || raw === null) return;
-                    if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
-                        normalized[key] = Number(raw);
-                    } else {
-                        normalized[key] = raw;
-                    }
-                });
+                const normalized = normalizeAssessmentValues(result.values || {});
 
                 exerciseLogs.push({
                     log_id: '',
@@ -863,7 +938,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                                         assessmentErrors={fieldErrors}
                                                         onAssessmentFieldChange={(fieldKey, value) => handleAssessmentFieldChange(exercise.id, fieldKey, value)}
                                                         onAssessmentComplete={() => {
-                                                            if (assessmentTemplate) handleAssessmentComplete(exercise, assessmentTemplate);
+                                                            if (assessmentTemplate) void handleAssessmentComplete(exercise, assessmentTemplate);
                                                         }}
                                                     />
                                                         );
@@ -1641,8 +1716,11 @@ function ExerciseEntry({
                         className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${assessmentState?.completed ? 'bg-brand-green/10 text-brand-green border border-brand-green/30' : 'bg-brand-green text-white hover:bg-emerald-600 active:scale-[0.98]'}`}
                     >
                         <CheckCircle className={`w-5 h-5 ${assessmentState?.completed ? '' : 'fill-current'}`} />
-                        {assessmentState?.completed ? 'Resultados guardados' : 'Guardar resultado del test'}
+                        {assessmentState?.completed ? 'Resultados guardados (borrador)' : 'Guardar resultado del test'}
                     </button>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        Para dejarlo registrado en historial debes pulsar "Finalizar entrenamiento".
+                    </p>
                 </div>
             ) : (
             <div className={`mt-2 ${isSupersetChild ? 'px-2' : ''}`}>

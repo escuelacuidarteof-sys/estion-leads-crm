@@ -771,7 +771,7 @@ interface WorkoutActivityCardProps {
     workout: Workout | null;
     workoutLoading: boolean;
     dayLog: ClientDayLog | null;
-    onStartWorkout?: (w: Workout) => void;
+    onStartWorkout?: (w: Workout, activityId: string) => void;
 }
 
 function WorkoutActivityCard({ activity, workout, workoutLoading, dayLog, onStartWorkout }: WorkoutActivityCardProps) {
@@ -850,7 +850,7 @@ function WorkoutActivityCard({ activity, workout, workoutLoading, dayLog, onStar
                                 </div>
                             )}
                             <WorkoutDetail workout={workout} />
-                            <button onClick={(e) => { e.stopPropagation(); onStartWorkout?.(workout); }}
+                            <button onClick={(e) => { e.stopPropagation(); onStartWorkout?.(workout, activity.id); }}
                                 className={`w-full py-4 mt-2 rounded-2xl font-black shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg group ${isCompleted
                                     ? 'bg-slate-100 text-slate-600 shadow-none hover:bg-slate-200'
                                     : 'bg-brand-green text-white shadow-brand-green/30 hover:bg-emerald-600'
@@ -877,7 +877,7 @@ interface DayDetailProps {
     clientId: string;
     activityLogs: ClientActivityLog[];
     dayLog: ClientDayLog | null;
-    onStartWorkout?: (w: Workout) => void;
+    onStartWorkout?: (w: Workout, activityId: string) => void;
     onOpenCheckin: () => void;
     onActivitySaved: () => void;
 }
@@ -930,7 +930,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [workoutLoading, setWorkoutLoading] = useState(false);
-    const [activeWorkout, setActiveWorkout] = useState<{ workout: Workout; dayId: string } | null>(null);
+    const [activeWorkout, setActiveWorkout] = useState<{ workout: Workout; dayId: string; activityId: string } | null>(null);
     const [activityLogs, setActivityLogs] = useState<ClientActivityLog[]>([]);
     const [dayLog, setDayLog] = useState<ClientDayLog | null>(null);
     const [showCheckin, setShowCheckin] = useState(false);
@@ -1335,7 +1335,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                 clientId={client.id}
                                 activityLogs={activityLogs}
                                 dayLog={dayLog}
-                                onStartWorkout={(workout) => setActiveWorkout({ workout, dayId: selectedDayData!.id })}
+                                onStartWorkout={(workout, activityId) => setActiveWorkout({ workout, dayId: selectedDayData!.id, activityId })}
                                 onOpenCheckin={() => setShowCheckin(true)}
                                 onActivitySaved={() => {
                                     loadActivityLogs(selectedDayData.id);
@@ -1511,6 +1511,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                     workout={activeWorkout.workout}
                     clientId={client.id}
                     dayId={activeWorkout.dayId}
+                    activityId={activeWorkout.activityId}
                     onClose={() => setActiveWorkout(null)}
                     onComplete={() => {
                         const dayId = activeWorkout.dayId;
