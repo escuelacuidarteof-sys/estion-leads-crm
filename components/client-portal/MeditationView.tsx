@@ -273,17 +273,17 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                 </div>
 
                 {/* Categories */}
-                <div className="flex gap-3 mb-12 overflow-x-auto pb-2 no-scrollbar">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-12">
                      {availableCategories.map((cat) => (
-                        <button 
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-6 py-3 rounded-2xl font-black text-sm transition-all whitespace-nowrap ${
-                                selectedCategory === cat 
-                                ? 'bg-brand-dark text-white ring-4 ring-brand-dark/5 shadow-xl translate-y-[-2px]' 
-                                : 'bg-white text-slate-500 border border-slate-100 hover:border-brand-green hover:text-brand-green hover:shadow-lg'
-                            }`}
-                        >
+                         <button 
+                             key={cat}
+                             onClick={() => setSelectedCategory(cat)}
+                             className={`px-4 py-3 rounded-2xl font-black text-sm transition-all whitespace-nowrap text-center ${
+                                 selectedCategory === cat 
+                                 ? 'bg-brand-dark text-white ring-4 ring-brand-dark/5 shadow-xl translate-y-[-2px]' 
+                                 : 'bg-white text-slate-500 border border-slate-100 hover:border-brand-green hover:text-brand-green hover:shadow-lg'
+                             }`}
+                         >
                             {cat}
                         </button>
                     ))}
