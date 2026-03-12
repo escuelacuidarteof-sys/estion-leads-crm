@@ -1274,43 +1274,69 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             )}
 
             {/* Grid de recursos */}
-            <div className="grid grid-cols-2 gap-3">
-                {[
-                    { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'bg-violet-50', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
-                    { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'bg-orange-50', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
-                    { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'bg-emerald-50', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
-                    { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'bg-indigo-50', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
-                    { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'bg-sky-50', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
-                ].map(({ label, desc, icon: Icon, bg, color, border, action, badge }) => (
-                    <button key={label} onClick={action} className={`bg-white rounded-2xl p-4 border ${border} shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left`}>
-                        <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center relative`}>
-                            <Icon className={`w-6 h-6 ${color}`} />
-                            {badge && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{badge}</span>}
-                        </div>
-                        <div>
-                            <p className="font-black text-brand-dark text-sm">{label}</p>
-                            <p className="text-xs text-slate-400">{desc}</p>
+            <div className="relative rounded-3xl border border-brand-mint/70 bg-gradient-to-br from-brand-mint/30 via-white to-white p-4 sm:p-5 overflow-hidden">
+                <div className="absolute -top-10 -right-8 w-32 h-32 rounded-full bg-brand-gold/15 blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-8 w-28 h-28 rounded-full bg-brand-green/15 blur-2xl pointer-events-none" />
+
+                <div className="relative flex items-center justify-between mb-4">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-brand-green/70">Tu espacio personal</p>
+                        <p className="text-base font-black text-brand-dark">Herramientas para avanzar cada semana</p>
+                    </div>
+                    <Sparkles className="w-5 h-5 text-brand-gold" />
+                </div>
+
+                <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                        { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'from-violet-50 to-white', iconBg: 'bg-violet-100/80', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
+                        { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'from-orange-50 to-white', iconBg: 'bg-orange-100/80', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
+                        { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'from-emerald-50 to-white', iconBg: 'bg-emerald-100/80', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
+                        { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'from-indigo-50 to-white', iconBg: 'bg-indigo-100/80', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
+                        { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'from-sky-50 to-white', iconBg: 'bg-sky-100/80', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
+                    ].map(({ label, desc, icon: Icon, bg, iconBg, color, border, action, badge }) => (
+                        <button
+                            key={label}
+                            onClick={action}
+                            className={`bg-gradient-to-br ${bg} rounded-2xl p-4 border ${border} shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left group`}
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center relative ring-1 ring-white/60`}>
+                                    <Icon className={`w-6 h-6 ${color}`} />
+                                    {badge && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{badge}</span>}
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-green transition-colors" />
+                            </div>
+                            <div className="mt-3">
+                                <p className="font-black text-brand-dark text-sm">{label}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                            </div>
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setActiveView('training')}
+                        className="sm:col-span-2 bg-gradient-to-r from-brand-green to-[#7cb47c] rounded-2xl p-4 border border-brand-green/40 shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/25 hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left text-white group"
+                    >
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center ring-1 ring-white/30">
+                                    <Dumbbell className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-sm">Entrenamientos</p>
+                                    <p className="text-xs text-white/80">Tu programa semanal guiado</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                     </button>
-                ))}
-                <button
-                    onClick={() => setActiveView('training')}
-                    className="col-span-2 bg-white rounded-2xl p-4 border border-brand-mint shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left"
-                >
-                    <div className="w-12 h-12 bg-brand-mint rounded-xl flex items-center justify-center">
-                        <Dumbbell className="w-6 h-6 text-brand-green" />
-                    </div>
-                    <div>
-                        <p className="font-black text-brand-dark text-sm">Entrenamientos</p>
-                        <p className="text-xs text-slate-400">Tu programa semanal</p>
-                    </div>
-                </button>
+                </div>
             </div>
 
             {/* Ciclo hormonal para todas las mujeres */}
             {['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
-                <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 border border-pink-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
-                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 rounded-2xl p-4 border border-pink-100/80 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left group">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-pink-100">
                         <Heart className="w-6 h-6 text-pink-500" />
                     </div>
                     <div className="flex-1">
@@ -1323,7 +1349,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     : 'Configura tu situación hormonal'}
                         </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0" />
+                    <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </button>
             )}
         </div>
