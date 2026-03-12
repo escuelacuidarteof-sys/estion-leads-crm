@@ -15,8 +15,9 @@ import {
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
-    Moon, Shield, Sparkles, CheckCircle, Camera
+    Moon, Shield, Sparkles, CheckCircle, Camera, Leaf
 } from 'lucide-react';
+import { MeditationView } from './MeditationView';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { compressReceiptImage } from '../../utils/imageCompression';
@@ -57,7 +58,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const toast = useToast();
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
@@ -780,6 +781,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             onBack={() => setActiveView('dashboard')}
         />
     );
+    if (activeView === 'meditation') return (
+        <MeditationView
+            client={client}
+            onBack={() => setActiveView('dashboard')}
+        />
+    );
 
     // --- HELPERS ---
     // Parse real metrics from the last check-in responses
@@ -970,6 +977,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
                             { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
                             { label: 'Entrenamiento de hoy', desc: 'Programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
+                            { label: 'Meditación / Calma', desc: 'Tu momento de paz', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
                             { label: 'Materiales de apoyo', desc: 'Recursos de tu equipo', icon: FileHeart, action: () => setActiveView('materials'), tone: 'bg-slate-50 border-slate-200 text-slate-800' }
                         ].map(({ label, desc, icon: Icon, action, tone }) => (
                             <button
@@ -1270,6 +1278,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 {[
                     { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'bg-violet-50', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
                     { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'bg-orange-50', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
+                    { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'bg-emerald-50', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
                     { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'bg-indigo-50', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
                     { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'bg-sky-50', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
                 ].map(({ label, desc, icon: Icon, bg, color, border, action, badge }) => (
