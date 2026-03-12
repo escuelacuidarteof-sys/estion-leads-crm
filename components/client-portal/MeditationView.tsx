@@ -34,8 +34,8 @@ const INITIAL_MEDITATIONS: Meditation[] = [
         id: '1',
         title: 'Tu Guía de Claridad',
         description: 'Una meditación guiada diseñada para calmar la mente y encontrar foco en los momentos de mayor ruido mental. Ideal para empezar el día o antes de dormir.',
-        duration: '10:00',
-        audioUrl: 'https://vocaroo.com/embed/19qID0MAr60P?autoplay=0',
+        duration: '06:21',
+        audioUrl: 'https://vocaroo.com/embed/13ByKGcYGqyq?autoplay=0',
         type: 'vocaroo',
         category: 'Claridad',
         coverImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
