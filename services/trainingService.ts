@@ -600,21 +600,25 @@ export const trainingService = {
             .order('completed_at', { ascending: false });
 
         if (error) throw error;
-        if (!logs || logs.length === 0) return [];
+        const safeLogs = logs || [];
 
         // Get exercise logs for all day logs
-        const logIds = logs.map(l => l.id);
-        const { data: exerciseLogs } = await supabase
-            .from('training_client_exercise_logs')
-            .select('*')
-            .in('log_id', logIds);
+        const logIds = safeLogs.map(l => l.id);
+        const { data: exerciseLogs } = logIds.length > 0
+            ? await supabase
+                .from('training_client_exercise_logs')
+                .select('*')
+                .in('log_id', logIds)
+            : { data: [] };
 
         // Get day info for names
-        const dayIds = [...new Set(logs.map(l => l.day_id))];
-        const { data: days } = await supabase
-            .from('training_program_days')
-            .select('id, name, week_number')
-            .in('id', dayIds);
+        const dayIds = [...new Set(safeLogs.map(l => l.day_id))];
+        const { data: days } = dayIds.length > 0
+            ? await supabase
+                .from('training_program_days')
+                .select('id, name, week_number')
+                .in('id', dayIds)
+            : { data: [] };
 
         // Get workout exercise IDs to resolve exercise names
         const weIds = [...new Set((exerciseLogs || []).map(el => el.workout_exercise_id))];
@@ -641,9 +645,9 @@ export const trainingService = {
         // Get activity logs (custom/walking/metrics/photo/form) linked to the same days
         const { data: activityLogs } = await supabase
             .from('training_client_activity_logs')
-            .select('activity_id, day_id, data, completed_at')
+            .select('id, activity_id, day_id, data, completed_at')
             .eq('client_id', clientId)
-            .in('day_id', dayIds);
+            .order('completed_at', { ascending: false });
 
         // Resolve activity metadata (title, type)
         const activityIds = [...new Set((activityLogs || []).map(a => a.activity_id))];
@@ -660,7 +664,9 @@ export const trainingService = {
         const dayMap: Record<string, { name: string; week_number: number }> = {};
         (days || []).forEach(d => { dayMap[d.id] = { name: d.name, week_number: d.week_number }; });
 
-        return logs.map(log => {
+        const dayIdsWithStructuredLog = new Set(dayIds);
+
+        const structuredLogs = safeLogs.map(log => {
             const logExercises = (exerciseLogs || []).filter(el => el.log_id === log.id);
             const logActivities = (activityLogs || [])
                 .filter((a: any) => a.day_id === log.day_id)
@@ -686,6 +692,32 @@ export const trainingService = {
                 }))
             };
         });
+
+        // Include orphan activity logs (activity completed without day workout log),
+        // so clients do not lose visible history if the program structure changed.
+        const orphanActivityEntries = (activityLogs || [])
+            .filter((a: any) => !dayIdsWithStructuredLog.has(a.day_id))
+            .map((a: any) => ({
+                id: `activity-${a.id}`,
+                client_id: clientId,
+                day_id: a.day_id,
+                completed_at: a.completed_at,
+                exercises: [],
+                day_name: activityMeta[a.activity_id]?.title || 'Actividad completada',
+                activityDetails: [{
+                    title: activityMeta[a.activity_id]?.title || 'Actividad',
+                    type: activityMeta[a.activity_id]?.type || 'custom',
+                    data: a.data || {}
+                }],
+                exerciseDetails: []
+            }));
+
+        return [...structuredLogs, ...orphanActivityEntries]
+            .sort((a: any, b: any) => {
+                const ta = new Date(a.completed_at || 0).getTime();
+                const tb = new Date(b.completed_at || 0).getTime();
+                return tb - ta;
+            });
     }
 };
 
