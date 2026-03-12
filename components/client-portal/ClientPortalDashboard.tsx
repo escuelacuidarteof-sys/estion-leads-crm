@@ -1333,6 +1333,42 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
             </div>
 
+            <div className="relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-r from-[#fffdf6] via-[#fff9ed] to-[#fffef9] p-4 sm:p-5 shadow-sm">
+                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-brand-gold/20 blur-2xl pointer-events-none" />
+                <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-brand-gold/20 text-amber-700 flex items-center justify-center flex-shrink-0 ring-1 ring-brand-gold/30">
+                        <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-[0.16em] font-black text-amber-700/80">Beneficio exclusivo</p>
+                        <p className="font-black text-brand-dark text-sm sm:text-base">Suplementación recomendada en OFM Health</p>
+                        <p className="text-xs text-slate-600 mt-0.5">Usa tu código para obtener descuento directo.</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await navigator.clipboard.writeText('CUIDARTE10');
+                                    toast.success('Código CUIDARTE10 copiado');
+                                } catch {
+                                    toast.error('No se pudo copiar automáticamente');
+                                }
+                            }}
+                            className="px-3 py-2 rounded-xl bg-white text-amber-800 text-xs font-black border border-amber-200 hover:bg-amber-50 transition-colors"
+                        >
+                            CUIDARTE10
+                        </button>
+                        <button
+                            onClick={() => window.open('https://www.ofm-health.com/', '_blank', 'noopener,noreferrer')}
+                            className="px-3 py-2 rounded-xl bg-brand-green text-white text-xs font-black hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
+                        >
+                            Ir a OFM
+                            <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Ciclo hormonal para todas las mujeres */}
             {['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
                 <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 rounded-2xl p-4 border border-pink-100/80 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left group">
