@@ -48,6 +48,16 @@ const FALLBACK_MEDITATIONS: Meditation[] = [
 const VIDEO_HINTS = ['youtube.com', 'youtu.be', 'vimeo.com'];
 const MEDITATION_SECTIONS = ['Relajación', 'Claridad', 'Sueño', 'Enfoque'];
 
+const fixAudioUrl = (url: string): string => {
+    if (!url) return '';
+    // Fix Vocaroo links
+    if (url.includes('vocaroo.com/') && !url.includes('media_command')) {
+        const id = url.split('/').pop();
+        if (id) return `https://vocaroo.com/media_command.php?media=${id}&command=download_mp3`;
+    }
+    return url;
+};
+
 const inferMaterialType = (url: string, dbType: string): 'audio' | 'video' => {
     const lowerUrl = (url || '').toLowerCase();
     if (dbType === 'video') return 'video';
@@ -88,11 +98,11 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
     const [showVolume, setShowVolume] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
+    const availableCategories = ['Todos', ...MEDITATION_SECTIONS];
+    
     const filteredMeditations = selectedCategory === 'Todos'
         ? meditations
         : meditations.filter(m => m.category === selectedCategory);
-
-    const availableCategories = ['Todos', ...Array.from(new Set([...MEDITATION_SECTIONS, ...meditations.map(m => m.category).filter(Boolean)]))];
 
     useEffect(() => {
         const loadMeditations = async () => {
@@ -116,7 +126,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                         title: item.title || 'Sesión de meditación',
                         description: item.description || 'Sesión guiada para acompañarte en tu proceso.',
                         duration: inferDurationFromTags(item.tags),
-                        audioUrl: item.url,
+                        audioUrl: fixAudioUrl(item.url),
                         type: inferMaterialType(item.url, item.type),
                         category: inferCategory(item.category, item.tags, item.title),
                         coverImage: inferMaterialType(item.url, item.type) === 'video'
@@ -247,6 +257,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                         
                         <div className="flex items-center gap-4">
                             <button 
+                                onClick={() => filteredMeditations[0] && handlePlayMeditation(filteredMeditations[0])}
                                 className="bg-brand-green hover:bg-brand-green/90 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-all hover:scale-105 shadow-xl shadow-brand-green/20"
                             >
                                 <Play className="w-5 h-5 fill-current" />
@@ -381,113 +392,127 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                                 Estamos creando contenido personalizado para acompañar tu proceso. Si hay alguna meditación específica que necesites, dínoslo.
                             </p>
                         </div>
-                        <button className="md:ml-auto px-8 py-4 bg-brand-dark text-white rounded-2xl font-black text-sm hover:scale-105 transition-all shadow-lg">
-                            Contactar con Coach
-                        </button>
                     </div>
                 </div>
             </div>
 
             {/* Float Player - THE REAL HERO */}
             {currentMeditation && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-3xl z-50 animate-in slide-in-from-bottom-20 duration-500">
-                    <div className="bg-brand-dark/95 backdrop-blur-2xl rounded-[2.5rem] p-4 sm:p-5 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.6)] border border-white/5 relative overflow-hidden">
-                        {/* Progress Background */}
-                        <div className="absolute top-0 left-0 h-full bg-brand-green/2 transition-all duration-1000" style={{ width: `${progress}%` }} />
-                        
-                        <div className="flex items-center gap-4 sm:gap-6 relative z-10">
-                            {/* Artwork */}
-                            <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-[1.5rem] overflow-hidden flex-shrink-0 shadow-2xl relative group">
-                                <img src={currentMeditation.coverImage} className={`w-full h-full object-cover transition-all duration-[20s] linear ${isPlaying ? 'scale-125 rotate-6' : 'scale-100'}`} alt={currentMeditation.title} />
-                                <div className="absolute inset-0 bg-brand-dark/40 flex items-center justify-center">
-                                    <Headphones className={`w-6 h-6 text-white/80 ${isPlaying ? 'animate-bounce' : ''}`} />
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="flex gap-0.5 items-center">
-                                        {[1, 2, 3].map(i => (
-                                            <div 
-                                                key={i} 
-                                                className={`w-1 bg-brand-gold rounded-full transition-all duration-300 ${isPlaying ? 'h-3 animate-pulse' : 'h-1'}`} 
-                                                style={{ animationDelay: `${i * 0.2}s` }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="text-[10px] text-brand-mint/60 font-black uppercase tracking-[0.2em]">{currentMeditation.category}</span>
-                                </div>
-                                <h4 className="text-sm sm:text-xl font-heading font-black text-white truncate leading-tight group-hover:text-brand-green transition-colors">{currentMeditation.title}</h4>
-                                
-                                {/* Progress Bar */}
-                                <div className="mt-4 flex items-center gap-4">
-                                    <span className="text-[10px] font-bold text-white/40 tabular-nums w-8">{currentTime}</span>
-                                    <div className="flex-1 h-1.5 bg-white/10 rounded-full relative group cursor-pointer group">
-                                        <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="100" 
-                                            value={progress} 
-                                            onChange={handleProgressChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        />
-                                        {/* Background track */}
-                                        <div className="absolute inset-0 bg-white/5 rounded-full" />
-                                        {/* Filled track */}
-                                        <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand-green to-brand-mint rounded-full shadow-[0_0_15px_rgba(107,160,107,0.8)] transition-all duration-300" style={{ width: `${progress}%` }}>
-                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full scale-0 group-hover:scale-100 transition-transform shadow-2xl" />
+                <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom-full duration-700">
+                    {/* Glassmorphism Backdrop */}
+                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#FDFBF7] to-transparent pointer-events-none" />
+                    
+                    <div className="max-w-5xl mx-auto px-4 pb-8 relative">
+                        <div className="bg-brand-dark rounded-[2.5rem] p-4 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden group">
+                            {/* Animated Background Progress */}
+                            <div 
+                                className="absolute inset-0 bg-brand-green/10 transition-all duration-1000 ease-linear origin-left" 
+                                style={{ transform: `scaleX(${progress / 100})` }} 
+                            />
+
+                            <div className="relative z-10 flex items-center gap-4 md:gap-8">
+                                {/* Artwork with pulse effect */}
+                                <div className="hidden sm:block relative w-20 h-20 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0">
+                                    <img 
+                                        src={currentMeditation.coverImage} 
+                                        className={`w-full h-full object-cover transition-all duration-[30s] linear ${isPlaying ? 'scale-150 rotate-12' : 'scale-100'}`} 
+                                        alt={currentMeditation.title} 
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                        <div className={`w-8 h-8 rounded-full border-2 border-white/30 flex items-center justify-center ${isPlaying ? 'animate-spin-slow' : ''}`}>
+                                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-bold text-white/40 tabular-nums w-8">{currentMeditation.duration}</span>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center gap-3 sm:gap-6 ml-2">
-                                {/* Volume Control */}
-                                <div className="hidden sm:flex items-center gap-2 relative">
-                                    {showVolume && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-brand-dark border border-white/10 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 h-32 flex flex-col items-center">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 mb-1.5">
+                                        <span className="px-2 py-0.5 bg-brand-green/20 text-brand-mint text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand-green/30">
+                                            {currentMeditation.category}
+                                        </span>
+                                        <div className="flex gap-1">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i} 
+                                                    className={`w-1 bg-brand-gold rounded-full transition-all duration-500 ${isPlaying ? 'h-3' : 'h-1'}`}
+                                                    style={{ 
+                                                        animation: isPlaying ? `audioWave 1.2s ease-in-out infinite` : 'none',
+                                                        animationDelay: `${i * 0.15}s`
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <h4 className="text-white text-lg md:text-xl font-heading font-black truncate mb-3">
+                                        {currentMeditation.title}
+                                    </h4>
+
+                                    {/* Slider Control */}
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[11px] font-bold text-white/40 tabular-nums w-10">{currentTime}</span>
+                                        <div className="flex-1 h-2 bg-white/10 rounded-full relative group cursor-pointer">
                                             <input 
                                                 type="range" 
                                                 min="0" 
-                                                max="1" 
-                                                step="0.01"
-                                                value={volume}
-                                                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                                                className="w-24 -rotate-90 origin-center translate-y-8"
+                                                max="100" 
+                                                value={progress} 
+                                                onChange={handleProgressChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            />
+                                            <div 
+                                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand-green via-brand-mint to-brand-green rounded-full shadow-[0_0_20px_rgba(107,160,107,0.6)]" 
+                                                style={{ width: `${progress}%` }} 
+                                            />
+                                            <div 
+                                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-2xl scale-0 group-hover:scale-100 transition-transform duration-300 pointer-events-none z-20"
+                                                style={{ left: `${progress}%`, marginLeft: '-8px' }}
                                             />
                                         </div>
-                                    )}
-                                    <button 
-                                        onMouseEnter={() => setShowVolume(true)}
-                                        onMouseLeave={() => setShowVolume(false)}
-                                        className="text-white/40 hover:text-white transition-colors p-2"
-                                    >
-                                        <Volume2 className="w-5 h-5" />
-                                    </button>
+                                        <span className="text-[11px] font-bold text-white/40 tabular-nums w-10 text-right">{currentMeditation.duration}</span>
+                                    </div>
                                 </div>
 
-                                {/* Main Controls */}
-                                <button 
-                                    onClick={() => setIsPlaying(!isPlaying)}
-                                    className="w-14 h-14 sm:w-20 sm:h-20 bg-brand-green rounded-[1.5rem] sm:rounded-3xl flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(107,160,107,0.4)]"
-                                >
-                                    {isPlaying ? <Pause className="w-6 h-6 sm:w-10 sm:h-10 fill-current" /> : <Play className="w-6 h-6 sm:w-10 sm:h-10 fill-current translate-x-1" />}
-                                </button>
-                                
-                                <button 
-                                    onClick={() => {
-                                        setIsPlaying(false);
-                                        setCurrentMeditation(null);
-                                    }}
-                                    className="p-3 rounded-2xl bg-white/5 text-white/20 hover:text-white/60 hover:bg-white/10 transition-all flex sm:hidden md:flex"
-                                    title="Cerrar reproductor"
-                                >
-                                    <RotateCcw className="w-4 h-4 sm:w-6 sm:h-6" />
-                                </button>
+                                <div className="flex items-center gap-4 md:gap-6 px-2">
+                                    {/* Play/Pause Button - Large & Impactful */}
+                                    <button 
+                                        onClick={() => setIsPlaying(!isPlaying)}
+                                        className="w-16 h-16 md:w-20 md:h-20 bg-brand-green rounded-3xl flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_-5px_rgba(107,160,107,0.5)] group/btn"
+                                    >
+                                        {isPlaying ? (
+                                            <Pause className="w-8 h-8 md:w-10 md:h-10 fill-current" />
+                                        ) : (
+                                            <Play className="w-8 h-8 md:w-10 md:h-10 fill-current translate-x-1" />
+                                        )}
+                                    </button>
+
+                                    <button 
+                                        onClick={() => {
+                                            setIsPlaying(false);
+                                            setCurrentMeditation(null);
+                                        }}
+                                        className="hidden md:flex p-4 rounded-2xl bg-white/5 text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                                        title="Cerrar"
+                                    >
+                                        <ArrowLeft className="w-6 h-6 rotate-90" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <style dangerouslySetInnerHTML={{ __html: `
+                        @keyframes audioWave {
+                            0%, 100% { height: 4px; }
+                            50% { height: 16px; }
+                        }
+                        .animate-spin-slow {
+                            animation: spin 8s linear infinite;
+                        }
+                        @keyframes spin {
+                            from { transform: rotate(0deg); }
+                            to { transform: rotate(360deg); }
+                        }
+                    `}} />
                 </div>
             )}
 
