@@ -1,0 +1,918 @@
+{
+  "created_at": "2026-03-12T17:48:39.351Z",
+  "active_assignments": [
+    {
+      "id": "e6d509db-0635-41f9-8c24-d26a20f61462",
+      "client_id": "2175ea94-017d-4d61-95d3-de81a5e59e19",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "429141b2-f218-4ef8-a0ae-b7517bcc069b",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "02718ec9-55bc-4c25-85d0-e812ea3279e8",
+      "client_id": "dad339ee-471a-4569-ac04-0d9eff35ad07",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "73fd1f71-4e90-40d5-abe4-4eb24e7f0c78",
+      "client_id": "36cc528c-f4bb-418d-a03b-890ebf1da67e",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "5f2b719d-5b72-4730-b9d9-f81905cbf6c4",
+      "client_id": "8311d114-3319-49e3-8dea-61192d5a19f1",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "dc2793cc-a843-4604-98ac-217ead43dbe3",
+      "client_id": "f8e1c4dc-8618-4df7-8117-3469a0ab09d6",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "d64f0f09-89b9-473b-ad40-5c29ca2ca791",
+      "client_id": "a074ef1b-098c-4375-9ff4-7cfeef1c88a4",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "f453326d-2e8a-4124-899b-b48850380be5",
+      "client_id": "3d01e5d0-8c7c-4b40-bb00-92992641a817",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "eb28c60c-4bc0-43c7-bb44-962646a3b7e2",
+      "client_id": "b4686306-75b3-42d2-ada2-055f11fdb27e",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "bbc39bb8-72ec-4902-b6ae-cb5dd7392703",
+      "client_id": "8bcb9c7c-04db-4e32-9825-e4fc83b812c3",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "734262a5-0043-41a0-9d10-cf649d2a45c6",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "c48f0d0f-f3b1-4180-b135-db33017286ca",
+      "client_id": "79f7fc44-6e86-43ab-a717-9d05af9cf88c",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "cb5af2ae-b185-4d84-8ec2-25df6f1c26f6",
+      "client_id": "d62af7ee-ac66-4de5-9765-d4cbe3e34fdb",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "370f4499-f7a4-4e49-858a-51371fde05a4",
+      "client_id": "7a17eef0-d042-4f64-88da-8533dcf23fac",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "51160dbf-ac22-4d82-8df4-8b35b3f6e689",
+      "client_id": "9b53a952-61a7-4792-b660-ab7697aba77b",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "21b41d77-62cd-4fcb-bc58-073a46d91c73",
+      "client_id": "b8f7b1a6-a8a1-4cbe-af35-40592ef174ba",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "dbe051aa-2577-4abe-b659-67581dc79e07",
+      "client_id": "cedc9410-463f-4ff4-a507-8a9c07e6394d",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "46878d61-7827-41d2-8e72-6cf5ddfb00b9",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "5bcf68db-20a1-4408-97a5-6d0970b275b0",
+      "client_id": "d0e1307e-6f5a-42f9-bd77-c14a77de41bc",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "f9346e60-96fe-4dc8-906c-b04a67380802",
+      "client_id": "dd533675-e9f0-4f10-99c4-fe1f24d3985f",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    },
+    {
+      "id": "3745b4a1-2de1-4645-a482-b96e16080fa1",
+      "client_id": "8faf556e-0830-4e2c-af6f-2efffe64eb0b",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "start_date": "2026-03-08",
+      "assigned_at": "2026-03-08T18:26:59.551+00:00"
+    }
+  ],
+  "program_days": [
+    {
+      "id": "dfef6be2-a349-4d4e-b32d-af8c007df96d",
+      "program_id": "c8d569e0-b868-4d22-bead-c4a3d42ef290",
+      "week_number": 1,
+      "day_number": 1
+    },
+    {
+      "id": "8ab7fcdb-7589-43be-825f-bae77111b126",
+      "program_id": "c8d569e0-b868-4d22-bead-c4a3d42ef290",
+      "week_number": 1,
+      "day_number": 3
+    },
+    {
+      "id": "5ed56815-62e0-4c38-b04d-1a5f6b5b55cd",
+      "program_id": "c8d569e0-b868-4d22-bead-c4a3d42ef290",
+      "week_number": 1,
+      "day_number": 5
+    },
+    {
+      "id": "1e956611-71cf-4956-80db-5b78a4479e42",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 1
+    },
+    {
+      "id": "15ecca76-5d16-4128-8a76-db48b50f588b",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 3
+    },
+    {
+      "id": "b049fcbf-7e65-4030-b461-c04b94177a3e",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 5
+    },
+    {
+      "id": "4888ffe6-7efc-4f4b-a309-508e1fcd57b2",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 2,
+      "day_number": 1
+    },
+    {
+      "id": "c7401f8a-1f5a-4b26-92a3-0f7dc05ec17b",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 2,
+      "day_number": 3
+    },
+    {
+      "id": "4c5ecb7d-57c4-45c9-81af-eeaeead6c881",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 2,
+      "day_number": 5
+    },
+    {
+      "id": "d629954d-cd80-4cf9-b976-2872a488b651",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 2
+    },
+    {
+      "id": "463f48f8-b02f-45ba-b8b3-be4fdeb6dba7",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 4
+    },
+    {
+      "id": "30d49d4e-1e49-437e-b7d0-097fb60d966c",
+      "program_id": "7df7056c-0a9e-4364-84fb-59cb0970bde9",
+      "week_number": 1,
+      "day_number": 6
+    },
+    {
+      "id": "96965626-8e6b-4628-a961-b9ae3aba8ad1",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 1
+    },
+    {
+      "id": "f00c2fca-2d3a-4cdb-aa32-0959d2e7741e",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 2
+    },
+    {
+      "id": "d8fb28d5-dff3-49b5-8bcd-888e1c19eaa9",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 3
+    },
+    {
+      "id": "1981ae52-b37d-4a24-a4a4-3aeba60fb5ef",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 4
+    },
+    {
+      "id": "3d186ea6-a27c-4dec-b958-4c8e2ab71a0f",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 5
+    },
+    {
+      "id": "9d4b5d1f-85e7-4237-b995-e57dc0c46398",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 6
+    },
+    {
+      "id": "58ac7f18-9f39-4864-9275-56c9758290cf",
+      "program_id": "1ea08e13-cd3e-4073-adab-a2965c3d99bc",
+      "week_number": 1,
+      "day_number": 7
+    },
+    {
+      "id": "53a27453-cd43-47e2-96a8-2d05ce5e82cc",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 1
+    },
+    {
+      "id": "345722b9-d664-4f3e-9655-fe273a33b5b9",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 2
+    },
+    {
+      "id": "83b1e3eb-f1e4-4f10-9db4-a21874838ff6",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 3
+    },
+    {
+      "id": "1e28ef98-1e31-4348-8a72-bc2e7642a251",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 4
+    },
+    {
+      "id": "71b1fa96-fc3c-4ab0-bfd4-260825cce01f",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 5
+    },
+    {
+      "id": "fe18df66-4a27-449c-9725-e4ae4c2b65b9",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 6
+    },
+    {
+      "id": "4a19089c-b2c6-4407-bd44-970c6063de70",
+      "program_id": "2623ab23-e738-492a-a930-b31770ba24fb",
+      "week_number": 1,
+      "day_number": 7
+    }
+  ],
+  "program_activities": [
+    {
+      "id": "ceec1aab-df35-412f-b40f-33ff9dd3a1ad",
+      "day_id": "dfef6be2-a349-4d4e-b32d-af8c007df96d",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA A: Tren Inferior y Cardio (Adaptación)"
+    },
+    {
+      "id": "4b78baf9-a581-496f-8590-19762b39ba9b",
+      "day_id": "8ab7fcdb-7589-43be-825f-bae77111b126",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA B: Tren Superior (Adaptación)"
+    },
+    {
+      "id": "58602a8b-2914-447e-afac-ebee0a15fbf3",
+      "day_id": "5ed56815-62e0-4c38-b04d-1a5f6b5b55cd",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA C: Full Body (Adaptación)"
+    },
+    {
+      "id": "3498c5c9-7611-4d71-b137-93fa828ed841",
+      "day_id": "1e956611-71cf-4956-80db-5b78a4479e42",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA A: Tren Inferior y Cardio (Adaptación)"
+    },
+    {
+      "id": "32cd0643-4270-4cce-82fb-feeb1a3e95f8",
+      "day_id": "15ecca76-5d16-4128-8a76-db48b50f588b",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA B: Tren Superior (Adaptación)"
+    },
+    {
+      "id": "9d722335-537e-43a6-8a7b-f5503c0e87dd",
+      "day_id": "b049fcbf-7e65-4030-b461-c04b94177a3e",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA C: Full Body (Adaptación)"
+    },
+    {
+      "id": "6b26a3b8-9f3c-42bf-ab09-2c1ab4c7d50f",
+      "day_id": "4888ffe6-7efc-4f4b-a309-508e1fcd57b2",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA A: Tren Inferior y Cardio (Adaptación)"
+    },
+    {
+      "id": "42fe8dd2-e4b0-48ef-8e96-cf9417775eac",
+      "day_id": "c7401f8a-1f5a-4b26-92a3-0f7dc05ec17b",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA B: Tren Superior (Adaptación)"
+    },
+    {
+      "id": "d589ed05-3aa9-46b2-a428-082f94b820da",
+      "day_id": "4c5ecb7d-57c4-45c9-81af-eeaeead6c881",
+      "type": "workout",
+      "position": 0,
+      "title": "DÍA C: Full Body (Adaptación)"
+    },
+    {
+      "id": "7cc1568c-4f9b-455a-bd28-77f52a9b5aff",
+      "day_id": "d629954d-cd80-4cf9-b976-2872a488b651",
+      "type": "custom",
+      "position": 0,
+      "title": "Caminar"
+    },
+    {
+      "id": "b1d7765f-3c82-49f3-9e19-864a8f81a6f5",
+      "day_id": "463f48f8-b02f-45ba-b8b3-be4fdeb6dba7",
+      "type": "custom",
+      "position": 0,
+      "title": "Caminar"
+    },
+    {
+      "id": "62508ca1-548b-4195-8f35-5c316c2f9ccd",
+      "day_id": "30d49d4e-1e49-437e-b7d0-097fb60d966c",
+      "type": "form",
+      "position": 0,
+      "title": "Check-in"
+    },
+    {
+      "id": "d5699019-c5fe-4156-9fe5-ab4b3c4afc6f",
+      "day_id": "96965626-8e6b-4628-a961-b9ae3aba8ad1",
+      "type": "workout",
+      "position": 0,
+      "title": "Valoracion cardio y seguridad"
+    },
+    {
+      "id": "dcd95da1-8da3-460b-8b3c-238bc466918d",
+      "day_id": "f00c2fca-2d3a-4cdb-aa32-0959d2e7741e",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminar suave"
+    },
+    {
+      "id": "3a19b130-9fd2-4417-bdd8-be43f08b8f28",
+      "day_id": "d8fb28d5-dff3-49b5-8bcd-888e1c19eaa9",
+      "type": "workout",
+      "position": 0,
+      "title": "Valoracion movilidad y equilibrio"
+    },
+    {
+      "id": "2416a988-89ad-44c8-9d63-1536cd111952",
+      "day_id": "1981ae52-b37d-4a24-a4a4-3aeba60fb5ef",
+      "type": "custom",
+      "position": 0,
+      "title": "Descanso activo y sintomas"
+    },
+    {
+      "id": "fe867b3a-60a4-40c9-920f-11aefa11fde3",
+      "day_id": "3d186ea6-a27c-4dec-b958-4c8e2ab71a0f",
+      "type": "workout",
+      "position": 0,
+      "title": "Valoracion fuerza funcional"
+    },
+    {
+      "id": "247d297a-708c-43d6-85a9-1e56aa2bda6d",
+      "day_id": "9d4b5d1f-85e7-4237-b995-e57dc0c46398",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminar suave"
+    },
+    {
+      "id": "515640f4-231b-4fc8-b0b9-8faf9f397d3a",
+      "day_id": "58ac7f18-9f39-4864-9275-56c9758290cf",
+      "type": "custom",
+      "position": 0,
+      "title": "Clasificacion inicial nivel 0-3"
+    },
+    {
+      "id": "2b7eb73a-e98a-490c-a617-e34d0b7a953f",
+      "day_id": "53a27453-cd43-47e2-96a8-2d05ce5e82cc",
+      "type": "workout",
+      "position": 0,
+      "title": "Test cardiovascular inicial"
+    },
+    {
+      "id": "8c7ede11-f8cd-4350-8ea6-af5aa49c7b33",
+      "day_id": "53a27453-cd43-47e2-96a8-2d05ce5e82cc",
+      "type": "walking",
+      "position": 1,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "f20c926f-ab14-40a0-9a27-b5e1094c2e86",
+      "day_id": "345722b9-d664-4f3e-9655-fe273a33b5b9",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "4e5df1e8-4ea6-4306-8a4d-32d25d5f9eba",
+      "day_id": "83b1e3eb-f1e4-4f10-9db4-a21874838ff6",
+      "type": "workout",
+      "position": 0,
+      "title": "Test movilidad articular"
+    },
+    {
+      "id": "9cb0241f-5af2-44f2-9689-eabc0fbe5163",
+      "day_id": "83b1e3eb-f1e4-4f10-9db4-a21874838ff6",
+      "type": "walking",
+      "position": 1,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "0842bf9c-2931-460a-8701-76af3b60bced",
+      "day_id": "1e28ef98-1e31-4348-8a72-bc2e7642a251",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "5156e9f6-0b9d-4ea2-914a-babcb635b5c1",
+      "day_id": "71b1fa96-fc3c-4ab0-bfd4-260825cce01f",
+      "type": "workout",
+      "position": 0,
+      "title": "Test de fuerza funcional"
+    },
+    {
+      "id": "3b44c35d-115a-4b7a-81b7-502075510564",
+      "day_id": "71b1fa96-fc3c-4ab0-bfd4-260825cce01f",
+      "type": "walking",
+      "position": 1,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "0f5a91db-e8fd-4a97-a540-295d6ab4bec4",
+      "day_id": "fe18df66-4a27-449c-9725-e4ae4c2b65b9",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "5eddc7b1-ca2d-4c26-9ebb-686fe4a52e39",
+      "day_id": "4a19089c-b2c6-4407-bd44-970c6063de70",
+      "type": "walking",
+      "position": 0,
+      "title": "Caminata Zona 2"
+    },
+    {
+      "id": "1a2ec4cb-f849-4dac-91e7-3845780deb79",
+      "day_id": "4a19089c-b2c6-4407-bd44-970c6063de70",
+      "type": "custom",
+      "position": 1,
+      "title": "Clasificacion inicial nivel 0-3"
+    }
+  ],
+  "day_logs": [
+    {
+      "id": "64e70b82-a1df-42f7-bb86-d1392c1ed154",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "day_id": "b049fcbf-7e65-4030-b461-c04b94177a3e",
+      "completed_at": "2026-02-23T17:38:55.531+00:00",
+      "notes": "dfgdgdf",
+      "duration_minutes": 1,
+      "effort_rating": 7
+    },
+    {
+      "id": "351224f9-2ed2-4c65-81e8-4f9ec5027ebd",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "day_id": "1e956611-71cf-4956-80db-5b78a4479e42",
+      "completed_at": "2026-02-23T17:47:00.128+00:00",
+      "notes": "dfgdfg",
+      "duration_minutes": 1,
+      "effort_rating": 7
+    },
+    {
+      "id": "b93d1d82-210e-463e-a5a8-d40635d0c2cc",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "day_id": "1e956611-71cf-4956-80db-5b78a4479e42",
+      "completed_at": "2026-02-24T09:18:03.592+00:00",
+      "notes": "",
+      "duration_minutes": 1,
+      "effort_rating": 7
+    },
+    {
+      "id": "87f2d9f0-8fdd-479c-a8e8-f83cea6baf2e",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "day_id": "b049fcbf-7e65-4030-b461-c04b94177a3e",
+      "completed_at": "2026-02-24T11:49:20.715+00:00",
+      "notes": "",
+      "duration_minutes": 1,
+      "effort_rating": null
+    },
+    {
+      "id": "04442d49-e457-4b14-8999-691b4a3623b8",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "day_id": "b049fcbf-7e65-4030-b461-c04b94177a3e",
+      "completed_at": "2026-02-24T17:54:53.143+00:00",
+      "notes": "sgsgf",
+      "duration_minutes": 1,
+      "effort_rating": 6
+    },
+    {
+      "id": "6fe7a902-6723-4b11-9bba-01db6ab35ff5",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "day_id": "83b1e3eb-f1e4-4f10-9db4-a21874838ff6",
+      "completed_at": "2026-03-09T23:31:45.787+00:00",
+      "notes": "Registro de actividad diaria",
+      "duration_minutes": null,
+      "effort_rating": null
+    },
+    {
+      "id": "fb032fec-a313-4934-9258-908ba086e702",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "day_id": "1e28ef98-1e31-4348-8a72-bc2e7642a251",
+      "completed_at": "2026-03-10T20:43:20.226+00:00",
+      "notes": "Registro de actividad diaria",
+      "duration_minutes": null,
+      "effort_rating": null
+    },
+    {
+      "id": "d3b09893-448e-407f-b91d-1be663691591",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "day_id": "71b1fa96-fc3c-4ab0-bfd4-260825cce01f",
+      "completed_at": "2026-03-11T21:03:59.85+00:00",
+      "notes": "Registro de actividad diaria",
+      "duration_minutes": null,
+      "effort_rating": null
+    }
+  ],
+  "activity_logs": [
+    {
+      "id": "2bc82a6d-771a-4bae-ba0d-bf3e568d3fbb",
+      "client_id": "70316dda-328d-48aa-8f7c-847779682f0a",
+      "activity_id": "b1d7765f-3c82-49f3-9e19-864a8f81a6f5",
+      "day_id": "463f48f8-b02f-45ba-b8b3-be4fdeb6dba7",
+      "completed_at": "2026-02-23T17:45:31.107+00:00",
+      "data": {
+        "completed": true
+      }
+    },
+    {
+      "id": "6689ca8f-ac54-40ac-a2d9-83c26ba36495",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-08T22:55:07.227+00:00",
+      "data": {
+        "steps": 6062
+      }
+    },
+    {
+      "id": "607d542c-06ba-4006-91af-ff381c39f5ba",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-08T22:55:37.639+00:00",
+      "data": {
+        "steps": 5906
+      }
+    },
+    {
+      "id": "d7dfbe69-e2fc-4c40-a6d8-b163f28703ea",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "5968dbec-ff01-493a-b994-048f26de8085",
+      "day_id": "5fd4d5ac-bff4-4421-94b2-291d081ad713",
+      "completed_at": "2026-03-08T22:56:48.851+00:00",
+      "data": {
+        "steps": 5991
+      }
+    },
+    {
+      "id": "fab3fb7a-cffc-410d-8552-0c4868e24993",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "668e083f-3ee0-4961-a653-1c5dc3dc841a",
+      "day_id": "c2a808e0-2bd5-4f2f-9424-f1dd37067df3",
+      "completed_at": "2026-03-08T22:57:12.141+00:00",
+      "data": {
+        "steps": 5503
+      }
+    },
+    {
+      "id": "dfefe85c-e710-45d4-bed2-214d3ce30d81",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "75ed808a-1342-482f-ac88-3e5039d92ca0",
+      "day_id": "568be2dc-2936-4b27-81c9-3b4b4cb387bc",
+      "completed_at": "2026-03-08T22:57:34.694+00:00",
+      "data": {
+        "steps": 4903
+      }
+    },
+    {
+      "id": "e66341e8-a12d-4e56-a5cc-2f5c506346c7",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "4ca3ebff-9def-4982-ac1e-6ae29f724593",
+      "day_id": "d0a9ccde-e12c-4ad6-a4cf-03e36975f912",
+      "completed_at": "2026-03-08T22:57:45.962+00:00",
+      "data": {
+        "steps": 4523
+      }
+    },
+    {
+      "id": "3d1a4c9f-58b3-47c5-bc67-fb2450d055ea",
+      "client_id": "a074ef1b-098c-4375-9ff4-7cfeef1c88a4",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-09T16:57:01.208+00:00",
+      "data": {
+        "steps": 6500
+      }
+    },
+    {
+      "id": "b211369b-f913-4452-8f07-a7e56fabd0d0",
+      "client_id": "b4686306-75b3-42d2-ada2-055f11fdb27e",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-09T17:51:39.981+00:00",
+      "data": {
+        "steps": 7200
+      }
+    },
+    {
+      "id": "b41e8276-48f6-4c8d-a67d-191b5c744290",
+      "client_id": "9b53a952-61a7-4792-b660-ab7697aba77b",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-09T18:34:43.187+00:00",
+      "data": {
+        "steps": 8000
+      }
+    },
+    {
+      "id": "8890563a-2586-47b7-8fda-3f6c81202265",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "activity_id": "0842bf9c-2931-460a-8701-76af3b60bced",
+      "day_id": "1e28ef98-1e31-4348-8a72-bc2e7642a251",
+      "completed_at": "2026-03-10T20:43:20.226+00:00",
+      "data": {
+        "steps": 8951
+      }
+    },
+    {
+      "id": "0c104b3e-a3a6-4fdb-857a-7db5231e4a43",
+      "client_id": "cedc9410-463f-4ff4-a507-8a9c07e6394d",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-10T07:41:06.245+00:00",
+      "data": {
+        "steps": 4063
+      }
+    },
+    {
+      "id": "4df4ec94-df99-486a-96eb-799dac6bf9d2",
+      "client_id": "36cc528c-f4bb-418d-a03b-890ebf1da67e",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-10T09:01:54.377+00:00",
+      "data": {
+        "steps": 7200
+      }
+    },
+    {
+      "id": "cd5d2c94-723b-47e9-9386-76c130ad32e3",
+      "client_id": "3d01e5d0-8c7c-4b40-bb00-92992641a817",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T10:35:35.907+00:00",
+      "data": {
+        "steps": 5000
+      }
+    },
+    {
+      "id": "fdde9c8e-0dfd-4d50-a56d-eab0146854be",
+      "client_id": "79f7fc44-6e86-43ab-a717-9d05af9cf88c",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T16:56:54.946+00:00",
+      "data": {
+        "steps": 3000
+      }
+    },
+    {
+      "id": "5bc8cef7-fde1-425b-8179-562c2cc414ef",
+      "client_id": "36cc528c-f4bb-418d-a03b-890ebf1da67e",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T19:05:22.343+00:00",
+      "data": {
+        "steps": 8702
+      }
+    },
+    {
+      "id": "0de3065c-7d18-4de2-b841-0ab982ee98a3",
+      "client_id": "a074ef1b-098c-4375-9ff4-7cfeef1c88a4",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T20:10:41.698+00:00",
+      "data": {
+        "steps": 12800
+      }
+    },
+    {
+      "id": "134c3f04-2bee-40fb-8fc1-88ba0f9faff0",
+      "client_id": "cedc9410-463f-4ff4-a507-8a9c07e6394d",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T20:57:31.124+00:00",
+      "data": {
+        "steps": 5012
+      }
+    },
+    {
+      "id": "f7467518-78ed-4c56-b26e-34cb13ea7e9b",
+      "client_id": "b4686306-75b3-42d2-ada2-055f11fdb27e",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T21:12:39.257+00:00",
+      "data": {
+        "steps": 4000
+      }
+    },
+    {
+      "id": "21ca8bf3-322a-47ff-88f7-0a08c5e59c0d",
+      "client_id": "7a17eef0-d042-4f64-88da-8533dcf23fac",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-10T21:17:43.137+00:00",
+      "data": {
+        "steps": 6500
+      }
+    },
+    {
+      "id": "365e99ad-8a07-40f0-bd5c-a69ac608acfc",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "activity_id": "3b44c35d-115a-4b7a-81b7-502075510564",
+      "day_id": "71b1fa96-fc3c-4ab0-bfd4-260825cce01f",
+      "completed_at": "2026-03-11T21:03:59.85+00:00",
+      "data": {
+        "steps": 10903
+      }
+    },
+    {
+      "id": "8ff4b1ae-27c3-4957-b9b7-ce0487b23667",
+      "client_id": "7a17eef0-d042-4f64-88da-8533dcf23fac",
+      "activity_id": "012130c1-5219-4d3b-8f92-ea3b922646a1",
+      "day_id": "f8933176-12ac-4e2f-a3f0-6d2237e235b3",
+      "completed_at": "2026-03-10T21:18:37.555+00:00",
+      "data": {
+        "steps": 5600
+      }
+    },
+    {
+      "id": "6ca318ff-03af-4580-9b50-a006e1a18bff",
+      "client_id": "b4686306-75b3-42d2-ada2-055f11fdb27e",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T17:25:44.596+00:00",
+      "data": {
+        "steps": 9200
+      }
+    },
+    {
+      "id": "cb5f2b07-e75f-497f-ae46-a45ea042f281",
+      "client_id": "a074ef1b-098c-4375-9ff4-7cfeef1c88a4",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T18:41:43.272+00:00",
+      "data": {
+        "steps": 10924
+      }
+    },
+    {
+      "id": "689ece17-90d0-4672-bcd8-c0b05c95e42e",
+      "client_id": "36cc528c-f4bb-418d-a03b-890ebf1da67e",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T19:41:51.214+00:00",
+      "data": {
+        "steps": 5546
+      }
+    },
+    {
+      "id": "752a5afb-aeb0-43d7-9dbd-14950961bd6c",
+      "client_id": "cedc9410-463f-4ff4-a507-8a9c07e6394d",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T19:46:52.48+00:00",
+      "data": {
+        "steps": 6035
+      }
+    },
+    {
+      "id": "30c43187-d049-4115-b820-db81b13447f7",
+      "client_id": "9b53a952-61a7-4792-b660-ab7697aba77b",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T20:46:33.603+00:00",
+      "data": {
+        "steps": 7645
+      }
+    },
+    {
+      "id": "d78e5f68-f295-4179-a5ef-df22fd48e1e0",
+      "client_id": "7a17eef0-d042-4f64-88da-8533dcf23fac",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T22:13:20.308+00:00",
+      "data": {
+        "steps": 6400
+      }
+    },
+    {
+      "id": "fcd04db5-751e-4001-8b8f-b23aaa33016a",
+      "client_id": "bb9b4b31-11b2-4a76-b5e8-95561b7dce5c",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-11T22:48:11.865+00:00",
+      "data": {
+        "steps": 7478
+      }
+    },
+    {
+      "id": "6612f044-8d60-4942-8041-10d97b1e7657",
+      "client_id": "8bcb9c7c-04db-4e32-9825-e4fc83b812c3",
+      "activity_id": "b5123de5-1f61-44fe-a3e3-e151c3548517",
+      "day_id": "637d9ca3-6736-4532-878e-bf0ba147ff66",
+      "completed_at": "2026-03-12T11:56:34.233+00:00",
+      "data": {
+        "steps": 279
+      }
+    },
+    {
+      "id": "6543d352-b589-45fd-84fa-209e83a14820",
+      "client_id": "8bcb9c7c-04db-4e32-9825-e4fc83b812c3",
+      "activity_id": "1b9436eb-9030-4b22-9405-01636d3c1de4",
+      "day_id": "8c0e5b72-2f3f-4f69-912b-7ce32ba1c208",
+      "completed_at": "2026-03-12T11:57:18.799+00:00",
+      "data": {
+        "steps": 1110
+      }
+    },
+    {
+      "id": "31ead4e0-7f75-470f-b14a-48960437c3f1",
+      "client_id": "ee4c2ff4-af40-44ed-9f3b-0a6362ea011c",
+      "activity_id": "9cb0241f-5af2-44f2-9689-eabc0fbe5163",
+      "day_id": "83b1e3eb-f1e4-4f10-9db4-a21874838ff6",
+      "completed_at": "2026-03-09T23:31:45.787+00:00",
+      "data": {
+        "steps": 8285
+      }
+    }
+  ]
+}

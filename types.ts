@@ -1044,3 +1044,34 @@ export interface OncologyReview {
   created_at: string;
   updated_at?: string;
 }
+
+// ─── Medication Tracking ──────────────────────────────────────
+export interface MedicationSchedule {
+  id: string;
+  client_id: string;
+  medication_name: string;
+  dosage?: string;
+  frequency: string;
+  time_of_day: string;
+  active: boolean;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface MedicationLog {
+  id: string;
+  client_id: string;
+  medication_id: string;
+  log_date: string;
+  taken: boolean;
+  taken_at?: string;
+}
+
+// ─── Hydration Tracking ──────────────────────────────────────
+export interface HydrationLog {
+  id: string;
+  client_id: string;
+  log_date: string;
+  glasses: number;
+  target_glasses: number;
+}
