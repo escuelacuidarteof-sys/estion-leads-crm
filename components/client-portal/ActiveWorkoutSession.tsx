@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity, Trophy, Flame, Timer } from 'lucide-react';
 import { Workout, WorkoutBlock, WorkoutExercise, ClientDayLog, ClientExerciseLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
@@ -355,6 +355,22 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
 
     const groupedBlocks = groupWorkoutBlocks(workout.blocks || []);
     const sessionGuide = getSessionGuide(workout.name);
+    const latestDraftRef = useRef<{
+        completedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]>;
+        assessmentResults: Record<string, { values: Record<string, any>; completed: boolean }>;
+        supersetRound: Record<string, number>;
+        secondsElapsed: number;
+        effortRating: number;
+        sessionNotes: string;
+    }>({
+        completedSets: {},
+        assessmentResults: {},
+        supersetRound: {},
+        secondsElapsed: 0,
+        effortRating: 0,
+        sessionNotes: ''
+    });
+    const lastSavedDraftHashRef = useRef('');
 
     const normalizeAssessmentValues = (rawValues: Record<string, any>) => {
         const normalized: Record<string, any> = {};
@@ -369,6 +385,62 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
         return normalized;
     };
 
+    const persistSessionDraft = useCallback(async (reason: string) => {
+        if (!clientId || !dayId || !activityId || !isStarted) return;
+
+        const snapshot = latestDraftRef.current;
+        const assessmentDraft = Object.fromEntries(
+            Object.entries(snapshot.assessmentResults || {})
+                .filter(([, result]) => {
+                    const values = result?.values || {};
+                    return result?.completed || Object.keys(values).length > 0;
+                })
+                .map(([exerciseId, result]) => [exerciseId, normalizeAssessmentValues(result.values || {})])
+        );
+
+        const payload = {
+            is_session_draft: true,
+            assessment_draft: assessmentDraft,
+            sets_draft: snapshot.completedSets || {},
+            superset_round: snapshot.supersetRound || {},
+            seconds_elapsed: snapshot.secondsElapsed || 0,
+            effort_rating: snapshot.effortRating || null,
+            session_notes: snapshot.sessionNotes || null
+        };
+
+        const payloadHash = JSON.stringify(payload);
+        if (payloadHash === lastSavedDraftHashRef.current) return;
+
+        lastSavedDraftHashRef.current = payloadHash;
+
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId,
+                activity_id: activityId,
+                day_id: dayId,
+                completed_at: new Date().toISOString(),
+                data: {
+                    ...payload,
+                    draft_reason: reason,
+                    draft_saved_at: new Date().toISOString()
+                }
+            });
+        } catch (err) {
+            console.error('Error saving session draft:', err);
+        }
+    }, [clientId, dayId, activityId, isStarted]);
+
+    useEffect(() => {
+        latestDraftRef.current = {
+            completedSets,
+            assessmentResults,
+            supersetRound,
+            secondsElapsed,
+            effortRating,
+            sessionNotes
+        };
+    }, [completedSets, assessmentResults, supersetRound, secondsElapsed, effortRating, sessionNotes]);
+
     useEffect(() => {
         if (!clientId || !dayId || !activityId) return;
 
@@ -378,23 +450,49 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
             try {
                 const logs = await trainingService.getClientActivityLogs(clientId, dayId);
                 const workoutLog = logs.find((l) => l.activity_id === activityId);
-                const draft = workoutLog?.data?.assessment_draft;
+                const workoutData = workoutLog?.data || {};
+                const draft = workoutData.assessment_draft;
 
-                if (!mounted || !draft || typeof draft !== 'object') return;
+                if (!mounted) return;
 
                 const nextAssessmentResults: Record<string, { values: Record<string, any>; completed: boolean }> = {};
                 const nextCompletedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]> = {};
 
-                Object.entries(draft).forEach(([exerciseId, values]) => {
-                    nextAssessmentResults[exerciseId] = {
-                        values: (values as Record<string, any>) || {},
-                        completed: true,
-                    };
-                    nextCompletedSets[exerciseId] = [{ weight: null, reps: null, completed: true }];
-                });
+                if (draft && typeof draft === 'object') {
+                    Object.entries(draft).forEach(([exerciseId, values]) => {
+                        nextAssessmentResults[exerciseId] = {
+                            values: (values as Record<string, any>) || {},
+                            completed: true,
+                        };
+                        nextCompletedSets[exerciseId] = [{ weight: null, reps: null, completed: true }];
+                    });
+                }
+
+                const setsDraft = workoutData.sets_draft;
+                if (setsDraft && typeof setsDraft === 'object') {
+                    Object.entries(setsDraft).forEach(([exerciseId, values]) => {
+                        if (!Array.isArray(values)) return;
+                        nextCompletedSets[exerciseId] = values as { weight: number | null; reps: number | null; completed: boolean }[];
+                    });
+                }
+
+                if (typeof workoutData.effort_rating === 'number') {
+                    setEffortRating(workoutData.effort_rating);
+                }
+                if (typeof workoutData.session_notes === 'string') {
+                    setSessionNotes(workoutData.session_notes);
+                }
+                if (typeof workoutData.seconds_elapsed === 'number' && workoutData.seconds_elapsed > 0) {
+                    setSecondsElapsed(workoutData.seconds_elapsed);
+                }
+                if (workoutData.superset_round && typeof workoutData.superset_round === 'object') {
+                    setSupersetRound(workoutData.superset_round as Record<string, number>);
+                }
 
                 if (Object.keys(nextAssessmentResults).length > 0) {
                     setAssessmentResults((prev) => ({ ...prev, ...nextAssessmentResults }));
+                }
+                if (Object.keys(nextCompletedSets).length > 0) {
                     setCompletedSets((prev) => ({ ...prev, ...nextCompletedSets }));
                 }
             } catch (err) {
@@ -418,6 +516,22 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
         }
         return () => clearInterval(interval);
     }, [isStarted, isPaused]);
+
+    useEffect(() => {
+        if (!isStarted || !activityId) return;
+        const timer = setTimeout(() => {
+            void persistSessionDraft('checkpoint');
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, [completedSets, assessmentResults, supersetRound, effortRating, sessionNotes, isStarted, activityId, persistSessionDraft]);
+
+    useEffect(() => {
+        if (!isStarted || !activityId) return;
+        const interval = setInterval(() => {
+            void persistSessionDraft('interval');
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [isStarted, activityId, persistSessionDraft]);
 
     const formatTime = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -512,33 +626,9 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
             [exercise.id]: [{ weight: null, reps: null, completed: true }]
         }));
 
-        if (clientId && dayId && activityId) {
-            try {
-                const dayLogs = await trainingService.getClientActivityLogs(clientId, dayId);
-                const workoutLog = dayLogs.find((l) => l.activity_id === activityId);
-                const previousData = workoutLog?.data || {};
-                const previousDraft = (previousData.assessment_draft && typeof previousData.assessment_draft === 'object')
-                    ? previousData.assessment_draft
-                    : {};
-
-                await trainingService.saveClientActivityLog({
-                    client_id: clientId,
-                    activity_id: activityId,
-                    day_id: dayId,
-                    completed_at: new Date().toISOString(),
-                    data: {
-                        ...previousData,
-                        assessment_draft: {
-                            ...previousDraft,
-                            [exercise.id]: normalizedValues,
-                        },
-                        draft_saved_at: new Date().toISOString(),
-                    },
-                });
-            } catch (err) {
-                console.error('Error saving assessment draft:', err);
-            }
-        }
+        setTimeout(() => {
+            void persistSessionDraft('assessment_saved');
+        }, 0);
     };
 
     const handleFinish = async () => {
