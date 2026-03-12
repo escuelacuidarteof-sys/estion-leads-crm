@@ -45,7 +45,8 @@ import {
   CheckSquare,
   ClipboardList,
   Dumbbell,
-  Calculator
+  Calculator,
+  Headphones
 } from 'lucide-react';
 import { StaffAnnouncements } from './StaffAnnouncements';
 import { supabase } from '../services/supabaseClient';
@@ -489,6 +490,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
+                    <NavItem view="meditation-library" icon={Headphones} label="Biblioteca Meditación" />
                     <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>
@@ -778,6 +780,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
                     )}
                     <NavItem view="training-management" icon={Dumbbell} label="Entrenamientos" />
                     <NavItem view="materials-library" icon={FolderOpen} label="Biblioteca Materiales" />
+                    <NavItem view="meditation-library" icon={Headphones} label="Biblioteca Meditación" />
                     <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
                     <NavItem view="classes" icon={Video} label="Clases Semanales" />
                   </>

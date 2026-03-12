@@ -10,8 +10,11 @@ import {
     Sparkles,
     Heart,
     ChevronRight,
-    Speaker
+    Speaker,
+    ExternalLink,
+    Loader2
 } from 'lucide-react';
+import { supabase } from '../../services/supabaseClient';
 
 interface Meditation {
     id: string;
@@ -19,9 +22,9 @@ interface Meditation {
     description: string;
     duration: string;
     audioUrl: string; // Direct MP3 or Vocaroo link
-    type: 'audio' | 'vocaroo';
+    type: 'audio' | 'video';
     coverImage?: string;
-    category: 'Relajación' | 'Claridad' | 'Sueño' | 'Enfoque';
+    category: string;
 }
 
 interface MeditationViewProps {
@@ -29,7 +32,7 @@ interface MeditationViewProps {
     onBack: () => void;
 }
 
-const INITIAL_MEDITATIONS: Meditation[] = [
+const FALLBACK_MEDITATIONS: Meditation[] = [
     {
         id: '1',
         title: 'Tu Guía de Claridad',
@@ -42,8 +45,35 @@ const INITIAL_MEDITATIONS: Meditation[] = [
     }
 ];
 
+const VIDEO_HINTS = ['youtube.com', 'youtu.be', 'vimeo.com'];
+
+const inferMaterialType = (url: string, dbType: string): 'audio' | 'video' => {
+    const lowerUrl = (url || '').toLowerCase();
+    if (dbType === 'video') return 'video';
+    if (dbType === 'audio') return 'audio';
+    if (VIDEO_HINTS.some(h => lowerUrl.includes(h))) return 'video';
+    return 'audio';
+};
+
+const inferDurationFromTags = (tags: string[] | null | undefined): string => {
+    const list = Array.isArray(tags) ? tags : [];
+    const durationTag = list.find(t => t.toLowerCase().startsWith('duracion:') || t.toLowerCase().startsWith('duración:'));
+    if (!durationTag) return 'Variable';
+    return durationTag.split(':').slice(1).join(':').trim() || 'Variable';
+};
+
+const inferCategory = (category: string | null | undefined, tags: string[] | null | undefined): string => {
+    if (category && category.toLowerCase() !== 'meditacion') return category;
+    const list = Array.isArray(tags) ? tags : [];
+    const categoryTag = list.find(t => t.toLowerCase().startsWith('categoria:') || t.toLowerCase().startsWith('categoría:'));
+    if (categoryTag) return categoryTag.split(':').slice(1).join(':').trim() || 'Meditación';
+    return 'Meditación';
+};
+
 export function MeditationView({ client, onBack }: MeditationViewProps) {
     const [selectedCategory, setSelectedCategory] = useState('Todos');
+    const [meditations, setMeditations] = useState<Meditation[]>(FALLBACK_MEDITATIONS);
+    const [isLoadingLibrary, setIsLoadingLibrary] = useState(true);
     const [currentMeditation, setCurrentMeditation] = useState<Meditation | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -52,11 +82,59 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
     const [showVolume, setShowVolume] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const filteredMeditations = selectedCategory === 'Todos' 
-        ? INITIAL_MEDITATIONS 
-        : INITIAL_MEDITATIONS.filter(m => m.category === selectedCategory);
+    const filteredMeditations = selectedCategory === 'Todos'
+        ? meditations
+        : meditations.filter(m => m.category === selectedCategory);
+
+    const availableCategories = ['Todos', ...Array.from(new Set(meditations.map(m => m.category).filter(Boolean)))];
+
+    useEffect(() => {
+        const loadMeditations = async () => {
+            setIsLoadingLibrary(true);
+            try {
+                const { data, error } = await supabase
+                    .from('materials_library')
+                    .select('id,title,description,type,url,category,tags,is_active,sort_order,created_at')
+                    .eq('is_active', true)
+                    .eq('category', 'meditacion')
+                    .in('type', ['audio', 'video', 'link'])
+                    .order('sort_order', { ascending: true })
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const mapped: Meditation[] = (data || [])
+                    .filter((item: any) => !!item.url)
+                    .map((item: any) => ({
+                        id: item.id,
+                        title: item.title || 'Sesión de meditación',
+                        description: item.description || 'Sesión guiada para acompañarte en tu proceso.',
+                        duration: inferDurationFromTags(item.tags),
+                        audioUrl: item.url,
+                        type: inferMaterialType(item.url, item.type),
+                        category: inferCategory(item.category, item.tags),
+                        coverImage: inferMaterialType(item.url, item.type) === 'video'
+                            ? 'https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?q=80&w=1000&auto=format&fit=crop'
+                            : 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
+                    }));
+
+                setMeditations(mapped.length > 0 ? mapped : FALLBACK_MEDITATIONS);
+            } catch (err) {
+                console.error('Error loading meditation library:', err);
+                setMeditations(FALLBACK_MEDITATIONS);
+            } finally {
+                setIsLoadingLibrary(false);
+            }
+        };
+
+        loadMeditations();
+    }, []);
 
     const handlePlayMeditation = (meditation: Meditation) => {
+        if (meditation.type === 'video') {
+            window.open(meditation.audioUrl, '_blank', 'noopener,noreferrer');
+            return;
+        }
         if (currentMeditation?.id === meditation.id) {
             setIsPlaying(!isPlaying);
         } else {
@@ -137,7 +215,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
             <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Hero Section */}
                 <div className="relative rounded-[3rem] overflow-hidden bg-brand-dark shadow-2xl mb-12 aspect-[16/9] md:aspect-[21/9] group cursor-pointer"
-                     onClick={() => handlePlayMeditation(INITIAL_MEDITATIONS[0])}>
+                     onClick={() => filteredMeditations[0] && handlePlayMeditation(filteredMeditations[0])}>
                     <img 
                         src="https://images.unsplash.com/photo-1508672019048-805c876b67e2?q=80&w=2000&auto=format&fit=crop" 
                         className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[10s] ease-linear"
@@ -151,14 +229,14 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                                 Destacado
                             </span>
                             <span className="text-white/60 text-xs flex items-center gap-1 font-medium">
-                                <Clock className="w-3 h-3" /> 06:21 mins
+                                 <Clock className="w-3 h-3" /> {filteredMeditations[0]?.duration || 'Variable'}
                             </span>
                         </div>
                         <h2 className="text-3xl md:text-5xl font-heading font-black text-white mb-4">
                             Encuentra tu centro
                         </h2>
                         <p className="text-white/80 text-sm md:text-lg max-w-xl mb-8 leading-relaxed font-medium">
-                            Una sesión guiada diseñada para calmar la mente y encontrar foco en los momentos de mayor ruido mental.
+                             Biblioteca de audios y videos para calmar la mente, descansar mejor y recuperar foco.
                         </p>
                         
                         <div className="flex items-center gap-4">
@@ -190,7 +268,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
 
                 {/* Categories */}
                 <div className="flex gap-3 mb-12 overflow-x-auto pb-2 no-scrollbar">
-                    {['Todos', 'Relajación', 'Claridad', 'Sueño'].map((cat) => (
+                     {availableCategories.map((cat) => (
                         <button 
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
@@ -213,9 +291,14 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                     </h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {filteredMeditations.length > 0 ? (
-                        filteredMeditations.map((meditation) => (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     {isLoadingLibrary ? (
+                        <div className="col-span-full py-16 text-center bg-white rounded-[3rem] border border-slate-100">
+                            <Loader2 className="w-10 h-10 animate-spin text-brand-green mx-auto mb-3" />
+                            <p className="text-slate-500 text-sm font-semibold">Cargando biblioteca de meditación...</p>
+                        </div>
+                     ) : filteredMeditations.length > 0 ? (
+                         filteredMeditations.map((meditation) => (
                             <div 
                                 key={meditation.id}
                                 onClick={() => handlePlayMeditation(meditation)}
@@ -252,10 +335,16 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                                             </div>
                                         </div>
                                         <h4 className="font-heading font-black text-brand-dark text-lg mb-1 leading-tight group-hover:text-brand-green transition-colors">{meditation.title}</h4>
-                                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
-                                            {meditation.description}
-                                        </p>
-                                    </div>
+                                         <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
+                                             {meditation.description}
+                                         </p>
+                                         {meditation.type === 'video' && (
+                                            <div className="mt-2 inline-flex items-center gap-1 text-[10px] text-indigo-600 font-bold uppercase tracking-wide">
+                                                Ver video
+                                                <ExternalLink className="w-3 h-3" />
+                                            </div>
+                                         )}
+                                     </div>
                                 </div>
 
                                 {currentMeditation?.id === meditation.id && (
