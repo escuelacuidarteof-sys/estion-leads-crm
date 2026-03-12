@@ -46,6 +46,7 @@ const FALLBACK_MEDITATIONS: Meditation[] = [
 ];
 
 const VIDEO_HINTS = ['youtube.com', 'youtu.be', 'vimeo.com'];
+const MEDITATION_SECTIONS = ['Relajación', 'Claridad', 'Sueño', 'Enfoque'];
 
 const inferMaterialType = (url: string, dbType: string): 'audio' | 'video' => {
     const lowerUrl = (url || '').toLowerCase();
@@ -62,12 +63,17 @@ const inferDurationFromTags = (tags: string[] | null | undefined): string => {
     return durationTag.split(':').slice(1).join(':').trim() || 'Variable';
 };
 
-const inferCategory = (category: string | null | undefined, tags: string[] | null | undefined): string => {
+const inferCategory = (category: string | null | undefined, tags: string[] | null | undefined, title?: string): string => {
     if (category && category.toLowerCase() !== 'meditacion') return category;
     const list = Array.isArray(tags) ? tags : [];
     const categoryTag = list.find(t => t.toLowerCase().startsWith('categoria:') || t.toLowerCase().startsWith('categoría:'));
-    if (categoryTag) return categoryTag.split(':').slice(1).join(':').trim() || 'Meditación';
-    return 'Meditación';
+    if (categoryTag) return categoryTag.split(':').slice(1).join(':').trim() || 'Relajación';
+
+    const titleLower = (title || '').toLowerCase();
+    if (titleLower.includes('sueño') || titleLower.includes('dormir') || titleLower.includes('descanso')) return 'Sueño';
+    if (titleLower.includes('claridad') || titleLower.includes('mente')) return 'Claridad';
+    if (titleLower.includes('enfoque') || titleLower.includes('foco')) return 'Enfoque';
+    return 'Relajación';
 };
 
 export function MeditationView({ client, onBack }: MeditationViewProps) {
@@ -86,7 +92,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
         ? meditations
         : meditations.filter(m => m.category === selectedCategory);
 
-    const availableCategories = ['Todos', ...Array.from(new Set(meditations.map(m => m.category).filter(Boolean)))];
+    const availableCategories = ['Todos', ...Array.from(new Set([...MEDITATION_SECTIONS, ...meditations.map(m => m.category).filter(Boolean)]))];
 
     useEffect(() => {
         const loadMeditations = async () => {
@@ -112,7 +118,7 @@ export function MeditationView({ client, onBack }: MeditationViewProps) {
                         duration: inferDurationFromTags(item.tags),
                         audioUrl: item.url,
                         type: inferMaterialType(item.url, item.type),
-                        category: inferCategory(item.category, item.tags),
+                        category: inferCategory(item.category, item.tags, item.title),
                         coverImage: inferMaterialType(item.url, item.type) === 'video'
                             ? 'https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?q=80&w=1000&auto=format&fit=crop'
                             : 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'

@@ -56,6 +56,15 @@ const TYPE_COLORS = {
     audio: 'bg-amber-100 text-amber-600',
 };
 
+const MEDITATION_SECTIONS = ['Relajación', 'Claridad', 'Sueño', 'Enfoque'];
+
+const readMetaTag = (tags: string[] | undefined, prefixes: string[]): string => {
+    if (!Array.isArray(tags)) return '';
+    const found = tags.find(t => prefixes.some(p => t.toLowerCase().startsWith(p)));
+    if (!found) return '';
+    return found.split(':').slice(1).join(':').trim();
+};
+
 export default function MaterialsLibrary({ currentUser, fixedCategory, title, subtitle }: MaterialsLibraryProps) {
     const { toast } = useToast();
     const [materials, setMaterials] = useState<MaterialItem[]>([]);
@@ -75,6 +84,8 @@ export default function MaterialsLibrary({ currentUser, fixedCategory, title, su
         url: '',
         category: 'general',
         tags: '',
+        meditation_section: 'Relajación',
+        meditation_duration: '',
         is_active: true,
     });
 
@@ -172,7 +183,16 @@ export default function MaterialsLibrary({ currentUser, fixedCategory, title, su
                 type: formData.type,
                 url: formData.url.trim(),
                 category: formData.category,
-                tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+                tags: (() => {
+                    const baseTags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+                    if (fixedCategory === 'meditacion') {
+                        const clean = baseTags.filter(t => !t.toLowerCase().startsWith('categoria:') && !t.toLowerCase().startsWith('categoría:') && !t.toLowerCase().startsWith('duracion:') && !t.toLowerCase().startsWith('duración:'));
+                        if (formData.meditation_section) clean.push(`categoria:${formData.meditation_section}`);
+                        if (formData.meditation_duration.trim()) clean.push(`duracion:${formData.meditation_duration.trim()}`);
+                        return clean;
+                    }
+                    return baseTags;
+                })(),
                 is_active: formData.is_active,
                 created_by: currentUser.id,
             };
@@ -226,7 +246,11 @@ export default function MaterialsLibrary({ currentUser, fixedCategory, title, su
             type: material.type,
             url: material.url,
             category: material.category,
-            tags: material.tags?.join(', ') || '',
+            tags: (material.tags || [])
+                .filter(t => !t.toLowerCase().startsWith('categoria:') && !t.toLowerCase().startsWith('categoría:') && !t.toLowerCase().startsWith('duracion:') && !t.toLowerCase().startsWith('duración:'))
+                .join(', '),
+            meditation_section: readMetaTag(material.tags, ['categoria:', 'categoría:']) || 'Relajación',
+            meditation_duration: readMetaTag(material.tags, ['duracion:', 'duración:']),
             is_active: material.is_active,
         });
         setShowModal(true);
@@ -241,6 +265,8 @@ export default function MaterialsLibrary({ currentUser, fixedCategory, title, su
             url: '',
             category: fixedCategory || 'general',
             tags: '',
+            meditation_section: 'Relajación',
+            meditation_duration: '',
             is_active: true,
         });
     };
@@ -505,6 +531,37 @@ export default function MaterialsLibrary({ currentUser, fixedCategory, title, su
                             </div>
 
                             {/* URL o Upload */}
+                            {fixedCategory === 'meditacion' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Sección de meditación
+                                        </label>
+                                        <select
+                                            value={formData.meditation_section}
+                                            onChange={e => setFormData(prev => ({ ...prev, meditation_section: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            {MEDITATION_SECTIONS.map(section => (
+                                                <option key={section} value={section}>{section}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Duración (opcional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.meditation_duration}
+                                            onChange={e => setFormData(prev => ({ ...prev, meditation_duration: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="Ej: 08:30 o 10 min"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     URL / Archivo *
