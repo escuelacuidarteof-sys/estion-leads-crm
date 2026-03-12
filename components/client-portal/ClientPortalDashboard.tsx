@@ -11,7 +11,7 @@ import {
     ReferenceLine
 } from 'recharts';
 import {
-    TrendingDown, Target, Calendar, Award, Activity, Heart, Zap, ChevronRight, Play, CheckCircle2,
+    TrendingDown, Target, Calendar, Award, Activity, Heart, Zap, ChevronRight, Play, CircleCheck,
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
@@ -926,6 +926,45 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- TAB CONTENT ---
 
+    const OfmPromoCard = ({ compact = false }: { compact?: boolean }) => (
+        <div className={`relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-r from-[#fffdfa] via-[#fffaf0] to-[#fffefb] ${compact ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'} shadow-sm`}>
+            <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-brand-gold/20 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-brand-mint/40 blur-2xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center gap-3.5 sm:gap-4">
+                <div className={`rounded-xl bg-brand-gold/20 text-amber-700 flex items-center justify-center flex-shrink-0 ring-1 ring-brand-gold/30 ${compact ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                    <Sparkles className={compact ? 'w-5 h-5' : 'w-6 h-6'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.16em] font-black text-amber-700/80">Beneficio exclusivo</p>
+                    <p className={`font-black text-brand-dark ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>Suplementación recomendada en OFM Health</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Usa tu código para obtener descuento directo.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={async () => {
+                            try {
+                                await navigator.clipboard.writeText('CUIDARTE10');
+                                toast.success('Código CUIDARTE10 copiado');
+                            } catch {
+                                toast.error('No se pudo copiar automáticamente');
+                            }
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white text-amber-800 text-xs font-black border border-amber-200 hover:bg-amber-50 transition-colors"
+                    >
+                        CUIDARTE10
+                    </button>
+                    <button
+                        onClick={() => window.open('https://www.ofm-health.com/', '_blank', 'noopener,noreferrer')}
+                        className="px-3 py-2 rounded-xl bg-brand-green text-white text-xs font-black hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
+                    >
+                        Ir a OFM
+                        <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     const HomeTab = () => {
         const compact = (value?: string, max = 180) => {
             const clean = (value || '').replace(/\s+/g, ' ').trim();
@@ -957,6 +996,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 </div>
 
+                <OfmPromoCard compact />
+
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
                     <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Acciones de hoy</h2>
@@ -967,7 +1008,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             ...(checkinWindowInfo.isVisibleWindow ? [{
                                 label: checkinWindowInfo.isCompleted ? 'Check-in semanal completado' : 'Hacer check-in semanal',
                                 desc: checkinWindowInfo.isCompleted ? 'Ya enviado esta semana' : 'Disponible viernes-lunes',
-                                icon: CheckCircle2,
+                                icon: CircleCheck,
                                 action: () => setActiveView('checkin'),
                                 tone: checkinWindowInfo.isCompleted
                                     ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
@@ -1292,7 +1333,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'from-orange-50 to-white', iconBg: 'bg-orange-100/80', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
                         { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'from-emerald-50 to-white', iconBg: 'bg-emerald-100/80', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
                         { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'from-indigo-50 to-white', iconBg: 'bg-indigo-100/80', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
-                        { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'from-sky-50 to-white', iconBg: 'bg-sky-100/80', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
+                        { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CircleCheck, bg: 'from-sky-50 to-white', iconBg: 'bg-sky-100/80', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
                     ].map(({ label, desc, icon: Icon, bg, iconBg, color, border, action, badge }) => (
                         <button
                             key={label}
@@ -1330,42 +1371,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                     </button>
-                </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-r from-[#fffdf6] via-[#fff9ed] to-[#fffef9] p-4 sm:p-5 shadow-sm">
-                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-brand-gold/20 blur-2xl pointer-events-none" />
-                <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-brand-gold/20 text-amber-700 flex items-center justify-center flex-shrink-0 ring-1 ring-brand-gold/30">
-                        <Sparkles className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] uppercase tracking-[0.16em] font-black text-amber-700/80">Beneficio exclusivo</p>
-                        <p className="font-black text-brand-dark text-sm sm:text-base">Suplementación recomendada en OFM Health</p>
-                        <p className="text-xs text-slate-600 mt-0.5">Usa tu código para obtener descuento directo.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={async () => {
-                                try {
-                                    await navigator.clipboard.writeText('CUIDARTE10');
-                                    toast.success('Código CUIDARTE10 copiado');
-                                } catch {
-                                    toast.error('No se pudo copiar automáticamente');
-                                }
-                            }}
-                            className="px-3 py-2 rounded-xl bg-white text-amber-800 text-xs font-black border border-amber-200 hover:bg-amber-50 transition-colors"
-                        >
-                            CUIDARTE10
-                        </button>
-                        <button
-                            onClick={() => window.open('https://www.ofm-health.com/', '_blank', 'noopener,noreferrer')}
-                            className="px-3 py-2 rounded-xl bg-brand-green text-white text-xs font-black hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
-                        >
-                            Ir a OFM
-                            <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -1474,7 +1479,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         <p className="text-xs text-amber-700 mb-3">Continúa tu transformación con el programa {cAny.renewal_phase_name || 'siguiente'}.</p>
                         {paymentStatus === 'uploaded' ? (
                             <div className="flex items-center gap-2 bg-emerald-50 rounded-xl p-3 border border-emerald-200">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <CircleCheck className="w-4 h-4 text-emerald-600" />
                                 <p className="text-xs text-emerald-700 font-bold">Comprobante enviado — en verificación</p>
                             </div>
                         ) : (
