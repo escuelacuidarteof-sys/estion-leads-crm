@@ -14,6 +14,42 @@ import {
 } from '../types';
 
 const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
+const toStartOfDay = (input: Date | string): Date => {
+    const date = new Date(input);
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const formatDateYYYYMMDD = (input: Date): string => {
+    const date = toStartOfDay(input);
+    return date.toISOString().split('T')[0];
+};
+
+const calculateProgramEndDate = (startDate: string, weeksCount: number): string => {
+    const end = toStartOfDay(startDate);
+    end.setDate(end.getDate() + Math.max(1, weeksCount * 7) - 1);
+    return formatDateYYYYMMDD(end);
+};
+
+const isDateWithinRange = (target: Date, startDate: string, endDate: string): boolean => {
+    const t = toStartOfDay(target).getTime();
+    const s = toStartOfDay(startDate).getTime();
+    const e = toStartOfDay(endDate).getTime();
+    return t >= s && t <= e;
+};
+
+const doDateRangesOverlap = (
+    startA: string,
+    endA: string,
+    startB: string,
+    endB: string
+): boolean => {
+    const aStart = toStartOfDay(startA).getTime();
+    const aEnd = toStartOfDay(endA).getTime();
+    const bStart = toStartOfDay(startB).getTime();
+    const bEnd = toStartOfDay(endB).getTime();
+    return aStart <= bEnd && bStart <= aEnd;
+};
 
 const parseAssessmentPayload = (raw?: string | null): Record<string, any> | undefined => {
     if (!raw || !raw.startsWith(ASSESSMENT_PREFIX)) return undefined;
@@ -457,48 +493,134 @@ export const trainingService = {
         if (error) throw error;
     },
 
-    async getClientAssignment(clientId: string): Promise<ClientTrainingAssignment | null> {
+    async getClientAssignments(clientId: string): Promise<ClientTrainingAssignment[]> {
         const { data, error } = await supabase
             .from('client_training_assignments')
             .select('*')
             .eq('client_id', clientId)
-            .order('assigned_at', { ascending: false })
-            .limit(1)
-            .single();
+            .order('start_date', { ascending: true })
+            .order('assigned_at', { ascending: true });
 
-        if (error) return null;
-        return data;
+        if (error) throw error;
+        const assignments = data || [];
+        if (assignments.length === 0) return [];
+
+        const programIds = [...new Set(assignments.map((a: any) => a.program_id).filter(Boolean))];
+        const { data: programs, error: programsError } = programIds.length > 0
+            ? await supabase
+                .from('training_programs')
+                .select('id, weeks_count')
+                .in('id', programIds)
+            : { data: [], error: null };
+
+        if (programsError) throw programsError;
+
+        const programWeeksMap: Record<string, number> = Object.fromEntries(
+            (programs || []).map((p: any) => [p.id, Number(p.weeks_count) || 1])
+        );
+
+        return assignments.map((assignment: any) => {
+            const weeksCount = programWeeksMap[assignment.program_id] || 1;
+            return {
+                ...assignment,
+                end_date: calculateProgramEndDate(assignment.start_date, weeksCount)
+            };
+        });
+    },
+
+    async getClientAssignmentForDate(clientId: string, dateInput: Date | string = new Date()): Promise<ClientTrainingAssignment | null> {
+        const assignments = await this.getClientAssignments(clientId);
+        if (assignments.length === 0) return null;
+
+        const targetDate = toStartOfDay(dateInput);
+
+        const activeAssignments = assignments
+            .filter((assignment) => assignment.end_date && isDateWithinRange(targetDate, assignment.start_date, assignment.end_date))
+            .sort((a, b) => {
+                const startDiff = toStartOfDay(b.start_date).getTime() - toStartOfDay(a.start_date).getTime();
+                if (startDiff !== 0) return startDiff;
+                return new Date(b.assigned_at || 0).getTime() - new Date(a.assigned_at || 0).getTime();
+            });
+
+        return activeAssignments[0] || null;
+    },
+
+    async getClientAssignment(clientId: string): Promise<ClientTrainingAssignment | null> {
+        return this.getClientAssignmentForDate(clientId, new Date());
+    },
+
+    async getAssignmentConflicts(
+        clientId: string,
+        startDate: string,
+        endDate: string,
+        excludeAssignmentId?: string
+    ): Promise<ClientTrainingAssignment[]> {
+        const assignments = await this.getClientAssignments(clientId);
+
+        return assignments.filter((assignment) => {
+            if (excludeAssignmentId && assignment.id === excludeAssignmentId) return false;
+            if (!assignment.end_date) return false;
+            return doDateRangesOverlap(startDate, endDate, assignment.start_date, assignment.end_date);
+        });
     },
 
     async assignProgramToClient(
         clientId: string,
         programId: string,
         startDate: string,
-        assignedBy: string
-    ): Promise<void> {
-        // Delete any existing assignment first, then insert fresh
-        await supabase
-            .from('client_training_assignments')
-            .delete()
-            .eq('client_id', clientId);
+        assignedBy: string,
+        options?: { allowOverlap?: boolean }
+    ): Promise<ClientTrainingAssignment> {
+        const { data: programData, error: programError } = await supabase
+            .from('training_programs')
+            .select('id, weeks_count')
+            .eq('id', programId)
+            .single();
 
-        const { error } = await supabase
+        if (programError || !programData) throw programError || new Error('Programa no encontrado');
+
+        const normalizedStartDate = formatDateYYYYMMDD(new Date(startDate));
+        const calculatedEndDate = calculateProgramEndDate(normalizedStartDate, Number(programData.weeks_count) || 1);
+
+        const conflicts = await this.getAssignmentConflicts(clientId, normalizedStartDate, calculatedEndDate);
+        if (conflicts.length > 0 && !options?.allowOverlap) {
+            const overlapError: any = new Error('El rango de fechas se solapa con otros programas del cliente.');
+            overlapError.code = 'TRAINING_OVERLAP';
+            overlapError.conflicts = conflicts;
+            overlapError.requestedRange = { start_date: normalizedStartDate, end_date: calculatedEndDate };
+            throw overlapError;
+        }
+
+        const { data, error } = await supabase
             .from('client_training_assignments')
             .insert({
                 client_id: clientId,
                 program_id: programId,
-                start_date: startDate,
+                start_date: normalizedStartDate,
+                assigned_by: assignedBy,
                 assigned_at: new Date().toISOString()
-            });
+            })
+            .select('*')
+            .single();
 
         if (error) throw error;
+        return {
+            ...data,
+            end_date: calculatedEndDate
+        };
     },
 
-    async removeClientAssignment(clientId: string): Promise<void> {
-        const { error } = await supabase
+    async removeClientAssignment(clientId: string, assignmentId?: string): Promise<void> {
+        let query = supabase
             .from('client_training_assignments')
             .delete()
             .eq('client_id', clientId);
+
+        if (assignmentId) {
+            query = query.eq('id', assignmentId);
+        }
+
+        const { error } = await query;
 
         if (error) throw error;
     },
