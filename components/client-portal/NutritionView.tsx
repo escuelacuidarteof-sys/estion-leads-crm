@@ -17,7 +17,8 @@ import {
     CalendarDays,
     ShoppingCart,
     Download,
-    Clock
+    Clock,
+    Heart
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { nutritionService } from '../../services/nutritionService';
@@ -60,6 +61,23 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
     const [plannerGrid, setPlannerGrid] = useState<Record<string, string | null>>({});
     const [plannerSyncStatus, setPlannerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const saveTimerRef = useRef<number | null>(null);
+    const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+    const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
+        try {
+            const raw = localStorage.getItem(`ec_crm_recipe_favs_${client.id}`);
+            return raw ? new Set(JSON.parse(raw)) : new Set();
+        } catch { return new Set(); }
+    });
+
+    const toggleFavorite = (recipeId: string) => {
+        setFavoriteIds(prev => {
+            const next = new Set(prev);
+            if (next.has(recipeId)) next.delete(recipeId);
+            else next.add(recipeId);
+            try { localStorage.setItem(`ec_crm_recipe_favs_${client.id}`, JSON.stringify([...next])); } catch {}
+            return next;
+        });
+    };
 
     const getPlannerStorageKey = (planId: string) => `ec_crm_weekly_plan_${planId}`;
 
@@ -235,9 +253,9 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
     };
 
     const getRecipesByCategory = (category: RecipeCategory): RecipeWithOverride[] => {
-        return recipes
-            .filter(r => r.category === category)
-            .sort((a, b) => a.position - b.position);
+        let filtered = recipes.filter(r => r.category === category);
+        if (showFavoritesOnly) filtered = filtered.filter(r => favoriteIds.has(r.id));
+        return filtered.sort((a, b) => a.position - b.position);
     };
 
     // Per-tab: priorizar recetas estructuradas sobre bloques de texto
@@ -651,6 +669,20 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                                     </div>
                                 </div>
 
+                                {/* Favorites filter */}
+                                {recipes.length > 0 && (
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <button
+                                            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${showFavoritesOnly ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-950 dark:border-red-800 dark:text-red-400' : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
+                                        >
+                                            <Heart className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
+                                            {showFavoritesOnly ? 'Favoritas' : 'Favoritas'}
+                                            {favoriteIds.size > 0 && <span className="ml-0.5 text-[10px]">({favoriteIds.size})</span>}
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Recipe Content */}
                                 <div className="space-y-4">
                                     {hasRecipesForTab(activeTab as RecipeCategory) ? (
@@ -660,6 +692,8 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                                                     key={recipe.id}
                                                     recipe={recipe}
                                                     onClick={() => setSelectedRecipeDetail(recipe)}
+                                                    isFavorite={favoriteIds.has(recipe.id)}
+                                                    onToggleFavorite={toggleFavorite}
                                                 />
                                             ))}
                                         </div>
@@ -685,6 +719,8 @@ export function NutritionView({ client, onBack }: NutritionViewProps) {
                             <RecipeDetailModal
                                 recipe={selectedRecipeDetail}
                                 onClose={() => setSelectedRecipeDetail(null)}
+                                isFavorite={favoriteIds.has(selectedRecipeDetail.id)}
+                                onToggleFavorite={toggleFavorite}
                             />
                         )}
                     </div>

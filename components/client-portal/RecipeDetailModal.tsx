@@ -1,10 +1,12 @@
 import React from 'react';
-import { X, Flame, Coffee, Sun, Moon, Cookie, UtensilsCrossed, ListChecks, MessageSquare } from 'lucide-react';
+import { X, Flame, Coffee, Sun, Moon, Cookie, UtensilsCrossed, ListChecks, MessageSquare, Heart } from 'lucide-react';
 import { NutritionRecipe, RecipeCategory, ClientNutritionOverride } from '../../types';
 
 interface RecipeDetailModalProps {
   recipe: NutritionRecipe & { override?: ClientNutritionOverride };
   onClose: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (recipeId: string) => void;
 }
 
 const CATEGORY_META: Record<RecipeCategory, { icon: React.FC<any>; label: string; gradient: string }> = {
@@ -14,18 +16,26 @@ const CATEGORY_META: Record<RecipeCategory, { icon: React.FC<any>; label: string
   snack: { icon: Cookie, label: 'Snack', gradient: 'from-emerald-500 to-teal-400' }
 };
 
-export function RecipeDetailModal({ recipe, onClose }: RecipeDetailModalProps) {
+export function RecipeDetailModal({ recipe, onClose, isFavorite, onToggleFavorite }: RecipeDetailModalProps) {
   const meta = CATEGORY_META[recipe.category] || CATEGORY_META.snack;
   const Icon = meta.icon;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className={`p-6 bg-gradient-to-r ${meta.gradient} text-white relative`}>
+          {onToggleFavorite && (
+            <button
+              onClick={() => onToggleFavorite(recipe.id)}
+              className="absolute top-4 right-14 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-white text-white' : 'text-white/70'}`} />
+            </button>
+          )}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"

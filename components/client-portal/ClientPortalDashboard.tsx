@@ -15,7 +15,7 @@ import {
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
-    Moon, Shield, Sparkles, CheckCircle, Camera, Leaf
+    Moon, Sun, Shield, Sparkles, CheckCircle, Camera, Leaf, RotateCcw
 } from 'lucide-react';
 import { MeditationView } from './MeditationView';
 import { Client } from '../../types';
@@ -46,7 +46,25 @@ import { NotificationBell } from './NotificationPanel';
 import { WeeklySummaryCard } from './WeeklySummaryCard';
 import { ProgressPhotos } from './ProgressPhotos';
 import { SymptomInsights } from './SymptomInsights';
+import { MedicationTracker } from './MedicationTracker';
+import { HydrationWidget } from './HydrationWidget';
+import { MedicalHistoryPdf } from './MedicalHistoryPdf';
+import { OnboardingTour, hasCompletedOnboarding, resetOnboarding } from './OnboardingTour';
+import { ThemeProvider, useTheme } from '../../contexts/ThemeContext';
 
+
+function ThemeToggleButton() {
+    const { theme, toggleTheme } = useTheme();
+    return (
+        <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        >
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+        </button>
+    );
+}
 
 interface WeightEntry {
     id: string;
@@ -1006,13 +1024,15 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             <p className="text-slate-600 font-medium mt-1">{warmthLine}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <NotificationBell 
-                                clientId={client.id} 
-                                onNavigate={(tab, view) => {
-                                    if (tab) setActiveTab(tab as any);
-                                    if (view) setActiveView(view as any);
-                                }} 
-                            />
+                            <div id="notification-bell">
+                                <NotificationBell
+                                    clientId={client.id}
+                                    onNavigate={(tab, view) => {
+                                        if (tab) setActiveTab(tab as any);
+                                        if (view) setActiveView(view as any);
+                                    }}
+                                />
+                            </div>
                             {nextAppt && (
                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-emerald-100 p-3 sm:p-4 text-center ring-4 ring-emerald-50/50">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Siguiente cita</p>
@@ -1296,6 +1316,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             <BodyMeasurementsCard clientId={client.id} initialAbdominal={client.abdominal_perimeter} initialArm={client.arm_perimeter} initialThigh={client.thigh_perimeter} />
             <WellnessCard clientId={client.id} />
 
+            <MedicationTracker clientId={client.id} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <HydrationWidget clientId={client.id} />
+                <StepsCard clientId={client.id} isClientView={true} />
+            </div>
+
             {/* Objetivos */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
                 <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-brand-green" /> Mis Objetivos</p>
@@ -1330,7 +1357,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
             </button>
-            <StepsCard clientId={client.id} isClientView={true} />
         </div>
     );
 
@@ -1556,6 +1582,21 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                     </div>
                 )}
+
+                {/* Repetir tutorial */}
+                <button
+                    onClick={() => { resetOnboarding(client.id); window.location.reload(); }}
+                    className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left"
+                >
+                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <RotateCcw className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-black text-brand-dark text-sm">Repetir Tutorial</p>
+                        <p className="text-xs text-slate-500">Revisa el recorrido por el portal</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                </button>
             </div>
         );
     };
@@ -1572,10 +1613,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- MAIN RENDER ---
     return (
-        <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center">
+        <ThemeProvider>
+        <div className="min-h-screen bg-[#f8faf8] dark:bg-slate-950 flex flex-col items-center transition-colors">
             <div className="w-full max-w-6xl mx-auto flex flex-col min-h-screen relative">
                 {/* Header fijo */}
-                <div className="bg-white/85 backdrop-blur-md border-b border-slate-100 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                <div className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-brand-green to-brand-green-dark rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
                             <span className="text-white font-heading font-black text-xl">{(client.firstName || '?')[0].toUpperCase()}</span>
@@ -1586,8 +1628,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <ThemeToggleButton />
                         {coachData && (
-                            <div className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-100 pr-3">
+                            <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700 pr-3">
                                 <div className="relative">
                                     {coachData.photo_url ? (
                                         <img src={coachData.photo_url} className="w-9 h-9 rounded-full object-cover shadow-sm" alt={coachData.name} />
@@ -1611,7 +1654,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         {activeTab === 'home' && <HomeTab />}
                         {activeTab === 'health' && <HealthTab />}
                         {activeTab === 'program' && <ProgramTab />}
-                        {activeTab === 'treatment' && <TreatmentView clientId={client.id} />}
+                        {activeTab === 'treatment' && (
+                            <div className="space-y-4">
+                                <TreatmentView clientId={client.id} />
+                                <MedicalHistoryPdf client={client} />
+                            </div>
+                        )}
                         {activeTab === 'consultas' && <ConsultasTab />}
                         {activeTab === 'profile' && <ProfileTab />}
                     </div>
@@ -1625,6 +1673,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             return (
                                 <button
                                     key={id}
+                                    id={`tab-${id}`}
                                     onClick={() => setActiveTab(id)}
                                     className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all relative"
                                 >
@@ -1691,6 +1740,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 )}
             </div>
+            {!hasCompletedOnboarding(client.id) && (
+                <OnboardingTour clientId={client.id} onComplete={() => {}} />
+            )}
         </div>
+        </ThemeProvider>
     );
 }

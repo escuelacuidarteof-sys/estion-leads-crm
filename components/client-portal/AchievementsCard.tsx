@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Trophy, Lock, Sparkles } from 'lucide-react';
+import { Trophy, Lock, Sparkles, X } from 'lucide-react';
+import { MOTIVATIONAL_MESSAGES } from '../../services/achievementService';
 
 interface Achievement {
     id: string;
@@ -27,10 +28,25 @@ export function AchievementsCard({ clientId }: AchievementsCardProps) {
     const [unlockedAchievements, setUnlockedAchievements] = useState<ClientAchievement[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAll, setShowAll] = useState(false);
+    const [celebration, setCelebration] = useState<Achievement | null>(null);
+    const [prevUnlockedIds, setPrevUnlockedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadAchievements();
     }, [clientId]);
+
+    // Detect new unlocks for celebration modal
+    const detectNewUnlocks = useCallback((newUnlocked: ClientAchievement[]) => {
+        if (prevUnlockedIds.size === 0) {
+            setPrevUnlockedIds(new Set(newUnlocked.map(u => u.achievement_id)));
+            return;
+        }
+        const newOnes = newUnlocked.filter(u => !prevUnlockedIds.has(u.achievement_id));
+        if (newOnes.length > 0 && newOnes[0].achievement) {
+            setCelebration(newOnes[0].achievement);
+        }
+        setPrevUnlockedIds(new Set(newUnlocked.map(u => u.achievement_id)));
+    }, [prevUnlockedIds]);
 
     const loadAchievements = async () => {
         setLoading(true);
@@ -49,7 +65,10 @@ export function AchievementsCard({ clientId }: AchievementsCardProps) {
             .select('*, achievement:achievements(*)')
             .eq('client_id', clientId);
 
-        if (unlockedData) setUnlockedAchievements(unlockedData);
+        if (unlockedData) {
+            setUnlockedAchievements(unlockedData);
+            detectNewUnlocks(unlockedData);
+        }
         setLoading(false);
     };
 
@@ -197,6 +216,24 @@ export function AchievementsCard({ clientId }: AchievementsCardProps) {
                 <p className="text-center text-slate-500 text-sm py-4">
                     ¡Comienza a registrar tu progreso para desbloquear logros! 🏆
                 </p>
+            )}
+
+            {/* Celebration Modal */}
+            {celebration && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setCelebration(null)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl animate-in zoom-in-75 duration-300" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setCelebration(null)} className="absolute top-4 right-4 text-slate-300"><X className="w-5 h-5" /></button>
+                        <div className="text-6xl mb-4">{celebration.icon}</div>
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-200 mb-2">{celebration.title}</h2>
+                        <p className="text-slate-500 mb-3">{celebration.description}</p>
+                        <p className="text-amber-600 dark:text-amber-400 font-semibold text-sm italic">
+                            {MOTIVATIONAL_MESSAGES[celebration.code] || '¡Sigue así!'}
+                        </p>
+                        <button onClick={() => setCelebration(null)} className="mt-5 px-6 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
+                            ¡Genial! 🎉
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
