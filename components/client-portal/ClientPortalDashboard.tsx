@@ -148,6 +148,31 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [tempGoal1, setTempGoal1] = useState(client.goals?.goal_1_year || '');
     const [isSavingGoal1, setIsSavingGoal1] = useState(false);
 
+    const DAY_IN_MS = 86400000;
+
+    const toStartOfDay = (input: Date | string) => {
+        const date = new Date(input);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    };
+
+    const getProgramDateMeta = (inputDate: Date, startDate: string, weeksCount: number): { week: number; dayNumber: number } | null => {
+        const totalDays = Math.max(0, weeksCount * 7);
+        if (totalDays === 0) return null;
+
+        const date = toStartOfDay(inputDate);
+        const start = toStartOfDay(startDate);
+        const diffDays = Math.floor((date.getTime() - start.getTime()) / DAY_IN_MS);
+
+        if (diffDays < 0 || diffDays >= totalDays) return null;
+
+        const dayIndex = diffDays + 1;
+        return {
+            week: Math.ceil(dayIndex / 7),
+            dayNumber: ((dayIndex - 1) % 7) + 1
+        };
+    };
+
     useEffect(() => {
         loadData();
     }, [client.id, client.coach_id]);
@@ -187,6 +212,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     useEffect(() => {
         const loadTodayTasks = async () => {
             setIsTodayTasksLoading(true);
+            setTodayProgramDay(null);
+            setTodayWorkout(null);
+            setTodayActivityLogs([]);
             try {
                 const asgn = await trainingService.getClientAssignment(client.id);
                 if (!asgn) return;
@@ -196,15 +224,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 setWeekProgram(prog);
                 setWeekAssignment(asgn);
 
-                const startDate = new Date(asgn.start_date);
                 const now = new Date();
-                const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
-                const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
-                const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
+                const todayMeta = getProgramDateMeta(now, asgn.start_date, prog.weeks_count);
 
-                let currentDayIndex = now.getDay() || 7;
+                const todayDay = todayMeta
+                    ? prog.days?.find((d: any) => d.week_number === todayMeta.week && d.day_number === todayMeta.dayNumber)
+                    : null;
 
-                const todayDay = prog.days?.find((d: any) => d.week_number === clampedWeek && d.day_number === currentDayIndex);
                 if (todayDay) {
                     setTodayProgramDay(todayDay);
                     const logs = await trainingService.getClientActivityLogs(client.id, todayDay.id);
@@ -881,8 +907,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     const getCalendarWeekDates = () => {
         if (!weekAssignment || !weekProgram) return null;
-        const startDate = new Date(weekAssignment.start_date);
         const now = new Date();
+        const currentProgramMeta = getProgramDateMeta(now, weekAssignment.start_date, weekProgram.weeks_count);
+        if (!currentProgramMeta) return null;
 
         // Calcular el lunes de la semana actual (real)
         const todayDay = now.getDay(); // 0=dom, 1=lun...
@@ -891,21 +918,15 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         weekMonday.setDate(now.getDate() + mondayOffset);
         weekMonday.setHours(0, 0, 0, 0);
 
-        // Calcular qué semana del programa es
-        const startMs = new Date(startDate).setHours(0, 0, 0, 0);
-        const diffDays = Math.floor((weekMonday.getTime() - startMs) / 86400000);
-        const calculatedWeek = Math.max(1, Math.floor(diffDays / 7) + 1);
-        const clampedWeek = Math.min(calculatedWeek, weekProgram.weeks_count);
-
-        return { week: clampedWeek, days: Array.from({ length: 7 }, (_, i) => {
+        return { week: currentProgramMeta.week, days: Array.from({ length: 7 }, (_, i) => {
             const date = new Date(weekMonday);
             date.setDate(date.getDate() + i);
-            // Mapear fecha real a día del programa: días transcurridos desde start_date + 1
-            const daysSinceStart = Math.floor((date.getTime() - startMs) / 86400000);
-            const programDayNumber = daysSinceStart + 1;
-            const dayData = weekProgram.days?.find(
-                (d: any) => d.week_number === clampedWeek && d.day_number === programDayNumber - (clampedWeek - 1) * 7
-            );
+            const programDateMeta = getProgramDateMeta(date, weekAssignment.start_date, weekProgram.weeks_count);
+            const dayData = programDateMeta
+                ? weekProgram.days?.find(
+                    (d: any) => d.week_number === programDateMeta.week && d.day_number === programDateMeta.dayNumber
+                )
+                : null;
             return {
                 dayNumber: i + 1,
                 date,

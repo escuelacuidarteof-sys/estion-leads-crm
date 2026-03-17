@@ -13,6 +13,8 @@ import { CreateAnnouncement } from './MassCommunication';
 import { mapRowToClient } from '../services/mockSupabase';
 import { CoachTasksDashboard } from './CoachTasksDashboard';
 import { StaffPerformance } from './StaffPerformance';
+import { TodayFocusWidget } from './TodayFocusWidget';
+import { AgendaMiniWidget } from './AgendaMiniWidget';
 
 interface DashboardProps {
    clients: Client[];
@@ -712,6 +714,9 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, user, onNavigateToClient
             </div>
          </div>
 
+         {/* --- TODAY FOCUS WIDGET --- */}
+         <TodayFocusWidget user={user} onNavigateToView={onNavigateToView ? (v: string) => onNavigateToView(v) : undefined} />
+
          {/* --- DEADLINE ALERTS (New Section for Proactive Notifications) --- */}
          {(dueAlerts.tasks.length > 0 || dueAlerts.tickets.length > 0 || dueAlerts.rejectedInvoices.length > 0 || (metrics.stats.renewalsTarget - metrics.stats.renewalsDone) > 0) && (
             <div className="mb-8 p-1 bg-gradient-to-r from-rose-500/20 via-amber-500/20 to-rose-500/20 rounded-3xl animate-in slide-in-from-top-4">
@@ -1161,10 +1166,13 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, user, onNavigateToClient
          </div>
 
 
-         {/* --- ROW 3: TASKS & STAFF ACTIVITY --- */}
+         {/* --- ROW 3: TASKS & AGENDA --- */}
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className={`${(user.role === 'admin' || user.role === 'head_coach') ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+            <div className="lg:col-span-2">
                <CoachTasksDashboard user={user} />
+            </div>
+            <div className="lg:col-span-1">
+               <AgendaMiniWidget user={user} onNavigateToClient={onNavigateToClient} onNavigateToView={onNavigateToView ? (v: string) => onNavigateToView(v) : undefined} />
             </div>
 
             {(user.role === 'admin' || user.role === 'head_coach') && (

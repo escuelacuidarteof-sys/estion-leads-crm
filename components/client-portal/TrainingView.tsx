@@ -44,6 +44,36 @@ const ACTIVITY_META: Record<ActivityType, { label: string; Icon: React.FC<any> }
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const DAY_NAMES_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
+const DAY_IN_MS = 86400000;
+
+function toStartOfDay(input: Date | string): Date {
+    const date = new Date(input);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function getProgramDateMeta(inputDate: Date, startDate: string, weeksCount: number): { week: number; dayNumber: number } | null {
+    const totalDays = Math.max(0, weeksCount * 7);
+    if (totalDays === 0) return null;
+
+    const date = toStartOfDay(inputDate);
+    const start = toStartOfDay(startDate);
+    const diffDays = Math.floor((date.getTime() - start.getTime()) / DAY_IN_MS);
+
+    if (diffDays < 0 || diffDays >= totalDays) return null;
+
+    const dayIndex = diffDays + 1;
+    return {
+        week: Math.ceil(dayIndex / 7),
+        dayNumber: ((dayIndex - 1) % 7) + 1
+    };
+}
+
+function getProgramEndDate(startDate: string, weeksCount: number): Date {
+    const endDate = toStartOfDay(startDate);
+    endDate.setDate(endDate.getDate() + Math.max(1, weeksCount * 7) - 1);
+    return endDate;
+}
 
 function parseAssessmentPayload(raw?: string) {
     if (!raw || !raw.startsWith(ASSESSMENT_PREFIX)) return null;
@@ -939,23 +969,13 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
     const [completedDayIds, setCompletedDayIds] = useState<Set<string>>(new Set());
-    const [currentCalendarWeek, setCurrentCalendarWeek] = useState(1);
-
-    const getStartOfWeekMonday = (input: Date) => {
-        const date = new Date(input);
-        date.setHours(0, 0, 0, 0);
-        const day = date.getDay(); // 0 = Sunday
-        const diff = day === 0 ? -6 : 1 - day;
-        date.setDate(date.getDate() + diff);
-        return date;
-    };
 
     const getCalendarDateForDay = (week: number, dayNumber: number) => {
-        const today = new Date();
-        const monday = getStartOfWeekMonday(today);
-        const weekOffset = week - currentCalendarWeek;
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + (weekOffset * 7) + (dayNumber - 1));
+        if (!assignment) return new Date();
+        const start = toStartOfDay(assignment.start_date);
+        const offset = ((week - 1) * 7) + (dayNumber - 1);
+        const date = new Date(start);
+        date.setDate(start.getDate() + offset);
         return date;
     };
 
@@ -963,6 +983,9 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
 
     const formatSpanishDate = (date: Date) =>
         date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+    const formatSpanishDateLong = (date: Date) =>
+        date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
     const loadActivityLogs = async (dayId: string) => {
         try {
@@ -1062,14 +1085,9 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                 }
                 setProgram(prog);
 
-                // Calculate current week from start_date
-                const startDate = new Date(asgn.start_date);
-                const now = new Date();
-                const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
-                const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
-                const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
-                setSelectedWeek(clampedWeek);
-                setCurrentCalendarWeek(clampedWeek);
+                const todayMeta = getProgramDateMeta(new Date(), asgn.start_date, prog.weeks_count);
+                setSelectedWeek(todayMeta?.week || 1);
+                setSelectedDay(todayMeta?.dayNumber || null);
                 loadCompletedDays(prog);
             } catch (err) {
                 console.error('Error loading training assignment:', err);
@@ -1194,6 +1212,12 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     }
 
     const selectedDayData = selectedDay !== null ? getDayData(selectedWeek, selectedDay) : null;
+    const activeDayMeta = getProgramDateMeta(new Date(), assignment.start_date, program.weeks_count);
+    const isProgramActiveToday = !!activeDayMeta;
+    const programStartDate = toStartOfDay(assignment.start_date);
+    const programEndDate = getProgramEndDate(assignment.start_date, program.weeks_count);
+    const todayDate = toStartOfDay(new Date());
+    const isProgramUpcoming = todayDate.getTime() < programStartDate.getTime();
 
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
@@ -1234,130 +1258,147 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
 
             {viewMode === 'program' && (
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-                {/* Week Selector */}
-                {program.weeks_count > 1 && (
-                    <div>
-                        <p className="text-xs font-black text-brand-dark uppercase tracking-wider mb-2 px-1">
-                            Semana
+                {!isProgramActiveToday ? (
+                    <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
+                        <Calendar className="w-8 h-8 text-brand-mint mx-auto mb-2" />
+                        <p className="text-sm font-bold text-brand-dark">
+                            {isProgramUpcoming ? 'Tu plan aún no ha comenzado' : 'Tu plan ya finalizó'}
                         </p>
-                        <div className="flex gap-2 overflow-x-auto pb-1">
-                            {Array.from({ length: program.weeks_count }, (_, i) => i + 1).map((week) => (
-                                <button
-                                    key={week}
-                                    onClick={() => { setSelectedWeek(week); setSelectedDay(null); setSelectedWorkout(null); }}
-                                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedWeek === week
-                                        ? 'bg-brand-green text-white shadow-sm'
-                                        : 'bg-white border border-brand-mint/40 text-brand-dark hover:bg-brand-mint/20'
-                                        }`}
-                                >
-                                    Sem. {week}
-                                </button>
-                            ))}
-                        </div>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Vigencia: {formatSpanishDateLong(programStartDate)} - {formatSpanishDateLong(programEndDate)}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-2">
+                            Puedes revisar tu historial en la pestaña "Historial".
+                        </p>
                     </div>
-                )}
-
-                {/* Day Grid */}
-                <div>
-                    <p className="text-xs font-black text-brand-dark uppercase tracking-wider mb-2 px-1">
-                        Días — Semana {selectedWeek}
-                    </p>
-                    <div className="grid grid-cols-7 gap-1.5">
-                        {Array.from({ length: 7 }, (_, i) => i + 1).map((dayNum) => {
-                            const hasContent = hasDayContent(selectedWeek, dayNum);
-                            const isSelected = selectedDay === dayNum;
-                            const dayData = getDayData(selectedWeek, dayNum);
-                            const activities = dayData?.activities || [];
-                            const isDayCompleted = dayData ? completedDayIds.has(dayData.id) : false;
-                            const calendarDate = getCalendarDateForDay(selectedWeek, dayNum);
-                            const today = new Date();
-                            const isToday =
-                                calendarDate.getDate() === today.getDate() &&
-                                calendarDate.getMonth() === today.getMonth() &&
-                                calendarDate.getFullYear() === today.getFullYear();
-
-                            return (
-                                <button
-                                    key={dayNum}
-                                    onClick={() => hasContent ? setSelectedDay(isSelected ? null : dayNum) : undefined}
-                                    disabled={!hasContent}
-                                    className={`relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isSelected
-                                        ? 'bg-brand-green text-white shadow-sm'
-                                        : isDayCompleted
-                                            ? 'bg-green-50 border-2 border-brand-green/60 text-brand-dark hover:bg-green-100 active:scale-95'
-                                            : hasContent
-                                                ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
-                                                : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
-                                        }`}
-                                >
-                                    {isDayCompleted && !isSelected && (
-                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-green rounded-full flex items-center justify-center shadow-sm">
-                                            <CheckCircle className="w-3 h-3 text-white" />
-                                        </div>
-                                    )}
-                                    <span className="text-[10px] font-black uppercase tracking-wider">
-                                        {DAY_NAMES[dayNum - 1]}
-                                    </span>
-                                    <span className={`text-[11px] font-black leading-none ${isSelected ? 'text-white' : isToday ? 'text-brand-green' : 'text-slate-500'}`}>
-                                        {formatDayNumber(calendarDate)}
-                                    </span>
-                                    <div className="flex flex-col items-center gap-0.5 min-h-[32px] justify-center">
-                                        {hasContent ? (
-                                            activities.slice(0, 2).map((act, idx) => {
-                                                const type = (act.type || 'custom') as ActivityType;
-                                                const { Icon } = ACTIVITY_META[type] || ACTIVITY_META.custom;
-                                                return (
-                                                    <Icon
-                                                        key={idx}
-                                                        className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-brand-green'}`}
-                                                    />
-                                                );
-                                            })
-                                        ) : (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
-                                        )}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Day Detail Panel */}
-                {selectedDay !== null && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {selectedDayData ? (
-                            <DayDetail
-                                day={selectedDayData}
-                                workout={selectedWorkout}
-                                workoutLoading={workoutLoading}
-                                dayName={`${DAY_NAMES_FULL[selectedDay - 1]} ${selectedDay !== null ? `(${formatSpanishDate(getCalendarDateForDay(selectedWeek, selectedDay))})` : ''}`}
-                                clientId={client.id}
-                                activityLogs={activityLogs}
-                                dayLog={dayLog}
-                                onStartWorkout={(workout, activityId) => setActiveWorkout({ workout, dayId: selectedDayData!.id, activityId })}
-                                onOpenCheckin={() => setShowCheckin(true)}
-                                onActivitySaved={() => {
-                                    loadActivityLogs(selectedDayData.id);
-                                    loadCompletedDays(program);
-                                }}
-                            />
-                        ) : (
-                            <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
-                                <Calendar className="w-8 h-8 text-brand-mint mx-auto mb-2" />
-                                <p className="text-sm text-slate-400">Día de descanso</p>
+                ) : (
+                    <>
+                        {/* Week Selector */}
+                        {program.weeks_count > 1 && (
+                            <div>
+                                <p className="text-xs font-black text-brand-dark uppercase tracking-wider mb-2 px-1">
+                                    Semana
+                                </p>
+                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                    {Array.from({ length: program.weeks_count }, (_, i) => i + 1).map((week) => (
+                                        <button
+                                            key={week}
+                                            onClick={() => { setSelectedWeek(week); setSelectedDay(null); setSelectedWorkout(null); }}
+                                            className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedWeek === week
+                                                ? 'bg-brand-green text-white shadow-sm'
+                                                : 'bg-white border border-brand-mint/40 text-brand-dark hover:bg-brand-mint/20'
+                                                }`}
+                                        >
+                                            Sem. {week}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
-                    </div>
-                )}
 
-                {selectedDay === null && (
-                    <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
-                        <Dumbbell className="w-8 h-8 text-brand-mint mx-auto mb-2" />
-                        <p className="text-sm text-slate-500 font-medium">
-                            Selecciona un día para ver tus actividades
-                        </p>
-                    </div>
+                        {/* Day Grid */}
+                        <div>
+                            <p className="text-xs font-black text-brand-dark uppercase tracking-wider mb-2 px-1">
+                                Días — Semana {selectedWeek}
+                            </p>
+                            <div className="grid grid-cols-7 gap-1.5">
+                                {Array.from({ length: 7 }, (_, i) => i + 1).map((dayNum) => {
+                                    const hasContent = hasDayContent(selectedWeek, dayNum);
+                                    const isSelected = selectedDay === dayNum;
+                                    const dayData = getDayData(selectedWeek, dayNum);
+                                    const activities = dayData?.activities || [];
+                                    const isDayCompleted = dayData ? completedDayIds.has(dayData.id) : false;
+                                    const calendarDate = getCalendarDateForDay(selectedWeek, dayNum);
+                                    const today = new Date();
+                                    const isToday =
+                                        calendarDate.getDate() === today.getDate() &&
+                                        calendarDate.getMonth() === today.getMonth() &&
+                                        calendarDate.getFullYear() === today.getFullYear();
+
+                                    return (
+                                        <button
+                                            key={dayNum}
+                                            onClick={() => hasContent ? setSelectedDay(isSelected ? null : dayNum) : undefined}
+                                            disabled={!hasContent}
+                                            className={`relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isSelected
+                                                ? 'bg-brand-green text-white shadow-sm'
+                                                : isDayCompleted
+                                                    ? 'bg-green-50 border-2 border-brand-green/60 text-brand-dark hover:bg-green-100 active:scale-95'
+                                                    : hasContent
+                                                        ? 'bg-white border border-brand-mint text-brand-dark hover:bg-brand-mint/20 active:scale-95'
+                                                        : 'bg-white border border-gray-100 text-gray-300 opacity-50 cursor-default'
+                                                }`}
+                                        >
+                                            {isDayCompleted && !isSelected && (
+                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-green rounded-full flex items-center justify-center shadow-sm">
+                                                    <CheckCircle className="w-3 h-3 text-white" />
+                                                </div>
+                                            )}
+                                            <span className="text-[10px] font-black uppercase tracking-wider">
+                                                {DAY_NAMES[dayNum - 1]}
+                                            </span>
+                                            <span className={`text-[11px] font-black leading-none ${isSelected ? 'text-white' : isToday ? 'text-brand-green' : 'text-slate-500'}`}>
+                                                {formatDayNumber(calendarDate)}
+                                            </span>
+                                            <div className="flex flex-col items-center gap-0.5 min-h-[32px] justify-center">
+                                                {hasContent ? (
+                                                    activities.slice(0, 2).map((act, idx) => {
+                                                        const type = (act.type || 'custom') as ActivityType;
+                                                        const { Icon } = ACTIVITY_META[type] || ACTIVITY_META.custom;
+                                                        return (
+                                                            <Icon
+                                                                key={idx}
+                                                                className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-brand-green'}`}
+                                                            />
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Day Detail Panel */}
+                        {selectedDay !== null && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                {selectedDayData ? (
+                                    <DayDetail
+                                        day={selectedDayData}
+                                        workout={selectedWorkout}
+                                        workoutLoading={workoutLoading}
+                                        dayName={`${DAY_NAMES_FULL[selectedDay - 1]} ${selectedDay !== null ? `(${formatSpanishDate(getCalendarDateForDay(selectedWeek, selectedDay))})` : ''}`}
+                                        clientId={client.id}
+                                        activityLogs={activityLogs}
+                                        dayLog={dayLog}
+                                        onStartWorkout={(workout, activityId) => setActiveWorkout({ workout, dayId: selectedDayData!.id, activityId })}
+                                        onOpenCheckin={() => setShowCheckin(true)}
+                                        onActivitySaved={() => {
+                                            loadActivityLogs(selectedDayData.id);
+                                            loadCompletedDays(program);
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
+                                        <Calendar className="w-8 h-8 text-brand-mint mx-auto mb-2" />
+                                        <p className="text-sm text-slate-400">Día de descanso</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {selectedDay === null && (
+                            <div className="bg-white rounded-2xl border border-brand-mint/40 p-6 text-center">
+                                <Dumbbell className="w-8 h-8 text-brand-mint mx-auto mb-2" />
+                                <p className="text-sm text-slate-500 font-medium">
+                                    Selecciona un día para ver tus actividades
+                                </p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             )}

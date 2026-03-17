@@ -931,6 +931,7 @@ export interface ClientTrainingAssignment {
   client_id: string;
   program_id: string;
   start_date: string;
+  end_date?: string;
   assigned_by?: string;
   assigned_at?: string;
 }
