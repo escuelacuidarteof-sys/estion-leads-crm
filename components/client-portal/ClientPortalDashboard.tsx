@@ -91,6 +91,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [coachData, setCoachData] = useState<any>(null);
     const [showFullPlan, setShowFullPlan] = useState(false);
     const [showFullAssessment, setShowFullAssessment] = useState(false);
+    const [showTour, setShowTour] = useState(() => !hasCompletedOnboarding(client.id));
 
     // Today's Tasks & Weekly Calendar
     const [todayProgramDay, setTodayProgramDay] = useState<any | null>(null);
@@ -1606,7 +1607,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                 {/* Repetir tutorial */}
                 <button
-                    onClick={() => { resetOnboarding(client.id); window.location.reload(); }}
+                    onClick={() => { resetOnboarding(client.id); setShowTour(true); setActiveTab('home'); }}
                     className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left"
                 >
                     <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -1761,8 +1762,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 )}
             </div>
-            {!hasCompletedOnboarding(client.id) && (
-                <OnboardingTour clientId={client.id} onComplete={() => {}} />
+            {showTour && (
+                <OnboardingTour clientId={client.id} onComplete={() => setShowTour(false)} />
             )}
         </div>
         </ThemeProvider>
