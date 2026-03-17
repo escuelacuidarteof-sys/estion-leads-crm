@@ -67,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedSections, setExpandedSections] = React.useState<string[]>([]);
   const [sidebarSearch, setSidebarSearch] = React.useState('');
-  const [showOnboarding, setShowOnboarding] = React.useState(() => isCoach && !hasCompletedStaffOnboarding(user.id));
+  const [showOnboarding, setShowOnboarding] = React.useState(() => normalizeRole(user.role) === 'coach' && !hasCompletedStaffOnboarding(user.id));
   const [pendingInvoicesCount, setPendingInvoicesCount] = React.useState(0);
   const [riskAlertsCount, setRiskAlertsCount] = React.useState(0);
   const [lastViewedRiskCount, setLastViewedRiskCount] = React.useState(0);
