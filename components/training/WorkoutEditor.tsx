@@ -66,6 +66,7 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
     const [selectedMuscle, setSelectedMuscle] = useState<string>('');
     const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
     const [editingBlockName, setEditingBlockName] = useState('');
+    const [previewExerciseId, setPreviewExerciseId] = useState<string | null>(null);
 
     const selectedBlock = blocks.find(b => b.id === selectedBlockId);
 
@@ -395,6 +396,10 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                     ) : (
                                         <div className="flex flex-col">
                                             {selectedBlock.exercises.map((item, index) => {
+                                                const thumbnailUrl = ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '');
+                                                const embedUrl = ExerciseMediaUtils.getEmbedUrl(item.exercise?.media_url || '', item.exercise?.media_type || '');
+                                                const hasPreview = !!embedUrl || item.exercise?.media_type === 'image';
+                                                const isPreviewOpen = previewExerciseId === item.id;
                                                 const nextItem = index < selectedBlock.exercises.length - 1 ? selectedBlock.exercises[index + 1] : null;
                                                 const prevItem = index > 0 ? selectedBlock.exercises[index - 1] : null;
                                                 const isSupersetWithNext = !!item.superset_id && nextItem?.superset_id === item.superset_id;
@@ -471,12 +476,24 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                                         </button>
                                                                     </div>
                                                                     <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden">
-                                                                        {ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '') ? (
-                                                                            <img
-                                                                                src={ExerciseMediaUtils.getThumbnail(item.exercise?.media_url || '', item.exercise?.media_type || '')!}
-                                                                                alt=""
-                                                                                className="w-full h-full object-cover"
-                                                                            />
+                                                                        {thumbnailUrl ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => hasPreview && setPreviewExerciseId(isPreviewOpen ? null : item.id)}
+                                                                                className={`relative w-full h-full ${hasPreview ? 'cursor-pointer' : 'cursor-default'}`}
+                                                                                title={hasPreview ? (isPreviewOpen ? 'Ocultar preview' : 'Ver preview') : 'Sin preview disponible'}
+                                                                            >
+                                                                                <img
+                                                                                    src={thumbnailUrl}
+                                                                                    alt=""
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                                {hasPreview && (
+                                                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                                                                        <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </button>
                                                                         ) : (
                                                                             <div className="w-full h-full flex items-center justify-center">
                                                                                 <Activity className="w-5 h-5 text-slate-300" />
@@ -542,6 +559,40 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                                                                             />
                                                                         </div>
                                                                     </div>
+
+                                                                    {hasPreview && (
+                                                                        <div className="mt-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setPreviewExerciseId(isPreviewOpen ? null : item.id)}
+                                                                                className="text-xs font-bold text-brand-green hover:text-emerald-700 transition-colors"
+                                                                            >
+                                                                                {isPreviewOpen ? 'Ocultar video' : 'Ver video asignado'}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {isPreviewOpen && (
+                                                                        <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                                                                            {embedUrl ? (
+                                                                                <div className="aspect-video w-full">
+                                                                                    <iframe
+                                                                                        src={embedUrl}
+                                                                                        title={`preview-${item.id}`}
+                                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                        allowFullScreen
+                                                                                        className="w-full h-full"
+                                                                                    />
+                                                                                </div>
+                                                                            ) : item.exercise?.media_type === 'image' && item.exercise?.media_url ? (
+                                                                                <img
+                                                                                    src={item.exercise.media_url}
+                                                                                    alt={item.exercise?.name || 'preview ejercicio'}
+                                                                                    className="w-full max-h-64 object-contain bg-black"
+                                                                                />
+                                                                            ) : null}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
