@@ -85,8 +85,6 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation' | 'progress_photos'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
-    const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
-    const [newWeight, setNewWeight] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
     const [showFullPlan, setShowFullPlan] = useState(false);
@@ -342,40 +340,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         if (activeView === 'reviews') markReviewsAsRead();
     }, [activeView]);
 
-    const handleWeightSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newWeight) return;
-        setIsSubmitting(true);
-        try {
-            const weightVal = parseFloat(newWeight);
-            const today = new Date().toISOString().split('T')[0];
-
-            const { error: historyError } = await supabase
-                .from('weight_history')
-                .upsert(
-                    [{
-                        client_id: client.id,
-                        weight: weightVal,
-                        date: today,
-                        source: 'user_input'
-                    }],
-                    {
-                        onConflict: 'client_id,date' // Specify the unique constraint columns
-                    }
-                );
-
-            if (historyError) throw historyError;
-
-            loadData();
-            setIsWeightModalOpen(false);
-            setNewWeight('');
-        } catch (error) {
-            console.error(error);
-            alert("Error al guardar peso");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+    // Weight is now registered exclusively via CheckinView
 
     const handleSecurityMigration = async (email: string, pass: string) => {
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1066,6 +1031,60 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 </div>
 
+                {/* Check-in — siempre visible con 3 estados */}
+                {(() => {
+                    const isAvailable = checkinWindowInfo.isVisibleWindow && !checkinWindowInfo.isCompleted;
+                    const isDone = checkinWindowInfo.isCompleted;
+                    return (
+                        <button
+                            onClick={() => isAvailable && setActiveView('checkin')}
+                            className={`w-full rounded-2xl border p-4 sm:p-5 text-left transition-all ${
+                                isAvailable
+                                    ? 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]'
+                                    : isDone
+                                        ? 'bg-emerald-50/50 border-emerald-200/60 text-emerald-700'
+                                        : 'bg-slate-50 border-slate-200 text-slate-500 cursor-default'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAvailable ? 'bg-emerald-200' : isDone ? 'bg-emerald-100' : 'bg-slate-200'}`}>
+                                    <CircleCheck className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-black leading-tight">
+                                        {isAvailable ? 'Hacer check-in semanal' : isDone ? 'Check-in completado esta semana' : 'Próximo check-in: viernes'}
+                                    </p>
+                                    <p className="text-xs opacity-70 mt-0.5">
+                                        {isAvailable ? 'Disponible hasta el lunes' : isDone ? 'Tu coach revisará tu evolución' : 'Podrás rellenarlo de viernes a lunes'}
+                                    </p>
+                                </div>
+                                {isAvailable && <ChevronRight className="w-5 h-5 opacity-50" />}
+                                {isDone && <span className="text-lg">✓</span>}
+                            </div>
+                        </button>
+                    );
+                })()}
+
+                {/* Acciones rápidas — 4 botones en grid 2x2 */}
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    {[
+                        { label: 'Escribir en mi diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
+                        { label: 'Entrenamiento', desc: 'Tu programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
+                        { label: 'Mi plan de acción', desc: 'Nutrición y hábitos', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
+                        { label: 'Meditación', desc: 'Tu momento de calma', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                    ].map(({ label, desc, icon: Icon, action, tone }) => (
+                        <button
+                            key={label}
+                            onClick={action}
+                            className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${tone}`}
+                        >
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5" />
+                            <p className="text-sm font-black leading-tight">{label}</p>
+                            <p className="text-[11px] opacity-70 mt-0.5">{desc}</p>
+                        </button>
+                    ))}
+                </div>
+
                 <WeeklySummaryCard clientId={client.id} />
 
                 <TodayTimeline clientId={client.id} />
@@ -1074,47 +1093,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                 <OfmPromoCard compact />
 
-                <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
-                    <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Acciones de hoy</h2>
-                    <p className="text-sm text-slate-600 mt-1">Elige una tarea para continuar con tu progreso.</p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-4 sm:mt-5">
-                        {[
-                            ...(checkinWindowInfo.isVisibleWindow ? [{
-                                label: checkinWindowInfo.isCompleted ? 'Check-in semanal completado' : 'Hacer check-in semanal',
-                                desc: checkinWindowInfo.isCompleted ? 'Ya enviado esta semana' : 'Disponible viernes-lunes',
-                                icon: CircleCheck,
-                                action: () => setActiveView('checkin'),
-                                tone: checkinWindowInfo.isCompleted
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                    : 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm'
-                            }] : []),
-                             { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
-                            { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
-                            { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
-                            { label: 'Entrenamiento de hoy', desc: 'Programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
-                            { label: 'Meditación / Calma', desc: 'Tu momento de paz', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-                            { label: 'Materiales de apoyo', desc: 'Recursos de tu equipo', icon: FileHeart, action: () => setActiveView('materials'), tone: 'bg-slate-50 border-slate-200 text-slate-800' }
-                        ].map(({ label, desc, icon: Icon, action, tone }) => (
-                            <button
-                                key={label}
-                                onClick={action}
-                                className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] min-h-[96px] sm:min-h-[112px] ${tone}`}
-                            >
-                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-2" />
-                                <p className="text-sm sm:text-sm font-black leading-tight">{label}</p>
-                                <p className="text-xs opacity-80 mt-1">{desc}</p>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 ${!hasActionPlan && !nextAppt && !initialAssessmentSnippet ? 'hidden' : ''}`}>
                     <button
                         type="button"
                         onClick={() => hasActionPlan && setShowFullPlan(true)}
-                        className={`lg:col-span-2 w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all group ${hasActionPlan ? 'hover:shadow-md hover:border-emerald-200' : 'opacity-90 cursor-default'}`}
+                        className={`lg:col-span-2 w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all group ${hasActionPlan ? 'hover:shadow-md hover:border-emerald-200' : !hasActionPlan ? 'hidden' : 'opacity-90 cursor-default'}`}
                     >
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">Tu plan actual</h3>
@@ -1124,25 +1107,25 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                                 </div>
                             ) : (
-                                <span className="text-xs font-semibold text-slate-400">Sin contenido completo</span>
+                                <span className="text-xs font-semibold text-slate-400">Tu coach lo está preparando</span>
                             )}
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Estamos diseñando tu plan de nutrición. Te avisaremos cuando esté listo.'}</p>
                             </div>
                             <div className="rounded-xl bg-amber-50/60 border border-amber-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Estamos definiendo tus hábitos personalizados.'}</p>
                             </div>
                             <div className="rounded-xl bg-sky-50/60 border border-sky-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu programa de entrenamiento está en preparación.'}</p>
                             </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-[11px]">
-                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Tu equipo añadirá el plan detallado aquí'}</span>
+                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Recibirás una notificación cuando esté listo'}</span>
                             {hasActionPlan && <span className="font-bold text-brand-green group-hover:underline">Ver plan completo</span>}
                         </div>
                     </button>
@@ -1161,7 +1144,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     )}
                                 </>
                             ) : (
-                                <p className="text-sm text-slate-600">Tu equipo te avisará cuando esté programada.</p>
+                                <p className="text-sm text-slate-600">Aún no hay cita programada. Tu coach te avisará pronto.</p>
                             )}
                         </div>
 
@@ -1180,7 +1163,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         ) : (
                             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
-                                <p className="text-sm text-slate-600">Aún no hay valoración inicial compartida en portal.</p>
+                                <p className="text-sm text-slate-600">Tu valoración estará disponible tras la primera consulta con el equipo.</p>
                             </div>
                         )}
                     </div>
@@ -1705,40 +1688,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
                                         )}
                                     </div>
-                                    <span className={`text-[9px] font-bold transition-colors hidden sm:block ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
+                                    <span className={`text-[8px] sm:text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
                                 </button>
                             );
                         })}
                     </div>
                 </nav>
 
-                {/* Modal Registrar Peso */}
-                {isWeightModalOpen && (
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setIsWeightModalOpen(false)}>
-                        <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
-                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-                            <h3 className="font-heading font-black text-brand-dark text-lg mb-4 flex items-center gap-2"><Scale className="w-5 h-5 text-brand-green" /> Registrar Peso</h3>
-                            <form onSubmit={handleWeightSubmit} className="space-y-4">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="Ej: 72.4"
-                                    value={newWeight}
-                                    onChange={e => setNewWeight(e.target.value)}
-                                    className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
-                                    autoFocus
-                                />
-                                <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                <div className="flex gap-3">
-                                    <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
-                                    <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                {/* Weight modal removed — weight is registered via CheckinView */}
 
                 {/* Modal Pago */}
                 {isPaymentModalOpen && (
