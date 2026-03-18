@@ -1006,6 +1006,17 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     const formatSpanishDateLong = (date: Date) =>
         date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
+    const getProgramDescriptionLines = (description?: string) => {
+        if (!description) return [];
+        const parts = description
+            .split(/[·•]/)
+            .map((part) => part.trim())
+            .filter(Boolean);
+
+        if (parts.length > 1) return parts;
+        return [description.trim()];
+    };
+
     const loadActivityLogs = async (dayId: string) => {
         try {
             const [logs, log] = await Promise.all([
@@ -1232,6 +1243,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
 
     const selectedDayData = selectedDay !== null ? getDayData(selectedWeek, selectedDay) : null;
     const selectedCalendarDate = selectedDay !== null ? getCalendarDateForDay(selectedWeek, selectedDay) : null;
+    const descriptionLines = getProgramDescriptionLines(program.description);
     const activeDayMeta = getProgramDateMeta(new Date(), assignment.start_date, program.weeks_count);
     const isProgramActiveToday = !!activeDayMeta;
     const programStartDate = toStartOfDay(assignment.start_date);
@@ -1252,8 +1264,18 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                             <Dumbbell className="w-6 h-6 text-brand-green" />
                             {program.name}
                         </h1>
-                        {program.description && (
-                            <p className="text-xs text-slate-400 mt-0.5">{program.description}</p>
+                        {descriptionLines.length > 0 && (
+                            <div className="mt-1.5 text-xs sm:text-sm text-slate-500 leading-relaxed max-w-3xl">
+                                {descriptionLines.length === 1 ? (
+                                    <p className="break-words">{descriptionLines[0]}</p>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {descriptionLines.map((line, index) => (
+                                            <p key={`${line}-${index}`} className="break-words">{line}</p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
