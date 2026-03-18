@@ -41,15 +41,34 @@ const ACTIVITY_META: Record<ActivityType, { label: string; Icon: React.FC<any> }
     custom: { label: 'Tarea', Icon: Calendar },
 };
 
-const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-const DAY_NAMES_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const DAY_NAMES_SHORT_BY_WEEKDAY = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAY_NAMES_FULL_BY_WEEKDAY = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
 const DAY_IN_MS = 86400000;
 
 function toStartOfDay(input: Date | string): Date {
-    const date = new Date(input);
+    let date: Date;
+    if (typeof input === 'string') {
+        const onlyDateMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (onlyDateMatch) {
+            const [, year, month, day] = onlyDateMatch;
+            date = new Date(Number(year), Number(month) - 1, Number(day));
+        } else {
+            date = new Date(input);
+        }
+    } else {
+        date = new Date(input);
+    }
     date.setHours(0, 0, 0, 0);
     return date;
+}
+
+function getDayNameShort(date: Date): string {
+    return DAY_NAMES_SHORT_BY_WEEKDAY[date.getDay()];
+}
+
+function getDayNameFull(date: Date): string {
+    return DAY_NAMES_FULL_BY_WEEKDAY[date.getDay()];
 }
 
 function getProgramDateMeta(inputDate: Date, startDate: string, weeksCount: number): { week: number; dayNumber: number } | null {
@@ -1212,6 +1231,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
     }
 
     const selectedDayData = selectedDay !== null ? getDayData(selectedWeek, selectedDay) : null;
+    const selectedCalendarDate = selectedDay !== null ? getCalendarDateForDay(selectedWeek, selectedDay) : null;
     const activeDayMeta = getProgramDateMeta(new Date(), assignment.start_date, program.weeks_count);
     const isProgramActiveToday = !!activeDayMeta;
     const programStartDate = toStartOfDay(assignment.start_date);
@@ -1335,7 +1355,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                                 </div>
                                             )}
                                             <span className="text-[10px] font-black uppercase tracking-wider">
-                                                {DAY_NAMES[dayNum - 1]}
+                                                {getDayNameShort(calendarDate)}
                                             </span>
                                             <span className={`text-[11px] font-black leading-none ${isSelected ? 'text-white' : isToday ? 'text-brand-green' : 'text-slate-500'}`}>
                                                 {formatDayNumber(calendarDate)}
@@ -1370,7 +1390,7 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                                         day={selectedDayData}
                                         workout={selectedWorkout}
                                         workoutLoading={workoutLoading}
-                                        dayName={`${DAY_NAMES_FULL[selectedDay - 1]} ${selectedDay !== null ? `(${formatSpanishDate(getCalendarDateForDay(selectedWeek, selectedDay))})` : ''}`}
+                                        dayName={selectedCalendarDate ? `${getDayNameFull(selectedCalendarDate)} (${formatSpanishDate(selectedCalendarDate)})` : ''}
                                         clientId={client.id}
                                         activityLogs={activityLogs}
                                         dayLog={dayLog}

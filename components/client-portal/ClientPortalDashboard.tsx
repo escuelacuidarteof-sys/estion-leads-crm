@@ -338,7 +338,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     useEffect(() => {
         if (activeView === 'reports') markReportsAsRead();
         if (activeView === 'reviews') markReviewsAsRead();
-    }, [activeView]);
+
+        if (activeTab === 'consultas') {
+            markReviewsAsRead();
+            markReportsAsRead();
+        }
+    }, [activeView, activeTab]);
 
     // Weight is now registered exclusively via CheckinView
 
