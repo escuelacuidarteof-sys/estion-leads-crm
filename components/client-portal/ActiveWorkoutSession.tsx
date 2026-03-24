@@ -873,7 +873,12 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
             setShowSummary(true);
         } catch (error) {
             console.error("Error saving workout log:", error);
-            alert("Hubo un error al guardar tu entrenamiento. Por favor, intenta de nuevo.");
+            const errCode = (error as any)?.code;
+            const errMessage = (error as any)?.message;
+            const detail = [errCode, errMessage].filter(Boolean).join(' - ');
+            alert(detail
+                ? `Hubo un error al guardar tu entrenamiento. ${detail}`
+                : "Hubo un error al guardar tu entrenamiento. Por favor, intenta de nuevo.");
         } finally {
             setSaving(false);
         }

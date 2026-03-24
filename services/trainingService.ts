@@ -628,20 +628,68 @@ export const trainingService = {
     // --- CLIENT LOGS ---
     async saveClientDayLog(log: Omit<ClientDayLog, 'id'>, exercises: Omit<ClientExerciseLog, 'id' | 'log_id'>[]): Promise<void> {
         // 1. Save Header
-        const { data: savedLog, error: logError } = await supabase
+        const headerPayload = {
+            client_id: log.client_id,
+            day_id: log.day_id,
+            completed_at: log.completed_at || new Date().toISOString(),
+            effort_rating: log.effort_rating,
+            notes: log.notes,
+            duration_minutes: log.duration_minutes,
+            pre_fatigue: log.pre_fatigue,
+            pre_rpe_type: log.pre_rpe_type,
+            pre_oxygen: log.pre_oxygen,
+            pre_pulse: log.pre_pulse,
+            pre_bp_systolic: log.pre_bp_systolic,
+            pre_bp_diastolic: log.pre_bp_diastolic,
+            safety_exclusion_data: log.safety_exclusion_data,
+            safety_sequelae_data: log.safety_sequelae_data
+        };
+
+        let savedLog: { id: string } | null = null;
+
+        const { data: upsertedLog, error: upsertLogError } = await supabase
             .from('training_client_day_logs')
-            .upsert({
-                client_id: log.client_id,
-                day_id: log.day_id,
-                completed_at: log.completed_at || new Date().toISOString(),
-                effort_rating: log.effort_rating,
-                notes: log.notes,
-                duration_minutes: log.duration_minutes
-            })
-            .select()
+            .upsert(headerPayload, { onConflict: 'client_id,day_id' })
+            .select('id')
             .single();
 
-        if (logError || !savedLog) throw logError || new Error('Error saving log header');
+        if (!upsertLogError && upsertedLog) {
+            savedLog = upsertedLog;
+        } else if (isMissingConflictTarget(upsertLogError)) {
+            const { data: existingLog, error: existingLogError } = await supabase
+                .from('training_client_day_logs')
+                .select('id')
+                .eq('client_id', log.client_id)
+                .eq('day_id', log.day_id)
+                .maybeSingle();
+
+            if (existingLogError) throw existingLogError;
+
+            if (existingLog?.id) {
+                const { data: updatedLog, error: updateLogError } = await supabase
+                    .from('training_client_day_logs')
+                    .update(headerPayload)
+                    .eq('id', existingLog.id)
+                    .select('id')
+                    .single();
+
+                if (updateLogError || !updatedLog) throw updateLogError || new Error('Error updating log header');
+                savedLog = updatedLog;
+            } else {
+                const { data: insertedLog, error: insertLogError } = await supabase
+                    .from('training_client_day_logs')
+                    .insert(headerPayload)
+                    .select('id')
+                    .single();
+
+                if (insertLogError || !insertedLog) throw insertLogError || new Error('Error inserting log header');
+                savedLog = insertedLog;
+            }
+        } else {
+            throw upsertLogError || new Error('Error saving log header');
+        }
+
+        if (!savedLog?.id) throw new Error('Error saving log header');
 
         // 2. Save Exercises
         if (exercises.length > 0) {
@@ -656,9 +704,24 @@ export const trainingService = {
 
             const { error: exercisesError } = await supabase
                 .from('training_client_exercise_logs')
-                .upsert(exercisesToUpsert);
+                .upsert(exercisesToUpsert, { onConflict: 'log_id,workout_exercise_id' });
 
-            if (exercisesError) throw exercisesError;
+            if (exercisesError) {
+                if (!isMissingConflictTarget(exercisesError)) throw exercisesError;
+
+                const { error: deleteError } = await supabase
+                    .from('training_client_exercise_logs')
+                    .delete()
+                    .eq('log_id', savedLog.id);
+
+                if (deleteError) throw deleteError;
+
+                const { error: insertError } = await supabase
+                    .from('training_client_exercise_logs')
+                    .insert(exercisesToUpsert);
+
+                if (insertError) throw insertError;
+            }
         }
     },
 
@@ -841,6 +904,11 @@ export const trainingService = {
                 return tb - ta;
             });
     }
+};
+
+const isMissingConflictTarget = (error: any): boolean => {
+    const message = String(error?.message || '').toLowerCase();
+    return error?.code === '42P10' || message.includes('there is no unique or exclusion constraint matching the on conflict specification');
 };
 
 export default trainingService;
