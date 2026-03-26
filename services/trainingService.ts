@@ -25,9 +25,14 @@ const toStartOfDay = (input: Date | string): Date => {
     return date;
 };
 
-const formatDateYYYYMMDD = (input: Date): string => {
+const formatDateYYYYMMDD = (input: Date | string): string => {
+    // If already a YYYY-MM-DD string, return as-is (avoids timezone shift)
+    if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
     const date = toStartOfDay(input);
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 };
 
 const calculateProgramEndDate = (startDate: string, weeksCount: number): string => {
