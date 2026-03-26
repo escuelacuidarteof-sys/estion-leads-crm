@@ -53,6 +53,14 @@ export function markAllRead(clientId: string, notifIds: string[]) {
   try { localStorage.setItem(`ec_crm_notif_read_${clientId}`, JSON.stringify([...ids])); } catch {}
 }
 
+/** Remove stale read IDs that no longer match active notifications */
+export function pruneReadIds(clientId: string, activeNotifIds: string[]) {
+  const activeSet = new Set(activeNotifIds);
+  const stored = getReadIds(clientId);
+  const pruned = [...stored].filter(id => activeSet.has(id));
+  try { localStorage.setItem(`ec_crm_notif_read_${clientId}`, JSON.stringify(pruned)); } catch {}
+}
+
 export function isNotificationRead(clientId: string, notifId: string): boolean {
   return getReadIds(clientId).has(notifId);
 }
