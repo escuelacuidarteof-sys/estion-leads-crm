@@ -1008,13 +1008,11 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
 
     const getProgramDescriptionLines = (description?: string) => {
         if (!description) return [];
-        const parts = description
-            .split(/[·•]/)
-            .map((part) => part.trim())
+        // Split by newlines first, preserving paragraph structure
+        return description
+            .split(/\n/)
+            .map((line) => line.trim())
             .filter(Boolean);
-
-        if (parts.length > 1) return parts;
-        return [description.trim()];
     };
 
     const loadActivityLogs = async (dayId: string) => {
@@ -1272,16 +1270,18 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                             {program.name}
                         </h1>
                         {descriptionLines.length > 0 && (
-                            <div className="mt-1.5 text-xs sm:text-sm text-slate-500 leading-relaxed max-w-3xl">
-                                {descriptionLines.length === 1 ? (
-                                    <p className="break-words">{descriptionLines[0]}</p>
-                                ) : (
-                                    <div className="space-y-1">
-                                        {descriptionLines.map((line, index) => (
-                                            <p key={`${line}-${index}`} className="break-words">{line}</p>
-                                        ))}
-                                    </div>
-                                )}
+                            <div className="mt-3 text-sm text-slate-600 leading-relaxed max-w-3xl space-y-2">
+                                {descriptionLines.map((line, index) => {
+                                    const isBullet = line.startsWith('•');
+                                    return (
+                                        <p
+                                            key={`desc-${index}`}
+                                            className={`break-words ${isBullet ? 'font-medium text-slate-700' : ''}`}
+                                        >
+                                            {line}
+                                        </p>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
