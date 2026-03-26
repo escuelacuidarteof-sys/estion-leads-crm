@@ -1269,23 +1269,67 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                             <Dumbbell className="w-6 h-6 text-brand-green" />
                             {program.name}
                         </h1>
-                        {descriptionLines.length > 0 && (
-                            <div className="mt-3 text-sm text-slate-600 leading-relaxed max-w-3xl space-y-2">
-                                {descriptionLines.map((line, index) => {
-                                    const isBullet = line.startsWith('•');
-                                    return (
-                                        <p
-                                            key={`desc-${index}`}
-                                            className={`break-words ${isBullet ? 'font-medium text-slate-700' : ''}`}
-                                        >
-                                            {line}
-                                        </p>
-                                    );
-                                })}
-                            </div>
-                        )}
                     </div>
                 </div>
+
+                {/* Program Description Card */}
+                {descriptionLines.length > 0 && (
+                    <div className="max-w-4xl mx-auto px-4 pb-3">
+                        {/* Intro text */}
+                        {descriptionLines.filter(l => !l.startsWith('•') && !l.startsWith('Material')).length > 0 && (
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                {descriptionLines.filter(l => !l.startsWith('•') && !l.startsWith('Material'))[0]}
+                            </p>
+                        )}
+
+                        {/* Week cards */}
+                        {(() => {
+                            const weekLines = descriptionLines.filter(l => l.startsWith('•'));
+                            const weekIcons = ['🌱', '🌿', '💪', '🏆'];
+                            const weekColors = ['bg-emerald-50 border-emerald-200', 'bg-teal-50 border-teal-200', 'bg-amber-50 border-amber-200', 'bg-brand-mint border-brand-green/20'];
+                            if (weekLines.length === 0) return null;
+                            return (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                    {weekLines.map((line, i) => {
+                                        const titleMatch = line.match(/•\s*Semana\s*\d+\s*—\s*([^(]+)\(([^)]+)\)/);
+                                        const title = titleMatch ? titleMatch[1].trim() : `Semana ${i + 1}`;
+                                        const meta = titleMatch ? titleMatch[2].trim() : '';
+                                        const desc = line.replace(/•\s*Semana\s*\d+\s*—\s*[^)]+\)\s*/, '').trim();
+                                        return (
+                                            <div
+                                                key={`week-card-${i}`}
+                                                className={`rounded-xl border p-3 ${weekColors[i] || 'bg-gray-50 border-gray-200'} ${selectedWeek === i + 1 ? 'ring-2 ring-brand-green ring-offset-1' : ''}`}
+                                            >
+                                                <div className="text-lg mb-1">{weekIcons[i] || '📋'}</div>
+                                                <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Sem. {i + 1}</p>
+                                                <p className="text-xs font-semibold text-slate-800 mt-0.5">{title}</p>
+                                                {meta && <p className="text-[10px] text-slate-500 mt-0.5">{meta}</p>}
+                                                {desc && <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{desc}</p>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+
+                        {/* Material badges */}
+                        {(() => {
+                            const materialLine = descriptionLines.find(l => l.startsWith('Material'));
+                            if (!materialLine) return null;
+                            const materials = materialLine.replace(/^Material\s*necesario:\s*/i, '').split(',').map(m => m.trim()).filter(Boolean);
+                            return (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {materials.map((mat, i) => (
+                                        <span key={`mat-${i}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                                            🏷️ {mat}
+                                        </span>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
+
                 {/* Program / History Toggle */}
                 <div className="max-w-4xl mx-auto px-4 pb-2 flex gap-1 bg-brand-mint/20 rounded-xl p-1">
                     <button
