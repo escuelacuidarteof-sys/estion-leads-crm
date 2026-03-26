@@ -16,7 +16,31 @@ export const UpdatePasswordPage: React.FC = () => {
     useEffect(() => {
         let isMounted = true;
 
-        const checkSession = async () => {
+        const initRecovery = async () => {
+            // With PKCE flow + hash router, Supabase puts ?code=xxx before the #
+            // We need to manually exchange it for a session
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            if (code) {
+                try {
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (!isMounted) return;
+                    if (error) {
+                        setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+                        setCheckingSession(false);
+                        return;
+                    }
+                    // Clean the code from URL without reload
+                    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+                } catch {
+                    if (!isMounted) return;
+                    setError('Error al validar el enlace. Por favor, solicita uno nuevo.');
+                    setCheckingSession(false);
+                    return;
+                }
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             if (!isMounted) return;
 
@@ -25,7 +49,9 @@ export const UpdatePasswordPage: React.FC = () => {
                 setError(null);
             } else {
                 setHasRecoverySession(false);
-                setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+                if (!code) {
+                    setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+                }
             }
 
             setCheckingSession(false);
@@ -44,7 +70,7 @@ export const UpdatePasswordPage: React.FC = () => {
             setCheckingSession(false);
         });
 
-        checkSession();
+        initRecovery();
 
         return () => {
             isMounted = false;
