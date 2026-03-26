@@ -4,7 +4,7 @@ import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
 import {
   FileText, Search, User as UserIcon, Save, X, Video,
-  Stethoscope, Pill, ClipboardList, CheckCircle2, Download,
+  Stethoscope, Pill, ClipboardList, CircleCheck, Download,
   AlertCircle, Loader2, ChevronRight
 } from 'lucide-react';
 import { generateMedicalReportPdf } from '../utils/medicalReportPdf';
@@ -281,7 +281,7 @@ const CreateMedicalReport: React.FC<CreateMedicalReportProps> = ({ currentUser }
           {savedReportId ? (
             <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-8 text-center">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                <CircleCheck className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">Informe Guardado</h3>
               <p className="text-slate-500 mb-6">El paciente podrá ver este informe en su portal, en la sección "Mis Informes".</p>
@@ -355,7 +355,7 @@ const CreateMedicalReport: React.FC<CreateMedicalReportProps> = ({ currentUser }
                   {/* Recommendations */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <CircleCheck className="w-4 h-4 text-emerald-500" />
                       Recomendaciones
                     </label>
                     <textarea

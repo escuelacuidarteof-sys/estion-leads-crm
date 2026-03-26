@@ -5,7 +5,7 @@ import {
     FileText,
     Upload,
     Calendar,
-    CheckCircle2,
+    CircleCheck,
     Clock,
     X,
     ExternalLink,
@@ -174,7 +174,7 @@ const DoctorInvoices: React.FC<DoctorInvoicesProps> = ({ currentUser }) => {
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                     <div className="flex items-center gap-3">
                         <div className="bg-emerald-100 p-2 rounded-xl">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            <CircleCheck className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
                             <p className="text-2xl font-black text-slate-900">{paidInvoices.length}</p>
@@ -296,7 +296,7 @@ const DoctorInvoices: React.FC<DoctorInvoicesProps> = ({ currentUser }) => {
                                     />
                                     {selectedFile ? (
                                         <div className="flex items-center justify-center gap-3">
-                                            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                                            <CircleCheck className="w-6 h-6 text-emerald-600" />
                                             <span className="font-medium text-emerald-700">{selectedFile.name}</span>
                                         </div>
                                     ) : (

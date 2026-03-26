@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Bell, Search, Filter, Calendar, User,
-    ArrowRight, Info, AlertTriangle, CheckCircle2,
+    ArrowRight, Info, AlertTriangle, CircleCheck,
     BellRing, Trash2, Eye, MessageSquare, Pencil
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -142,7 +142,7 @@ export function TeamAnnouncementsView({ user, clients }: TeamAnnouncementsViewPr
             info: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', icon: <Info className="w-5 h-5" /> },
             important: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-100', icon: <BellRing className="w-5 h-5" /> },
             warning: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-100', icon: <AlertTriangle className="w-5 h-5" /> },
-            success: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100', icon: <CheckCircle2 className="w-5 h-5" /> },
+            success: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100', icon: <CircleCheck className="w-5 h-5" /> },
         };
         return styles[type] || styles.info;
     };

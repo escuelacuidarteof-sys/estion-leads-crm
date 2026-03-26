@@ -8,6 +8,20 @@ const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4
 
 // Local Memory Fallback (for demos/dev without full DB)
 let mockCheckins: WeeklyCheckin[] = [];
+let mockClasses: ClassSession[] = [];
+
+const isMissingTableError = (error: any, tableName: string): boolean => {
+  const code = String(error?.code || '');
+  const msg = String(error?.message || '').toLowerCase();
+  const table = tableName.toLowerCase();
+
+  return (
+    code === 'PGRST205' ||
+    msg.includes(`could not find the table 'public.${table}'`) ||
+    msg.includes(`relation \"public.${table}\" does not exist`) ||
+    msg.includes(`relation \"${table}\" does not exist`)
+  );
+};
 
 // --- MOCK DATA STORAGE ---
 let clients: Client[] = []; // In-memory storage for clients
@@ -1438,9 +1452,15 @@ export const mockDb = {
       .order('date', { ascending: false });
 
     if (error) {
-      console.warn("Failed to fetch classes (or table missing)", error.message);
-      return [];
+      if (isMissingTableError(error, 'weekly_classes')) {
+        console.warn('weekly_classes does not exist in Supabase. Using local fallback.');
+      } else {
+        console.warn('Failed to fetch classes. Using local fallback:', error.message);
+      }
+      return [...mockClasses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
+
+    mockClasses = (data || []) as ClassSession[];
     return data || [];
   },
 
@@ -1450,7 +1470,30 @@ export const mockDb = {
       .insert(classSession)
       .select()
       .single();
-    if (error) throw error;
+
+    if (error) {
+      if (!isMissingTableError(error, 'weekly_classes')) throw error;
+
+      const newClass: ClassSession = {
+        id: `mock-class-${Date.now()}`,
+        title: classSession.title,
+        description: classSession.description,
+        speaker: classSession.speaker,
+        date: classSession.date,
+        url: classSession.url,
+        category: classSession.category,
+        is_recorded: classSession.is_recorded,
+      };
+
+      mockClasses = [newClass, ...mockClasses];
+      await delay(150);
+      return newClass;
+    }
+
+    if (data) {
+      mockClasses = [data as ClassSession, ...mockClasses.filter(c => c.id !== (data as ClassSession).id)];
+    }
+
     return data;
   },
 
@@ -1552,7 +1595,15 @@ export const mockDb = {
       .from('weekly_classes')
       .update(classSession)
       .eq('id', classSession.id);
-    if (error) throw error;
+
+    if (error) {
+      if (!isMissingTableError(error, 'weekly_classes')) throw error;
+      mockClasses = mockClasses.map(c => c.id === classSession.id ? classSession : c);
+      await delay(150);
+      return;
+    }
+
+    mockClasses = mockClasses.map(c => c.id === classSession.id ? classSession : c);
   },
 
   deleteClass: async (id: string) => {
@@ -1560,7 +1611,15 @@ export const mockDb = {
       .from('weekly_classes')
       .delete()
       .eq('id', id);
-    if (error) throw error;
+
+    if (error) {
+      if (!isMissingTableError(error, 'weekly_classes')) throw error;
+      mockClasses = mockClasses.filter(c => c.id !== id);
+      await delay(150);
+      return;
+    }
+
+    mockClasses = mockClasses.filter(c => c.id !== id);
   },
 
   deleteClient: async (clientId: string, userId?: string) => {

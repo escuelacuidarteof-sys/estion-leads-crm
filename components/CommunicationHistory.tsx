@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Users, Calendar, CheckCircle2, XCircle, Clock, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, Users, Calendar, CircleCheck, XCircle, Clock, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface Communication {
@@ -65,7 +65,7 @@ export function CommunicationHistory({ currentUser, isAdmin }: CommunicationHist
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'sent': return <CheckCircle2 className="w-4 h-4" />;
+            case 'sent': return <CircleCheck className="w-4 h-4" />;
             case 'sending': return <Clock className="w-4 h-4 animate-spin" />;
             case 'failed': return <XCircle className="w-4 h-4" />;
             default: return <Clock className="w-4 h-4" />;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Plus, Edit2, Trash2, Youtube, GripVertical,
-    Save, X, Loader2, Play, Info, CheckCircle2,
+    Save, X, Loader2, Play, Info, CircleCheck,
     Settings, Layout, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';

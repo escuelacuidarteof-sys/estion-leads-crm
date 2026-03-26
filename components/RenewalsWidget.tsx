@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Client, ClientStatus } from '../types';
-import { Calendar, CheckCircle2, ChevronRight, AlertCircle } from 'lucide-react';
+import { Calendar, CircleCheck, ChevronRight, AlertCircle } from 'lucide-react';
 
 interface RenewalsWidgetProps {
   clients: Client[];

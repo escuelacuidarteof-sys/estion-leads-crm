@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     ArrowLeft, Heart, Calendar, Save, Loader2, AlertCircle,
-    CheckCircle2, ChevronRight, Plus, Moon, Sun, Zap, SmilePlus
+    CircleCheck, ChevronRight, Plus, Moon, Sun, Zap, SmilePlus
 } from 'lucide-react';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -114,12 +114,12 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
                 if (calculatedCycleLength <= 0 || calculatedCycleLength > 90) calculatedCycleLength = null;
             }
 
-            const { error } = await supabase.from('menstrual_cycles').insert({
+            const { error } = await supabase.from('menstrual_cycles').upsert({
                 client_id: client.id,
                 period_start_date: periodStartDate,
                 cycle_length: calculatedCycleLength,
                 notes: periodNotes || null,
-            });
+            }, { onConflict: 'client_id,period_start_date' });
 
             if (error) throw error;
 
@@ -135,7 +135,8 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
             }, 1500);
         } catch (e) {
             console.error('Error logging period:', e);
-            alert('Error al guardar. Inténtalo de nuevo.');
+            const message = (e as any)?.message || 'Error al guardar. Inténtalo de nuevo.';
+            alert(`No se pudo guardar el periodo: ${message}`);
         } finally {
             setIsSaving(false);
         }
@@ -144,13 +145,13 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
     const handleLogSymptoms = async () => {
         setIsSaving(true);
         try {
-            const { error } = await supabase.from('hormonal_symptoms').insert({
+            const { error } = await supabase.from('hormonal_symptoms').upsert({
                 client_id: client.id,
                 date: symptomDate,
                 ...symptomData,
                 cravings_detail: symptomData.cravings ? symptomData.cravings_detail : null,
                 notes: symptomData.notes || null,
-            });
+            }, { onConflict: 'client_id,date' });
 
             if (error) throw error;
 
@@ -163,7 +164,8 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
             }, 1500);
         } catch (e) {
             console.error('Error logging symptoms:', e);
-            alert('Error al guardar. Inténtalo de nuevo.');
+            const message = (e as any)?.message || 'Error al guardar. Inténtalo de nuevo.';
+            alert(`No se pudieron guardar los síntomas: ${message}`);
         } finally {
             setIsSaving(false);
         }
@@ -308,7 +310,7 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
                             disabled={isSaving || !periodStartDate}
                             className="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold shadow-lg shadow-pink-200 hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : saved ? <CheckCircle2 className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : saved ? <CircleCheck className="w-5 h-5" /> : <Save className="w-5 h-5" />}
                             {isSaving ? 'Guardando...' : saved ? 'Guardado' : 'Registrar Periodo'}
                         </button>
                     </div>
@@ -461,7 +463,7 @@ export function CycleTrackingView({ client, onBack }: CycleTrackingViewProps) {
                             disabled={isSaving}
                             className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : saved ? <CheckCircle2 className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : saved ? <CircleCheck className="w-5 h-5" /> : <Save className="w-5 h-5" />}
                             {isSaving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar Síntomas'}
                         </button>
                     </div>

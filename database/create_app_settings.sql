@@ -13,7 +13,9 @@ INSERT INTO app_settings (setting_key, setting_value, description)
 VALUES 
     ('n8n_webhook_new_sale', NULL, 'URL del webhook de N8N para enviar email de onboarding cuando hay una nueva venta'),
     ('n8n_webhook_onboarding_completed', NULL, 'URL del webhook de N8N para generar contrato PDF cuando se completa el onboarding'),
-    ('n8n_webhook_enabled', 'false', 'Activar/desactivar envío automático de webhooks de automatización')
+    ('n8n_webhook_enabled', 'false', 'Activar/desactivar envío automático de webhooks de automatización'),
+    ('n8n_webhook_telegram_broadcast', NULL, 'URL del webhook de N8N para mensajes grupales de Telegram'),
+    ('n8n_webhook_telegram_enabled', 'false', 'Activar/desactivar envío grupal de Telegram vía webhook')
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- Trigger para actualizar updated_at

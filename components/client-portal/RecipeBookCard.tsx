@@ -1,10 +1,12 @@
 import React from 'react';
-import { Coffee, Sun, Moon, Cookie, Flame } from 'lucide-react';
+import { Coffee, Sun, Moon, Cookie, Flame, Heart } from 'lucide-react';
 import { NutritionRecipe, RecipeCategory } from '../../types';
 
 interface RecipeBookCardProps {
   recipe: NutritionRecipe;
   onClick: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (recipeId: string) => void;
 }
 
 const CATEGORY_CONFIG: Record<RecipeCategory, {
@@ -44,15 +46,25 @@ const CATEGORY_CONFIG: Record<RecipeCategory, {
   }
 };
 
-export function RecipeBookCard({ recipe, onClick }: RecipeBookCardProps) {
+export function RecipeBookCard({ recipe, onClick, isFavorite, onToggleFavorite }: RecipeBookCardProps) {
   const config = CATEGORY_CONFIG[recipe.category] || CATEGORY_CONFIG.snack;
   const Icon = config.icon;
 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left bg-white rounded-2xl border ${config.borderColor} shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group overflow-hidden`}
+      className={`w-full text-left bg-white dark:bg-slate-900 rounded-2xl border ${config.borderColor} shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group overflow-hidden relative`}
     >
+      {/* Favorite button */}
+      {onToggleFavorite && (
+        <div
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(recipe.id); }}
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 transition-transform cursor-pointer"
+        >
+          <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-300'}`} />
+        </div>
+      )}
+
       {/* Recipe Image */}
       {recipe.image_url && (
         <div className="w-full h-28 overflow-hidden">

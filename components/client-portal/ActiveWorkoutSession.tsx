@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity, Trophy, Flame, Timer } from 'lucide-react';
 import { Workout, WorkoutBlock, WorkoutExercise, ClientDayLog, ClientExerciseLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
@@ -285,6 +285,7 @@ interface ActiveWorkoutSessionProps {
     workout: Workout;
     clientId: string;
     dayId: string;
+    activityId?: string;
     onClose: () => void;
     onComplete: () => void;
 }
@@ -315,7 +316,7 @@ function groupWorkoutBlocks(blocks: WorkoutBlock[]) {
     });
 }
 
-export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComplete }: ActiveWorkoutSessionProps) {
+export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onClose, onComplete }: ActiveWorkoutSessionProps) {
     const [showSafetyPass, setShowSafetyPass] = useState(false);
     const [safetyPassData, setSafetyPassData] = useState({
         exclusion: {
@@ -351,9 +352,240 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
     const [assessmentErrors, setAssessmentErrors] = useState<Record<string, Record<string, string>>>({});
     // Track current round for each superset (keyed by superset_id)
     const [supersetRound, setSupersetRound] = useState<Record<string, number>>({});
+    const [hideCompletedGroups, setHideCompletedGroups] = useState(false);
+    const [lastFocusedStepKey, setLastFocusedStepKey] = useState<string | null>(null);
+    const [restTimer, setRestTimer] = useState<{ remaining: number; total: number; label: string; running: boolean } | null>(null);
+    const [pendingAutoAdvance, setPendingAutoAdvance] = useState(false);
 
     const groupedBlocks = groupWorkoutBlocks(workout.blocks || []);
     const sessionGuide = getSessionGuide(workout.name);
+    const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const summaryRef = useRef<HTMLDivElement | null>(null);
+    const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const latestDraftRef = useRef<{
+        completedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]>;
+        assessmentResults: Record<string, { values: Record<string, any>; completed: boolean }>;
+        supersetRound: Record<string, number>;
+        secondsElapsed: number;
+        effortRating: number;
+        sessionNotes: string;
+    }>({
+        completedSets: {},
+        assessmentResults: {},
+        supersetRound: {},
+        secondsElapsed: 0,
+        effortRating: 0,
+        sessionNotes: ''
+    });
+    const lastSavedDraftHashRef = useRef('');
+
+    const isSingleExerciseComplete = useCallback((exercise: WorkoutExercise) => {
+        const assessmentTemplate = getAssessmentTemplate(exercise.exercise?.name);
+        if (assessmentTemplate) return !!assessmentResults[exercise.id]?.completed;
+
+        const expectedSets = Math.max(1, exercise.sets || 1);
+        const doneCount = Array.from({ length: expectedSets }).filter((_, idx) => {
+            return !!(completedSets[exercise.id] || [])[idx]?.completed;
+        }).length;
+
+        return doneCount >= expectedSets;
+    }, [assessmentResults, completedSets]);
+
+    const isSupersetGroupComplete = useCallback((group: { items: WorkoutExercise[] }) => {
+        const totalRounds = group.items[0]?.superset_rounds || group.items[0]?.sets || 3;
+        return Array.from({ length: totalRounds }).every((_, ri) =>
+            group.items.every((we) => !!(completedSets[we.id] || [])[ri]?.completed)
+        );
+    }, [completedSets]);
+
+    const stepMeta = useMemo(() => {
+        const steps: { key: string; completed: boolean }[] = [];
+        groupedBlocks.forEach((block, blockIdx) => {
+            block.groups.forEach((group, groupIdx) => {
+                const key = `b${blockIdx}-g${groupIdx}`;
+                const completed = group.type === 'superset'
+                    ? isSupersetGroupComplete(group)
+                    : isSingleExerciseComplete(group.items[0]);
+                steps.push({ key, completed });
+            });
+        });
+        return steps;
+    }, [groupedBlocks, isSingleExerciseComplete, isSupersetGroupComplete]);
+
+    const getNextPendingStepKey = useCallback(() => {
+        const pendingSteps = stepMeta.filter((step) => !step.completed);
+        if (pendingSteps.length === 0) return null;
+
+        if (!lastFocusedStepKey) return pendingSteps[0].key;
+
+        const orderedKeys = stepMeta.map((s) => s.key);
+        const startIdx = orderedKeys.indexOf(lastFocusedStepKey);
+        if (startIdx === -1) return pendingSteps[0].key;
+
+        const afterCurrent = stepMeta.slice(startIdx + 1).find((step) => !step.completed);
+        return afterCurrent?.key || pendingSteps[0].key;
+    }, [lastFocusedStepKey, stepMeta]);
+
+    const focusStepByKey = useCallback((stepKey: string) => {
+        const node = stepRefs.current[stepKey];
+        if (!node) return;
+        setLastFocusedStepKey(stepKey);
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, []);
+
+    const exerciseMetaById = useMemo(() => {
+        const map: Record<string, { sets: number; supersetId?: string | null; restSeconds: number; isAssessment: boolean }> = {};
+        (workout.blocks || []).forEach((block) => {
+            (block.exercises || []).forEach((exercise) => {
+                map[exercise.id] = {
+                    sets: Math.max(1, exercise.sets || 1),
+                    supersetId: exercise.superset_id,
+                    restSeconds: exercise.rest_seconds || 0,
+                    isAssessment: !!getAssessmentTemplate(exercise.exercise?.name)
+                };
+            });
+        });
+        return map;
+    }, [workout.blocks]);
+
+    const startRestTimer = useCallback((seconds: number, label: string) => {
+        if (seconds <= 0) return;
+        setRestTimer({ remaining: seconds, total: seconds, label, running: true });
+    }, []);
+
+    const normalizeAssessmentValues = (rawValues: Record<string, any>) => {
+        const normalized: Record<string, any> = {};
+        Object.entries(rawValues || {}).forEach(([key, raw]) => {
+            if (raw === '' || raw === undefined || raw === null) return;
+            if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
+                normalized[key] = Number(raw);
+            } else {
+                normalized[key] = raw;
+            }
+        });
+        return normalized;
+    };
+
+    const persistSessionDraft = useCallback(async (reason: string) => {
+        if (!clientId || !dayId || !activityId || !isStarted) return;
+
+        const snapshot = latestDraftRef.current;
+        const assessmentDraft = Object.fromEntries(
+            Object.entries(snapshot.assessmentResults || {})
+                .filter(([, result]) => {
+                    const values = result?.values || {};
+                    return result?.completed || Object.keys(values).length > 0;
+                })
+                .map(([exerciseId, result]) => [exerciseId, normalizeAssessmentValues(result.values || {})])
+        );
+
+        const payload = {
+            is_session_draft: true,
+            assessment_draft: assessmentDraft,
+            sets_draft: snapshot.completedSets || {},
+            superset_round: snapshot.supersetRound || {},
+            seconds_elapsed: snapshot.secondsElapsed || 0,
+            effort_rating: snapshot.effortRating || null,
+            session_notes: snapshot.sessionNotes || null
+        };
+
+        const payloadHash = JSON.stringify(payload);
+        if (payloadHash === lastSavedDraftHashRef.current) return;
+
+        lastSavedDraftHashRef.current = payloadHash;
+
+        try {
+            await trainingService.saveClientActivityLog({
+                client_id: clientId,
+                activity_id: activityId,
+                day_id: dayId,
+                completed_at: new Date().toISOString(),
+                data: {
+                    ...payload,
+                    draft_reason: reason,
+                    draft_saved_at: new Date().toISOString()
+                }
+            });
+        } catch (err) {
+            console.error('Error saving session draft:', err);
+        }
+    }, [clientId, dayId, activityId, isStarted]);
+
+    useEffect(() => {
+        latestDraftRef.current = {
+            completedSets,
+            assessmentResults,
+            supersetRound,
+            secondsElapsed,
+            effortRating,
+            sessionNotes
+        };
+    }, [completedSets, assessmentResults, supersetRound, secondsElapsed, effortRating, sessionNotes]);
+
+    useEffect(() => {
+        if (!clientId || !dayId || !activityId) return;
+
+        let mounted = true;
+
+        const loadAssessmentDraft = async () => {
+            try {
+                const logs = await trainingService.getClientActivityLogs(clientId, dayId);
+                const workoutLog = logs.find((l) => l.activity_id === activityId);
+                const workoutData = workoutLog?.data || {};
+                const draft = workoutData.assessment_draft;
+
+                if (!mounted) return;
+
+                const nextAssessmentResults: Record<string, { values: Record<string, any>; completed: boolean }> = {};
+                const nextCompletedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]> = {};
+
+                if (draft && typeof draft === 'object') {
+                    Object.entries(draft).forEach(([exerciseId, values]) => {
+                        nextAssessmentResults[exerciseId] = {
+                            values: (values as Record<string, any>) || {},
+                            completed: true,
+                        };
+                        nextCompletedSets[exerciseId] = [{ weight: null, reps: null, completed: true }];
+                    });
+                }
+
+                const setsDraft = workoutData.sets_draft;
+                if (setsDraft && typeof setsDraft === 'object') {
+                    Object.entries(setsDraft).forEach(([exerciseId, values]) => {
+                        if (!Array.isArray(values)) return;
+                        nextCompletedSets[exerciseId] = values as { weight: number | null; reps: number | null; completed: boolean }[];
+                    });
+                }
+
+                if (typeof workoutData.effort_rating === 'number') {
+                    setEffortRating(workoutData.effort_rating);
+                }
+                if (typeof workoutData.session_notes === 'string') {
+                    setSessionNotes(workoutData.session_notes);
+                }
+                if (typeof workoutData.seconds_elapsed === 'number' && workoutData.seconds_elapsed > 0) {
+                    setSecondsElapsed(workoutData.seconds_elapsed);
+                }
+                if (workoutData.superset_round && typeof workoutData.superset_round === 'object') {
+                    setSupersetRound(workoutData.superset_round as Record<string, number>);
+                }
+
+                if (Object.keys(nextAssessmentResults).length > 0) {
+                    setAssessmentResults((prev) => ({ ...prev, ...nextAssessmentResults }));
+                }
+                if (Object.keys(nextCompletedSets).length > 0) {
+                    setCompletedSets((prev) => ({ ...prev, ...nextCompletedSets }));
+                }
+            } catch (err) {
+                console.error('Error loading assessment draft:', err);
+            }
+        };
+
+        loadAssessmentDraft();
+        return () => {
+            mounted = false;
+        };
+    }, [clientId, dayId, activityId]);
 
     // Timer logic
     useEffect(() => {
@@ -365,6 +597,60 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         }
         return () => clearInterval(interval);
     }, [isStarted, isPaused]);
+
+    useEffect(() => {
+        if (!restTimer?.running) {
+            if (restIntervalRef.current) {
+                clearInterval(restIntervalRef.current);
+                restIntervalRef.current = null;
+            }
+            return;
+        }
+
+        restIntervalRef.current = setInterval(() => {
+            setRestTimer((prev) => {
+                if (!prev || !prev.running) return prev;
+                if (prev.remaining <= 1) return { ...prev, remaining: 0, running: false };
+                return { ...prev, remaining: prev.remaining - 1 };
+            });
+        }, 1000);
+
+        return () => {
+            if (restIntervalRef.current) {
+                clearInterval(restIntervalRef.current);
+                restIntervalRef.current = null;
+            }
+        };
+    }, [restTimer?.running]);
+
+    useEffect(() => {
+        if (!pendingAutoAdvance) return;
+
+        const targetStep = getNextPendingStepKey();
+        if (targetStep) {
+            focusStepByKey(targetStep);
+        } else {
+            summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        setPendingAutoAdvance(false);
+    }, [pendingAutoAdvance, getNextPendingStepKey, focusStepByKey]);
+
+    useEffect(() => {
+        if (!isStarted || !activityId) return;
+        const timer = setTimeout(() => {
+            void persistSessionDraft('checkpoint');
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, [completedSets, assessmentResults, supersetRound, effortRating, sessionNotes, isStarted, activityId, persistSessionDraft]);
+
+    useEffect(() => {
+        if (!isStarted || !activityId) return;
+        const interval = setInterval(() => {
+            void persistSessionDraft('interval');
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [isStarted, activityId, persistSessionDraft]);
 
     const formatTime = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -383,16 +669,53 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         setIsPaused(!isPaused);
     };
 
-    const handleSetUpdate = (exerciseId: string, setIndex: number, field: 'weight' | 'reps' | 'completed', value: any) => {
+    const handleSetUpdate = (
+        exerciseId: string,
+        setIndex: number,
+        field: 'weight' | 'reps' | 'completed',
+        value: any,
+        sourceStepKey?: string
+    ) => {
+        const meta = exerciseMetaById[exerciseId];
+        let shouldAutoAdvance = false;
+
+        if (sourceStepKey) {
+            setLastFocusedStepKey(sourceStepKey);
+        }
+
         setCompletedSets(prev => {
             const currentSets = prev[exerciseId] || [];
             const newSets = [...currentSets];
+            const previousSet = newSets[setIndex] || { weight: null, reps: null, completed: false };
+
             if (!newSets[setIndex]) {
-                newSets[setIndex] = { weight: null, reps: null, completed: false };
+                newSets[setIndex] = previousSet;
             }
+
+            const prevExerciseCompleted = meta && !meta.supersetId
+                ? Array.from({ length: meta.sets }).every((_, idx) => !!(currentSets[idx] || {}).completed)
+                : false;
+
             newSets[setIndex] = { ...newSets[setIndex], [field]: value };
+
+            if (field === 'completed' && value === true && !previousSet.completed && meta?.restSeconds) {
+                startRestTimer(meta.restSeconds, meta.supersetId ? 'Descanso entre ejercicios' : 'Descanso entre series');
+            }
+
+            const nextExerciseCompleted = meta && !meta.supersetId
+                ? Array.from({ length: meta.sets }).every((_, idx) => !!(newSets[idx] || {}).completed)
+                : false;
+
+            if (!prevExerciseCompleted && nextExerciseCompleted && !meta?.isAssessment) {
+                shouldAutoAdvance = true;
+            }
+
             return { ...prev, [exerciseId]: newSets };
         });
+
+        if (shouldAutoAdvance) {
+            setTimeout(() => setPendingAutoAdvance(true), 60);
+        }
     };
 
     const handleAssessmentFieldChange = (exerciseId: string, fieldKey: string, value: any) => {
@@ -440,14 +763,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         return Object.keys(nextErrors).length === 0;
     };
 
-    const handleAssessmentComplete = (exercise: WorkoutExercise, template: AssessmentTemplate) => {
+    const handleAssessmentComplete = async (exercise: WorkoutExercise, template: AssessmentTemplate) => {
         const isValid = validateAssessment(exercise.id, template);
         if (!isValid) return;
+
+        const normalizedValues = normalizeAssessmentValues(assessmentResults[exercise.id]?.values || {});
 
         setAssessmentResults(prev => ({
             ...prev,
             [exercise.id]: {
-                values: prev[exercise.id]?.values || {},
+                values: normalizedValues,
                 completed: true
             }
         }));
@@ -456,6 +781,12 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             ...prev,
             [exercise.id]: [{ weight: null, reps: null, completed: true }]
         }));
+
+        setTimeout(() => setPendingAutoAdvance(true), 60);
+
+        setTimeout(() => {
+            void persistSessionDraft('assessment_saved');
+        }, 0);
     };
 
     const handleFinish = async () => {
@@ -507,15 +838,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
             Object.entries(assessmentResults).forEach(([exerciseId, result]) => {
                 if (!result.completed) return;
-                const normalized: Record<string, any> = {};
-                Object.entries(result.values || {}).forEach(([key, raw]) => {
-                    if (raw === '' || raw === undefined || raw === null) return;
-                    if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
-                        normalized[key] = Number(raw);
-                    } else {
-                        normalized[key] = raw;
-                    }
-                });
+                const normalized = normalizeAssessmentValues(result.values || {});
 
                 exerciseLogs.push({
                     log_id: '',
@@ -550,7 +873,12 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             setShowSummary(true);
         } catch (error) {
             console.error("Error saving workout log:", error);
-            alert("Hubo un error al guardar tu entrenamiento. Por favor, intenta de nuevo.");
+            const errCode = (error as any)?.code;
+            const errMessage = (error as any)?.message;
+            const detail = [errCode, errMessage].filter(Boolean).join(' - ');
+            alert(detail
+                ? `Hubo un error al guardar tu entrenamiento. ${detail}`
+                : "Hubo un error al guardar tu entrenamiento. Por favor, intenta de nuevo.");
         } finally {
             setSaving(false);
         }
@@ -572,6 +900,10 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
         const allExercises = (workout.blocks || []).reduce((sum, b) => sum + (b.exercises?.length || 0), 0);
         return { totalSetsCompleted, totalWeight, exercisesWorked, allExercises };
     };
+
+    const totalSteps = stepMeta.length;
+    const completedSteps = stepMeta.filter((step) => step.completed).length;
+    const nextPendingStepKey = getNextPendingStepKey();
 
     if (showSummary) {
         const stats = summaryStats();
@@ -728,8 +1060,25 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto w-full max-w-3xl mx-auto px-4 py-6 pb-32">
                 <div className="mb-5 bg-sky-50 border border-sky-100 rounded-2xl p-4">
-                    <p className="text-xs font-black uppercase tracking-wider text-sky-700 mb-1">{sessionGuide.title}</p>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                        <p className="text-xs font-black uppercase tracking-wider text-sky-700">{sessionGuide.title}</p>
+                        <button
+                            onClick={() => setHideCompletedGroups((prev) => !prev)}
+                            className="text-[11px] font-bold text-sky-700 bg-white border border-sky-200 rounded-full px-3 py-1"
+                        >
+                            {hideCompletedGroups ? 'Mostrar completados' : 'Ocultar completados'}
+                        </button>
+                    </div>
                     <p className="text-sm text-slate-600 leading-relaxed">{sessionGuide.intro}</p>
+                    <p className="text-xs text-slate-500 mt-2">
+                        Progreso de pasos: <span className="font-bold text-brand-dark">{completedSteps}/{totalSteps}</span>
+                    </p>
+                    <div className="mt-2 h-2 rounded-full bg-sky-100 overflow-hidden">
+                        <div
+                            className="h-full bg-brand-green transition-all duration-300"
+                            style={{ width: `${totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0}%` }}
+                        />
+                    </div>
                 </div>
 
                 {isPaused && (
@@ -745,7 +1094,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                 )}
 
                 <div className="space-y-6 sm:space-y-8">
-                    {groupedBlocks.map((block) => (
+                    {groupedBlocks.map((block, blockIdx) => (
                         <div key={block.id} className="space-y-4">
                             {block.name && (
                                 <h3 className="font-black text-brand-dark/80 uppercase tracking-widest text-xs sm:text-sm pl-2 flex items-center gap-2">
@@ -756,6 +1105,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
 
                             <div className="space-y-4">
                                 {block.groups.map((group, groupIdx) => {
+                                    const stepKey = `b${blockIdx}-g${groupIdx}`;
+
+                                    const isGroupCompleted = group.type === 'superset'
+                                        ? isSupersetGroupComplete(group)
+                                        : isSingleExerciseComplete(group.items[0]);
+
+                                    if (hideCompletedGroups && isGroupCompleted) {
+                                        return null;
+                                    }
+
                                     if (group.type === 'superset') {
                                         const totalRounds = group.items[0]?.superset_rounds || group.items[0]?.sets || 3;
                                         const currentRound = supersetRound[group.id] || 0;
@@ -771,7 +1130,11 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                         ).length;
 
                                         return (
-                                            <div key={`super-${group.id}`} className="bg-white rounded-3xl border border-brand-mint/40 p-1 shadow-sm overflow-hidden relative">
+                                            <div
+                                                key={`super-${group.id}`}
+                                                ref={(el) => { stepRefs.current[stepKey] = el; }}
+                                                className="bg-white rounded-3xl border border-brand-mint/40 p-1 shadow-sm overflow-hidden relative"
+                                            >
                                                 <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-brand-gold rounded-l-3xl"></div>
                                                 <div className="px-4 py-3 bg-brand-gold/5 flex flex-wrap items-center justify-between border-b border-brand-mint/20 ml-2 rounded-tr-2xl gap-2">
                                                     <div className="flex items-center gap-2">
@@ -817,7 +1180,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                                                         roundIndex={currentRound}
                                                                         setLog={setLog}
                                                                         isDone={isDone}
-                                                                        onSetUpdate={(field, val) => handleSetUpdate(we.id, currentRound, field, val)}
+                                                                        onSetUpdate={(field, val) => handleSetUpdate(we.id, currentRound, field, val, stepKey)}
                                                                     />
                                                                 </div>
                                                             );
@@ -845,7 +1208,11 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                         );
                                     } else {
                                         return (
-                                            <div key={group.items[0].id} className="bg-white rounded-3xl border border-brand-mint/40 shadow-sm overflow-hidden p-2">
+                                            <div
+                                                key={group.items[0].id}
+                                                ref={(el) => { stepRefs.current[stepKey] = el; }}
+                                                className="bg-white rounded-3xl border border-brand-mint/40 shadow-sm overflow-hidden p-2"
+                                            >
                                                 <div className="p-2 sm:p-4">
                                                     {(() => {
                                                         const exercise = group.items[0];
@@ -857,13 +1224,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                                                     <ExerciseEntry
                                                         exercise={exercise}
                                                         completedSets={completedSets[exercise.id] || []}
-                                                        onSetUpdate={(setIdx, field, val) => handleSetUpdate(exercise.id, setIdx, field, val)}
+                                                        onSetUpdate={(setIdx, field, val) => handleSetUpdate(exercise.id, setIdx, field, val, stepKey)}
                                                         assessmentTemplate={assessmentTemplate}
                                                         assessmentState={assessmentState}
                                                         assessmentErrors={fieldErrors}
                                                         onAssessmentFieldChange={(fieldKey, value) => handleAssessmentFieldChange(exercise.id, fieldKey, value)}
                                                         onAssessmentComplete={() => {
-                                                            if (assessmentTemplate) handleAssessmentComplete(exercise, assessmentTemplate);
+                                                            if (assessmentTemplate) {
+                                                                setLastFocusedStepKey(stepKey);
+                                                                void handleAssessmentComplete(exercise, assessmentTemplate);
+                                                            }
                                                         }}
                                                     />
                                                         );
@@ -877,7 +1247,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                         </div>
                     ))}
 
-                    <div className="pt-6 mt-6 border-t border-slate-200 pb-6">
+                    <div ref={summaryRef} className="pt-6 mt-6 border-t border-slate-200 pb-6">
                         <h3 className="font-bold text-brand-dark mb-4 flex items-center gap-2">
                             <Activity className="w-5 h-5 text-brand-green" />
                             Resumen de sesión
@@ -920,6 +1290,54 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, onClose, onComp
                     </div>
                 </div>
             </div>
+
+            <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <div className="max-w-3xl mx-auto flex items-center gap-3">
+                    <div className="min-w-0">
+                        <p className="text-[11px] uppercase tracking-wider font-bold text-slate-500">Flujo guiado</p>
+                        <p className="text-sm font-semibold text-brand-dark">{completedSteps}/{totalSteps} pasos completados</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (nextPendingStepKey) {
+                                focusStepByKey(nextPendingStepKey);
+                                return;
+                            }
+                            summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="ml-auto shrink-0 px-4 py-3 rounded-xl bg-brand-green text-white font-bold text-sm shadow-md shadow-brand-mint/40 active:scale-[0.98] transition-all"
+                    >
+                        {nextPendingStepKey ? 'Siguiente ejercicio' : 'Ir al cierre'}
+                    </button>
+                </div>
+            </div>
+
+            {restTimer && (
+                <div className="fixed bottom-24 right-4 z-20 bg-slate-900 text-white rounded-2xl shadow-xl px-4 py-3 min-w-[180px]">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">{restTimer.label}</p>
+                    <p className="text-2xl font-black leading-none mt-1">{Math.floor(restTimer.remaining / 60).toString().padStart(2, '0')}:{(restTimer.remaining % 60).toString().padStart(2, '0')}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <button
+                            onClick={() => setRestTimer((prev) => prev ? { ...prev, running: !prev.running } : prev)}
+                            className="text-[11px] font-bold px-2 py-1 rounded-lg bg-white/15"
+                        >
+                            {restTimer.running ? 'Pausar' : 'Seguir'}
+                        </button>
+                        <button
+                            onClick={() => setRestTimer((prev) => prev ? { ...prev, remaining: prev.remaining + 15, total: prev.total + 15 } : prev)}
+                            className="text-[11px] font-bold px-2 py-1 rounded-lg bg-white/15"
+                        >
+                            +15s
+                        </button>
+                        <button
+                            onClick={() => setRestTimer(null)}
+                            className="text-[11px] font-bold px-2 py-1 rounded-lg bg-rose-500/80"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {saving && (
                 <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[200] flex flex-col items-center justify-center">
@@ -1397,7 +1815,7 @@ function SupersetExerciseRoundEntry({
                 </div>
 
                 {/* Inline weight + reps + OK for this round */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     <input
                         type="number"
                         placeholder="Kg"
@@ -1473,6 +1891,7 @@ function ExerciseEntry({
     isSupersetChild?: boolean;
 }) {
     const setsArray = Array.from({ length: exercise.sets || 1 });
+    const [selectedSetIdx, setSelectedSetIdx] = useState(0);
     const extractYoutubeId = (url?: string) => {
         if (!url) return null;
         const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
@@ -1483,6 +1902,12 @@ function ExerciseEntry({
     const [videoOpen, setVideoOpen] = useState(false);
 
     const isAssessmentExercise = !!assessmentTemplate;
+    const completedSetCount = setsArray.filter((_, idx) => !!(completedSets || [])[idx]?.completed).length;
+
+    useEffect(() => {
+        if (selectedSetIdx <= setsArray.length - 1) return;
+        setSelectedSetIdx(0);
+    }, [selectedSetIdx, setsArray.length]);
 
     const renderAssessmentField = (field: AssessmentField) => {
         const type = field.type || 'text';
@@ -1641,59 +2066,86 @@ function ExerciseEntry({
                         className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${assessmentState?.completed ? 'bg-brand-green/10 text-brand-green border border-brand-green/30' : 'bg-brand-green text-white hover:bg-emerald-600 active:scale-[0.98]'}`}
                     >
                         <CheckCircle className={`w-5 h-5 ${assessmentState?.completed ? '' : 'fill-current'}`} />
-                        {assessmentState?.completed ? 'Resultados guardados' : 'Guardar resultado del test'}
+                        {assessmentState?.completed ? 'Resultados guardados (borrador)' : 'Guardar resultado del test'}
                     </button>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        Para dejarlo registrado en historial debes pulsar "Finalizar entrenamiento".
+                    </p>
                 </div>
             ) : (
             <div className={`mt-2 ${isSupersetChild ? 'px-2' : ''}`}>
-                <div className="grid grid-cols-[1fr_2fr_2fr_1fr] md:grid-cols-[1fr_2fr_2fr_1fr] gap-2 mb-2 px-2 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider text-center">
-                    <span>Set</span>
-                    <span>LBS/KG</span>
-                    <span>Reps</span>
-                    <span>OK</span>
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Series</p>
+                    <p className="text-xs font-semibold text-brand-dark">{completedSetCount}/{setsArray.length} completadas</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex gap-2 overflow-x-auto pb-2">
                     {setsArray.map((_, idx) => {
-                        const setLog = (completedSets || [])[idx] || {};
-                        const isDone = !!setLog.completed;
-
+                        const isDone = !!(completedSets || [])[idx]?.completed;
+                        const isSelected = idx === selectedSetIdx;
                         return (
-                            <div
+                            <button
                                 key={idx}
-                                className={`grid grid-cols-[1fr_2fr_2fr_1fr] gap-2 items-center p-2 rounded-xl transition-all border ${isDone ? 'bg-brand-green/5 border-brand-green/20 shadow-sm' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}
+                                onClick={() => setSelectedSetIdx(idx)}
+                                className={`min-w-[56px] px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                                    isSelected
+                                        ? 'border-brand-green bg-brand-green text-white'
+                                        : isDone
+                                            ? 'border-brand-green/30 bg-brand-green/10 text-brand-green'
+                                            : 'border-slate-200 bg-white text-slate-500'
+                                }`}
                             >
-                                <div className="text-center font-black text-sm text-slate-400 w-full flex justify-center">{idx + 1}</div>
-
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={setLog.weight || ''}
-                                    onChange={(e) => onSetUpdate(idx, 'weight', e.target.value ? Number(e.target.value) : null)}
-                                    // disabled={isDone} // Optionally disable if checked
-                                    className={`w-full bg-white border ${isDone ? 'border-brand-green/30 text-brand-dark font-bold' : 'border-slate-200'} rounded-lg py-2 sm:py-2.5 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
-                                />
-
-                                <input
-                                    type="number"
-                                    placeholder={exercise.reps?.replace(/\D/g, '') || "0"}
-                                    value={setLog.reps || ''}
-                                    onChange={(e) => onSetUpdate(idx, 'reps', e.target.value ? Number(e.target.value) : null)}
-                                    className={`w-full bg-white border ${isDone ? 'border-brand-green/30 text-brand-dark font-bold' : 'border-slate-200'} rounded-lg py-2 sm:py-2.5 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
-                                />
-
-                                <div className="flex justify-center w-full">
-                                    <button
-                                        onClick={() => onSetUpdate(idx, 'completed', !setLog.completed)}
-                                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all ${isDone ? 'bg-brand-green text-white shadow-md shadow-brand-mint/40 scale-105' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-brand-mint hover:text-brand-mint'}`}
-                                    >
-                                        <CheckCircle className={`w-6 h-6 ${isDone ? 'fill-current' : ''}`} />
-                                    </button>
-                                </div>
-                            </div>
+                                S{idx + 1}
+                            </button>
                         );
                     })}
                 </div>
+
+                {(() => {
+                    const currentSet = (completedSets || [])[selectedSetIdx] || {};
+                    const isDone = !!currentSet.completed;
+
+                    return (
+                        <div className={`grid grid-cols-[1.3fr_1.3fr_auto] gap-2 items-center p-3 rounded-xl transition-all border ${isDone ? 'bg-brand-green/5 border-brand-green/20 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
+                            <input
+                                type="number"
+                                placeholder="Kg"
+                                value={currentSet.weight || ''}
+                                onChange={(e) => onSetUpdate(selectedSetIdx, 'weight', e.target.value ? Number(e.target.value) : null)}
+                                className={`w-full bg-white border ${isDone ? 'border-brand-green/30 text-brand-dark font-bold' : 'border-slate-200'} rounded-lg py-2.5 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
+                            />
+
+                            <input
+                                type="number"
+                                placeholder={exercise.reps?.replace(/\D/g, '') || 'Reps'}
+                                value={currentSet.reps || ''}
+                                onChange={(e) => onSetUpdate(selectedSetIdx, 'reps', e.target.value ? Number(e.target.value) : null)}
+                                className={`w-full bg-white border ${isDone ? 'border-brand-green/30 text-brand-dark font-bold' : 'border-slate-200'} rounded-lg py-2.5 text-center text-sm focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all`}
+                            />
+
+                            <button
+                                onClick={() => {
+                                    const nextValue = !currentSet.completed;
+                                    onSetUpdate(selectedSetIdx, 'completed', nextValue);
+
+                                    if (nextValue) {
+                                        const afterCurrent = setsArray.findIndex((_, idx) => idx > selectedSetIdx && !(completedSets || [])[idx]?.completed);
+                                        if (afterCurrent !== -1) {
+                                            setSelectedSetIdx(afterCurrent);
+                                            return;
+                                        }
+
+                                        const firstPending = setsArray.findIndex((_, idx) => !(completedSets || [])[idx]?.completed && idx !== selectedSetIdx);
+                                        if (firstPending !== -1) setSelectedSetIdx(firstPending);
+                                    }
+                                }}
+                                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${isDone ? 'bg-brand-green text-white shadow-md shadow-brand-mint/40 scale-105' : 'bg-white border-2 border-slate-200 text-slate-300 hover:border-brand-mint hover:text-brand-mint'}`}
+                            >
+                                <CheckCircle className={`w-6 h-6 ${isDone ? 'fill-current' : ''}`} />
+                            </button>
+                        </div>
+                    );
+                })()}
             </div>
             )}
         </div>

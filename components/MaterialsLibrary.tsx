@@ -25,12 +25,16 @@ interface MaterialItem {
 
 interface MaterialsLibraryProps {
     currentUser: User;
+    fixedCategory?: string;
+    title?: string;
+    subtitle?: string;
 }
 
 const CATEGORIES = [
     { value: 'general', label: 'General' },
     { value: 'nutricion', label: 'Nutrición' },
     { value: 'ejercicio', label: 'Ejercicio' },
+    { value: 'meditacion', label: 'Meditación' },
     { value: 'diabetes', label: 'Diabetes' },
     { value: 'motivacion', label: 'Motivación' },
     { value: 'recetas', label: 'Recetas' },
@@ -52,14 +56,23 @@ const TYPE_COLORS = {
     audio: 'bg-amber-100 text-amber-600',
 };
 
-export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps) {
+const MEDITATION_SECTIONS = ['Relajación', 'Claridad', 'Sueño', 'Enfoque'];
+
+const readMetaTag = (tags: string[] | undefined, prefixes: string[]): string => {
+    if (!Array.isArray(tags)) return '';
+    const found = tags.find(t => prefixes.some(p => t.toLowerCase().startsWith(p)));
+    if (!found) return '';
+    return found.split(':').slice(1).join(':').trim();
+};
+
+export default function MaterialsLibrary({ currentUser, fixedCategory, title, subtitle }: MaterialsLibraryProps) {
     const { toast } = useToast();
     const [materials, setMaterials] = useState<MaterialItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategory, setFilterCategory] = useState('all');
+    const [filterCategory, setFilterCategory] = useState(fixedCategory || 'all');
     const [filterType, setFilterType] = useState('all');
     const [uploading, setUploading] = useState(false);
 
@@ -71,10 +84,18 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
         url: '',
         category: 'general',
         tags: '',
+        meditation_section: 'Relajación',
+        meditation_duration: '',
         is_active: true,
     });
 
     const canEdit = [UserRole.ADMIN, UserRole.HEAD_COACH, UserRole.COACH, UserRole.DIRECCION].includes(currentUser.role);
+
+    useEffect(() => {
+        if (!fixedCategory) return;
+        setFilterCategory(fixedCategory);
+        setFormData(prev => ({ ...prev, category: fixedCategory }));
+    }, [fixedCategory]);
 
     useEffect(() => {
         loadMaterials();
@@ -125,11 +146,17 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                 .from('client-materials')
                 .getPublicUrl(filePath);
 
+            const detectedType: 'audio' | 'video' | 'document' = file.type.startsWith('audio/')
+                ? 'audio'
+                : file.type.startsWith('video/')
+                    ? 'video'
+                    : 'document';
+
             setFormData(prev => ({
                 ...prev,
                 url: urlData.publicUrl,
                 title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
-                type: 'document'
+                type: detectedType
             }));
 
             toast.success('Archivo subido correctamente');
@@ -156,7 +183,16 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                 type: formData.type,
                 url: formData.url.trim(),
                 category: formData.category,
-                tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+                tags: (() => {
+                    const baseTags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+                    if (fixedCategory === 'meditacion') {
+                        const clean = baseTags.filter(t => !t.toLowerCase().startsWith('categoria:') && !t.toLowerCase().startsWith('categoría:') && !t.toLowerCase().startsWith('duracion:') && !t.toLowerCase().startsWith('duración:'));
+                        if (formData.meditation_section) clean.push(`categoria:${formData.meditation_section}`);
+                        if (formData.meditation_duration.trim()) clean.push(`duracion:${formData.meditation_duration.trim()}`);
+                        return clean;
+                    }
+                    return baseTags;
+                })(),
                 is_active: formData.is_active,
                 created_by: currentUser.id,
             };
@@ -210,7 +246,11 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
             type: material.type,
             url: material.url,
             category: material.category,
-            tags: material.tags?.join(', ') || '',
+            tags: (material.tags || [])
+                .filter(t => !t.toLowerCase().startsWith('categoria:') && !t.toLowerCase().startsWith('categoría:') && !t.toLowerCase().startsWith('duracion:') && !t.toLowerCase().startsWith('duración:'))
+                .join(', '),
+            meditation_section: readMetaTag(material.tags, ['categoria:', 'categoría:']) || 'Relajación',
+            meditation_duration: readMetaTag(material.tags, ['duracion:', 'duración:']),
             is_active: material.is_active,
         });
         setShowModal(true);
@@ -223,8 +263,10 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
             description: '',
             type: 'link',
             url: '',
-            category: 'general',
+            category: fixedCategory || 'general',
             tags: '',
+            meditation_section: 'Relajación',
+            meditation_duration: '',
             is_active: true,
         });
     };
@@ -233,10 +275,15 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
         const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             m.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             m.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesCategory = filterCategory === 'all' || m.category === filterCategory;
+        const matchesCategory = fixedCategory
+            ? m.category === fixedCategory
+            : (filterCategory === 'all' || m.category === filterCategory);
         const matchesType = filterType === 'all' || m.type === filterType;
         return matchesSearch && matchesCategory && matchesType;
     });
+
+    const displayTitle = title || 'Biblioteca de Materiales';
+    const displaySubtitle = subtitle || 'Materiales disponibles para todos los clientes';
 
     const groupedMaterials = filteredMaterials.reduce((acc, m) => {
         const cat = m.category || 'general';
@@ -254,10 +301,10 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                         <div className="p-2 bg-indigo-100 rounded-xl">
                             <FolderOpen className="w-6 h-6 text-indigo-600" />
                         </div>
-                        Biblioteca de Materiales
+                        {displayTitle}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Materiales disponibles para todos los clientes
+                        {displaySubtitle}
                     </p>
                 </div>
 
@@ -285,16 +332,18 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                     </div>
-                    <select
-                        value={filterCategory}
-                        onChange={e => setFilterCategory(e.target.value)}
-                        className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                        <option value="all">Todas las categorías</option>
-                        {CATEGORIES.map(c => (
-                            <option key={c.value} value={c.value}>{c.label}</option>
-                        ))}
-                    </select>
+                    {!fixedCategory && (
+                        <select
+                            value={filterCategory}
+                            onChange={e => setFilterCategory(e.target.value)}
+                            className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="all">Todas las categorías</option>
+                            {CATEGORIES.map(c => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </select>
+                    )}
                     <select
                         value={filterType}
                         onChange={e => setFilterType(e.target.value)}
@@ -319,15 +368,15 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                     <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-600 mb-2">No hay materiales</h3>
                     <p className="text-slate-500">
-                        {searchTerm || filterCategory !== 'all' || filterType !== 'all'
-                            ? 'No se encontraron materiales con esos filtros'
-                            : 'Añade el primer material a la biblioteca'}
+                                    {searchTerm || ((!fixedCategory && filterCategory !== 'all') || filterType !== 'all')
+                                        ? 'No se encontraron materiales con esos filtros'
+                                        : 'Añade el primer material a la biblioteca'}
                     </p>
                 </div>
             ) : (
                 <div className="space-y-8">
                     {Object.entries(groupedMaterials).map(([category, items]) => {
-                        const categoryInfo = CATEGORIES.find(c => c.value === category);
+            const categoryInfo = CATEGORIES.find(c => c.value === category);
                         return (
                             <div key={category}>
                                 <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -482,6 +531,37 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                             </div>
 
                             {/* URL o Upload */}
+                            {fixedCategory === 'meditacion' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Sección de meditación
+                                        </label>
+                                        <select
+                                            value={formData.meditation_section}
+                                            onChange={e => setFormData(prev => ({ ...prev, meditation_section: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            {MEDITATION_SECTIONS.map(section => (
+                                                <option key={section} value={section}>{section}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Duración (opcional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.meditation_duration}
+                                            onChange={e => setFormData(prev => ({ ...prev, meditation_duration: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="Ej: 08:30 o 10 min"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     URL / Archivo *
@@ -518,9 +598,13 @@ export default function MaterialsLibrary({ currentUser }: MaterialsLibraryProps)
                                 <select
                                     value={formData.category}
                                     onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                                    disabled={!!fixedCategory}
                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
-                                    {CATEGORIES.map(c => (
+                                    {(fixedCategory
+                                        ? CATEGORIES.filter(c => c.value === fixedCategory)
+                                        : CATEGORIES
+                                    ).map(c => (
                                         <option key={c.value} value={c.value}>{c.label}</option>
                                     ))}
                                 </select>

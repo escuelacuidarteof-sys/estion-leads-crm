@@ -11,7 +11,10 @@ import {
     Check,
     ShoppingCart,
     CalendarDays,
-    RotateCcw
+    RotateCcw,
+    Users,
+    Minus,
+    Plus
 } from 'lucide-react';
 import { NutritionRecipe, IngredientSection, RecipeIngredient, MealSlot } from '../../types';
 
@@ -85,6 +88,7 @@ function getCheckStorageKey(planId: string) {
 
 export function ShoppingList({ recipes, planId, plannerGrid }: ShoppingListProps) {
     const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+    const [servings, setServings] = useState(1);
 
     // Load checked items from localStorage
     useEffect(() => {
@@ -207,7 +211,7 @@ export function ShoppingList({ recipes, planId, plannerGrid }: ShoppingListProps
                         Lista de la Compra
                     </h3>
                     <p className="text-sm text-slate-500">
-                        {totalItems} ingredientes de {selectedRecipeIds.size} recetas seleccionadas
+                        {totalItems} ingredientes de {selectedRecipeIds.size} recetas
                         {checkedCount > 0 && (
                             <span className="ml-2 text-green-600 font-medium">({checkedCount} marcados)</span>
                         )}
@@ -219,9 +223,34 @@ export function ShoppingList({ recipes, planId, plannerGrid }: ShoppingListProps
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                     >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        Desmarcar todo
+                        Desmarcar
                     </button>
                 )}
+            </div>
+
+            {/* Servings selector */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-500" />
+                    <span className="text-sm font-medium text-slate-700">Nº de personas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setServings(Math.max(1, servings - 1))}
+                        disabled={servings <= 1}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-30"
+                    >
+                        <Minus className="w-4 h-4 text-slate-600" />
+                    </button>
+                    <span className="w-8 text-center text-lg font-bold text-indigo-600">{servings}</span>
+                    <button
+                        onClick={() => setServings(Math.min(10, servings + 1))}
+                        disabled={servings >= 10}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-30"
+                    >
+                        <Plus className="w-4 h-4 text-slate-600" />
+                    </button>
+                </div>
             </div>
 
             {/* Sections */}
@@ -271,7 +300,7 @@ export function ShoppingList({ recipes, planId, plannerGrid }: ShoppingListProps
                                             {item.quantity > 0 && (
                                                 <span className={`text-xs font-semibold whitespace-nowrap ${isChecked ? 'text-slate-300' : 'text-slate-500'
                                                     }`}>
-                                                    {Math.round(item.quantity * 10) / 10} {item.unit}
+                                                    {Math.round(item.quantity * servings * 10) / 10} {item.unit}
                                                 </span>
                                             )}
                                         </button>

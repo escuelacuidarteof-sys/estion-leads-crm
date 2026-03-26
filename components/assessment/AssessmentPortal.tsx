@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    Utensils, Dumbbell, CheckCircle2, ArrowRight, ArrowLeft,
+    Utensils, Dumbbell, CircleCheck, ArrowRight, ArrowLeft,
     Loader2, Heart, Award, Sparkles, BookOpen
 } from 'lucide-react';
 import { Client } from '../../types';
@@ -91,7 +91,7 @@ export function AssessmentPortal({ client, onComplete }: AssessmentPortalProps) 
                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 ${active ? 'bg-slate-900 text-white shadow-lg' :
                                         completed ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-300 border border-slate-200'
                                     }`}>
-                                    {completed ? <CheckCircle2 className="w-6 h-6" /> : <Icon className="w-5 h-5" />}
+                                    {completed ? <CircleCheck className="w-6 h-6" /> : <Icon className="w-5 h-5" />}
                                 </div>
                                 <div className="hidden sm:block">
                                     <p className={`text-[10px] font-bold uppercase tracking-widest ${active ? 'text-slate-900' : 'text-slate-400'}`}>

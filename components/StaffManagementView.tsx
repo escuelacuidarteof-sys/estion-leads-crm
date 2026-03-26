@@ -5,7 +5,7 @@ import {
     Users, UserPlus, Mail, Shield, ShieldCheck,
     Trash2, Copy, X, Loader2, Search,
     Briefcase, Target, Calculator, Stethoscope,
-    Brain, Share2, Bell, CheckCircle2, RefreshCw, Smartphone,
+    Brain, Share2, Bell, CircleCheck, RefreshCw, Smartphone,
     Building2
 } from 'lucide-react';
 import InstallationGuide from './InstallationGuide';
@@ -27,6 +27,8 @@ const ROLE_DETAILS: Record<string, { icon: any, color: string, description: stri
     [UserRole.PSICOLOGO]: { icon: Brain, color: 'bg-purple-600', description: 'Apoyo psicológico a alumnos' },
     [UserRole.RRSS]: { icon: Bell, color: 'bg-pink-600', description: 'Gestión de anuncios y comunidad' },
     [UserRole.DIRECCION]: { icon: Building2, color: 'bg-slate-800', description: 'Visión ejecutiva y control de negocio' }
+    ,
+    [UserRole.AUDITOR_EXTERNO]: { icon: Shield, color: 'bg-sky-700', description: 'Solo lectura de dashboard y clientes' }
 };
 
 export default function StaffManagementView({ currentUser, onUpdateUser, onDeleteUser }: StaffManagementViewProps) {
@@ -56,6 +58,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
     const [reassignTargetId, setReassignTargetId] = useState<string>('');
     const [isReassigning, setIsReassigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [invitationsTableMissing, setInvitationsTableMissing] = useState(false);
 
     const [editFormData, setEditFormData] = useState({
         name: '',
@@ -86,8 +89,19 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                 .from('team_invitations')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (invError) throw invError;
-            setInvitations(invData || []);
+            if (invError) {
+                const msg = String(invError.message || '').toLowerCase();
+                const missing = msg.includes("could not find the table") || msg.includes('relation') || msg.includes('schema cache');
+                if (missing) {
+                    setInvitations([]);
+                    setInvitationsTableMissing(true);
+                } else {
+                    throw invError;
+                }
+            } else {
+                setInvitations(invData || []);
+                setInvitationsTableMissing(false);
+            }
 
         } catch (error) {
             console.error('Error fetching staff data:', error);
@@ -102,6 +116,10 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
 
         setIsSubmittingInvite(true);
         try {
+            if (invitationsTableMissing) {
+                throw new Error("La tabla team_invitations no existe en producción. Ejecuta el script database/20260309_create_team_invitations_if_missing.sql en Supabase.");
+            }
+
             const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             const link = `${window.location.origin}/#/equipo/unirse/${token}`;
             const emailLower = invitationFormData.email.toLowerCase().trim();
@@ -125,7 +143,13 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
             setInvitationFormData({ email: '', role: UserRole.COACH, name: '' });
             fetchData();
         } catch (error: any) {
-            alert("Error al crear invitación: " + error.message);
+            const msg = String(error?.message || 'Error desconocido');
+            if (msg.toLowerCase().includes("could not find the table") || msg.toLowerCase().includes('schema cache')) {
+                setInvitationsTableMissing(true);
+                alert("Falta la tabla team_invitations en Supabase. Ejecuta el script database/20260309_create_team_invitations_if_missing.sql y vuelve a intentar.");
+            } else {
+                alert("Error al crear invitación: " + msg);
+            }
         } finally {
             setIsSubmittingInvite(false);
         }
@@ -280,6 +304,12 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                 </button>
             </div>
 
+            {invitationsTableMissing && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 text-sm">
+                    Falta la tabla <code>team_invitations</code> en Supabase. Ejecuta <code>database/20260309_create_team_invitations_if_missing.sql</code> para habilitar invitaciones del equipo.
+                </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -302,7 +332,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
                     <div className="p-4 bg-emerald-100 rounded-2xl text-emerald-600">
-                        <CheckCircle2 className="w-6 h-6" />
+                        <CircleCheck className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Estado Sistema</p>
@@ -561,7 +591,7 @@ export default function StaffManagementView({ currentUser, onUpdateUser, onDelet
                         ) : (
                             <div className="p-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
                                 <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4">
-                                    <CheckCircle2 className="w-12 h-12" />
+                                    <CircleCheck className="w-12 h-12" />
                                 </div>
                                 <div>
                                     <h4 className="text-3xl font-black text-slate-800">¡Enlace Generado!</h4>

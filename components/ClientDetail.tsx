@@ -10,11 +10,11 @@ import {
    Activity, Target,
    Utensils, Dumbbell, AlertCircle, HeartPulse,
    Save, X, Edit3, Clock, Briefcase,
-   TrendingDown, TrendingUp, Calendar, CheckCircle2, Circle, PauseCircle, AlertOctagon,
+   TrendingDown, TrendingUp, Calendar, CircleCheck, Circle, PauseCircle, AlertOctagon,
    Quote, Zap, Award, Flame, ChevronRight, Droplets, Droplet, Moon, Video, PlayCircle, Lock,
    FileText, ExternalLink, Trophy, Stethoscope, CreditCard, Image as ImageIcon,
    Loader2, Upload, History, Play, UserPlus, FileCheck, FileX, Rocket, MessageSquare,
-   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2, MessageCircle
+   MoreVertical, ChevronDown, Phone, Send, Eye, EyeOff, RefreshCw, UserX, XCircle, Scale, ClipboardCheck, CalendarCheck, Footprints, RotateCcw, ShieldAlert, Apple, Ban, Heart, StickyNote, Trash2, MessageCircle, Pill
 } from 'lucide-react';
 import { pauseService } from '../services/pauseService';
 import { normalizePhone, isValidPhone, PHONE_HELP_TEXT, PHONE_PLACEHOLDER } from '../utils/phoneUtils';
@@ -38,7 +38,7 @@ import { getContractHistory, saveContractToHistory, deleteContractFromHistory, C
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
 import ClientMaterials from './ClientMaterials';
 import { ClientStatusBanner } from './client-detail/ClientStatusBanner';
-import TreatmentView from './client-portal/TreatmentView';
+import { TreatmentView } from './client-portal/TreatmentView';
 
 interface ClientDetailProps {
    client: Client;
@@ -49,7 +49,7 @@ interface ClientDetailProps {
    onViewAsClient?: () => void;
    currentUser?: CRMUser;
    coaches: CRMUser[];
-   initialTab?: 'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials';
+   initialTab?: 'overview' | 'checkins' | 'health' | 'program' | 'documents';
    onDeleteClient?: (clientId: string, userId?: string) => void;
 }
 
@@ -189,7 +189,7 @@ const DataField: React.FC<DataFieldProps> = ({
                         className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
                         title="Guardar"
                      >
-                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CircleCheck className="w-3.5 h-3.5" />}
                      </button>
                      <button
                         onClick={handleCancelQuickEdit}
@@ -216,7 +216,7 @@ const DataField: React.FC<DataFieldProps> = ({
                         className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
                         title="Guardar"
                      >
-                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CircleCheck className="w-3.5 h-3.5" />}
                      </button>
                      <button
                         onClick={handleCancelQuickEdit}
@@ -296,7 +296,6 @@ const DataField: React.FC<DataFieldProps> = ({
    );
 };
 
-import ClientPortalView from './ClientPortalView';
 
 // --- RENEWAL CARD (CRM VIEW) ---
 const RenewalCard = ({
@@ -367,7 +366,7 @@ const RenewalCard = ({
       <div className="relative pl-10 pb-8">
          {!isLast && <div className={`absolute left-[15px] top-8 bottom-0 w-0.5 ${isContracted ? 'bg-gradient-to-b from-emerald-300 to-emerald-200' : 'bg-gradient-to-b from-blue-200 to-slate-200'}`}></div>}
          <div className={`absolute left-0 top-1 w-8 h-8 rounded-xl flex items-center justify-center z-10 shadow-md border-2 border-white ${isContracted ? 'bg-gradient-to-br from-emerald-400 to-emerald-500' : 'bg-gradient-to-br from-blue-400 to-blue-500'}`}>
-            {isContracted ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Circle className="w-4 h-4 text-white" />}
+            {isContracted ? <CircleCheck className="w-4 h-4 text-white" /> : <Circle className="w-4 h-4 text-white" />}
          </div>
 
          <div className={`p-5 rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${isContracted ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white' : 'border-blue-200/80 bg-gradient-to-br from-blue-50/50 to-white'}`}>
@@ -386,7 +385,7 @@ const RenewalCard = ({
                         <span className="text-xs font-bold text-slate-700">MARCAR CONTRATADO</span>
                      </label>
                   )}
-                  {!isEditing && isContracted && <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> CONTRATADO</span>}
+                  {!isEditing && isContracted && <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-1"><CircleCheck className="w-3 h-3" /> CONTRATADO</span>}
                   {!isEditing && !isContracted && <span className="text-xs font-bold text-slate-400 uppercase">PENDIENTE</span>}
                </div>
             </div>
@@ -514,7 +513,7 @@ const getSectionIconStyle = (icon: React.ReactNode): string => {
       'Dumbbell': 'from-slate-100 to-slate-200 text-slate-700 shadow-slate-200',
       'Target': 'from-indigo-50 to-indigo-100 text-indigo-500 shadow-indigo-100',
       'FileText': 'from-slate-100 to-slate-200 text-slate-700 shadow-slate-200',
-      'CheckCircle2': 'from-emerald-50 to-emerald-100 text-emerald-500 shadow-emerald-100',
+      'CircleCheck': 'from-emerald-50 to-emerald-100 text-emerald-500 shadow-emerald-100',
    };
    return colorMap[iconType] || 'from-slate-50 to-slate-100 text-slate-600 shadow-slate-100';
 };
@@ -534,6 +533,7 @@ const SectionTitle = ({ title, icon, className = "" }: { title: string, icon: Re
 const TabButton = ({ id, label, icon, isActive, onClick }: { id: string, label: string, icon: React.ReactNode, isActive: boolean, onClick: (id: any) => void }) => (
    <button
       onClick={() => onClick(id)}
+      data-tour={`tab-${id}`}
       className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap ${isActive
          ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/25 transform scale-[1.02] ring-2 ring-slate-900/10 ring-offset-2'
          : 'bg-white/80 backdrop-blur-sm text-slate-500 hover:bg-white hover:text-slate-700 border border-slate-200/80 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
@@ -619,7 +619,7 @@ const ReviewComplianceSummary = ({ checkins, missedCount = 0 }: { checkins: Week
                            }`}
                      >
                         {hasCheckin ? (
-                           <CheckCircle2 className="w-4 h-4" />
+                           <CircleCheck className="w-4 h-4" />
                         ) : isPending ? (
                            <Clock className="w-3.5 h-3.5 opacity-50" />
                         ) : (
@@ -711,7 +711,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    initialTab,
    onDeleteClient
 }) => {
-   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'checkins' | 'health' | 'program' | 'contract' | 'materials'>(initialTab || 'overview');
+   const [activeTab, setActiveTab] = useState<'overview' | 'checkins' | 'health' | 'program' | 'documents'>(initialTab || 'overview');
    const [isEditing, setIsEditing] = useState(false);
    const [formData, setFormData] = useState<Client>(client);
    const { toast } = useToast();
@@ -738,7 +738,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
    // Load contract history when contract tab is active
    useEffect(() => {
-      if (activeTab === 'contract' && formData.id) {
+      if (activeTab === 'documents' && formData.id) {
          setIsLoadingHistory(true);
          getContractHistory(formData.id)
             .then(setContractHistory)
@@ -770,7 +770,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
 
    const isCoach = currentUser?.role === UserRole.COACH || currentUser?.role === UserRole.HEAD_COACH || currentUser?.role === UserRole.ADMIN;
    const canManageMedical = currentUser ? checkPermission(currentUser, PERMISSIONS.MANAGE_MEDICAL) : false;
-   const readOnlyMedical = isCoach && !canManageMedical;
+   const readOnlyMedical = readOnly || (isCoach && !canManageMedical);
 
    // Status Change Modal State
    const [showStatusModal, setShowStatusModal] = useState(false);
@@ -795,11 +795,13 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    // Actions Modal State
    const [showActionsModal, setShowActionsModal] = useState(false);
    const [showFullAssessmentDoc, setShowFullAssessmentDoc] = useState(false);
+   const [showAssessmentSection, setShowAssessmentSection] = useState(false);
+   const [showQuickActions, setShowQuickActions] = useState(false);
 
    // Sub-tabs for consolidated views
-   const [healthSubTab, setHealthSubTab] = useState<'medical' | 'nutrition' | 'training' | 'hormonal' | 'oncology'>('medical');
-   const [programSubTab, setProgramSubTab] = useState<'plan' | 'revisiones' | 'objetivos'>('plan');
-   const [contractSubTab, setContractSubTab] = useState<'contrato' | 'renovaciones'>('contrato');
+   const [healthSubTab, setHealthSubTab] = useState<'clinico' | 'nutrition' | 'fisico'>('clinico');
+   const [programSubTab, setProgramSubTab] = useState<'plan' | 'revisiones' | 'objetivos' | 'tratamiento'>('plan');
+   const [documentsSubTab, setDocumentsSubTab] = useState<'contrato' | 'renovaciones' | 'materiales'>('contrato');
 
    // Plan terapéutico: revisiones operativas
    const [teamReviews, setTeamReviews] = useState<TeamReviewRecord[]>([]);
@@ -1564,12 +1566,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
       return Math.round(((now - start) / (end - start)) * 100);
    }, [formData.start_date, adjustedEndDate, formData.contract_end_date]);
 
-   // --- RENDER CLIENT PORTAL IF READ ONLY ---
-   if (readOnly) {
-      return <ClientPortalView client={client} />;
-   }
-
-   // --- REST OF THE COMPONENT (ADMIN/COACH VIEW) ---
+   // --- REST OF THE COMPONENT (ADMIN/COACH/AUDITOR VIEW) ---
    useEffect(() => {
       setFormData(client);
    }, [client]);
@@ -2618,7 +2615,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
                                  }`}
                            >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <CircleCheck className="w-4 h-4" />
                               Realizada
                            </button>
                            <button
@@ -2749,7 +2746,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            <div className="font-medium">{formData.allow_endocrine_access ? 'Desactivar Consulta Médica' : 'Activar Consulta Médica'}</div>
                            <div className="text-xs text-slate-400">{formData.allow_endocrine_access ? 'Acceso activo' : 'Sin acceso'}</div>
                         </div>
-                        {formData.allow_endocrine_access && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                        {formData.allow_endocrine_access && <CircleCheck className="w-4 h-4 text-emerald-500" />}
                      </button>
 
                      {!formData.user_id ? (
@@ -2917,7 +2914,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            {/* Account Status Indicator */}
                            {formData.user_id ? (
                               <span className="flex items-center gap-1.5 bg-green-500/30 px-2.5 py-1 rounded-lg font-medium text-green-200">
-                                 <CheckCircle2 className="w-3.5 h-3.5" /> Cuenta activa
+                                 <CircleCheck className="w-3.5 h-3.5" /> Cuenta activa
                               </span>
                            ) : formData.activation_token ? (
                               <span className="flex items-center gap-1.5 bg-amber-500/30 px-2.5 py-1 rounded-lg font-medium text-amber-200">
@@ -3083,16 +3080,49 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
             </div>
          </div>
 
-         {/* ============ SIMPLIFIED TABS (4 instead of 9) ============ */}
+         {/* Breadcrumbs */}
+         <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4 px-2 flex-wrap">
+            <button onClick={onBack} className="hover:text-slate-600 font-medium transition-colors">Cartera de Clientes</button>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span className="text-slate-600 font-semibold">{client.firstName} {client.surname}</span>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span className="text-slate-700 font-bold capitalize">
+               {{ overview: 'Resumen', checkins: 'Evolución', health: 'Salud', program: 'Programa', documents: 'Documentos' }[activeTab]}
+            </span>
+            {activeTab === 'health' && (
+               <>
+                  <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                  <span className="text-slate-500 font-medium capitalize">
+                     {{ clinico: 'Clínico', nutrition: 'Nutrición', fisico: 'Físico' }[healthSubTab]}
+                  </span>
+               </>
+            )}
+            {activeTab === 'program' && (
+               <>
+                  <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                  <span className="text-slate-500 font-medium capitalize">
+                     {{ plan: 'Plan', revisiones: 'Revisiones', objetivos: 'Objetivos', tratamiento: 'Tratamiento' }[programSubTab]}
+                  </span>
+               </>
+            )}
+            {activeTab === 'documents' && (
+               <>
+                  <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                  <span className="text-slate-500 font-medium capitalize">
+                     {{ contrato: 'Contrato', renovaciones: 'Renovaciones', materiales: 'Materiales' }[documentsSubTab]}
+                  </span>
+               </>
+            )}
+         </nav>
+
+         {/* ============ SIMPLIFIED TABS (5 tabs) ============ */}
          <div className="bg-transparent mb-8 overflow-x-auto pb-4 no-scrollbar">
             <div className="flex gap-3 min-w-max px-2">
-               <TabButton id="overview" label="Resumen Clínico" icon={<Zap className="w-4 h-4" />} isActive={activeTab === 'overview'} onClick={setActiveTab} />
-               <TabButton id="assessment" label="Valoración Inicial" icon={<FileCheck className="w-4 h-4" />} isActive={activeTab === 'assessment'} onClick={setActiveTab} />
+               <TabButton id="overview" label="Resumen" icon={<Zap className="w-4 h-4" />} isActive={activeTab === 'overview'} onClick={setActiveTab} />
                <TabButton id="checkins" label="Evolución" icon={<CalendarCheck className="w-4 h-4" />} isActive={activeTab === 'checkins'} onClick={setActiveTab} />
-               <TabButton id="health" label="Salud Detallada" icon={<HeartPulse className="w-4 h-4" />} isActive={activeTab === 'health'} onClick={setActiveTab} />
-               <TabButton id="program" label="Plan Terapéutico" icon={<Target className="w-4 h-4" />} isActive={activeTab === 'program'} onClick={setActiveTab} />
-               <TabButton id="materials" label="Documentos" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'materials'} onClick={setActiveTab} />
-               <TabButton id="contract" label="Contrato" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'contract'} onClick={setActiveTab} />
+               <TabButton id="health" label="Salud" icon={<HeartPulse className="w-4 h-4" />} isActive={activeTab === 'health'} onClick={setActiveTab} />
+               <TabButton id="program" label="Programa" icon={<Target className="w-4 h-4" />} isActive={activeTab === 'program'} onClick={setActiveTab} />
+               <TabButton id="documents" label="Documentos" icon={<FileText className="w-4 h-4" />} isActive={activeTab === 'documents'} onClick={setActiveTab} />
             </div>
          </div>
 
@@ -3140,8 +3170,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm xl:sticky xl:top-6">
                            <p className="text-sm font-bold text-slate-700 mb-3">Panel operativo</p>
                            <div className="space-y-2">
-                              <button onClick={() => setActiveTab('assessment')} className="w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100">Abrir valoración inicial</button>
-                              <button onClick={() => { setActiveTab('health'); setHealthSubTab('medical'); }} className="w-full text-left px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100">Ver bloque médico</button>
+                              <button onClick={() => { setActiveTab('overview'); setShowAssessmentSection(true); }} className="w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100">Abrir valoración inicial</button>
+                              <button onClick={() => { setActiveTab('health'); setHealthSubTab('clinico'); }} className="w-full text-left px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100">Ver bloque médico</button>
                               <button onClick={() => setActiveTab('checkins')} className="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100">Ver evolución y check-ins</button>
                            </div>
 
@@ -3211,7 +3241,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     formData.next_appointment_date ? 'bg-amber-100' : 'bg-slate-100'
                                  }`}>
                                  {formData.next_appointment_status === 'completed' ? (
-                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                    <CircleCheck className="w-5 h-5 text-green-600" />
                                  ) : formData.next_appointment_status === 'missed' ? (
                                     <XCircle className="w-5 h-5 text-red-500" />
                                  ) : (
@@ -3367,7 +3397,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <h3 className="text-lg font-bold text-slate-800">Lectura clínica centralizada</h3>
                            </div>
                            <button
-                              onClick={() => setActiveTab('assessment')}
+                              onClick={() => { setActiveTab('overview'); setShowAssessmentSection(true); }}
                               className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
                            >
                               <FileCheck className="w-4 h-4" /> Abrir pestaña de valoración
@@ -3581,145 +3611,105 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            />
                         </div>
                      )}
-                  </div>
-               )
-               }
 
+                     {/* --- VALORACIÓN INICIAL (Collapsible) --- */}
+                     <div className="mt-8">
+                        <button
+                           onClick={() => setShowAssessmentSection(prev => !prev)}
+                           className="w-full flex items-center justify-between p-4 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-purple-50 hover:shadow-md transition-all group"
+                        >
+                           <div className="flex items-center gap-3">
+                              <div className="p-2 bg-indigo-100 rounded-xl group-hover:bg-indigo-200 transition-colors">
+                                 <FileText className="w-4 h-4 text-indigo-600" />
+                              </div>
+                              <div className="text-left">
+                                 <p className="text-sm font-black text-slate-800">Valoración inicial del caso</p>
+                                 <p className="text-xs text-slate-400">Documento clínico compartido para todo el equipo</p>
+                              </div>
+                           </div>
+                           <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showAssessmentSection ? 'rotate-180' : ''}`} />
+                        </button>
 
-               {/* --- INITIAL ASSESSMENT TAB --- */}
-               {activeTab === 'assessment' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                     <div className="relative overflow-hidden rounded-2xl border border-indigo-200 shadow-lg shadow-indigo-100/50">
-                        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 p-6 text-white">
-                           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                              <div className="flex items-start gap-4">
-                                 <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                                    <FileText className="w-7 h-7" />
-                                 </div>
-                                 <div>
-                                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Documento clínico</p>
-                                    <h3 className="text-xl font-black">Valoración inicial del caso</h3>
-                                    <p className="text-sm text-indigo-100 mt-1">Lectura compartida para oncología, nutrición, entrenamiento y seguimiento.</p>
+                        {showAssessmentSection && (
+                           <div className="mt-3 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="relative overflow-hidden rounded-2xl border border-indigo-200 shadow-lg shadow-indigo-100/50">
+                                 <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 p-5 text-white">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                       <div className="flex items-center gap-3">
+                                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Documento clínico</p>
+                                          {formData.onboarding_initial_assessment_updated_at && (
+                                             <span className="text-xs text-indigo-200">· Actualizado {new Date(formData.onboarding_initial_assessment_updated_at).toLocaleDateString('es-ES')}</span>
+                                          )}
+                                       </div>
+                                       <div className="flex flex-wrap gap-2">
+                                          {formData.onboarding_call_url && (
+                                             <a href={formData.onboarding_call_url} target="_blank" rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 shadow-lg transition-all hover:scale-105">
+                                                <Video className="w-3.5 h-3.5" /> Llamada inicial
+                                             </a>
+                                          )}
+                                          <button onClick={() => navigator.clipboard?.writeText(initialAssessmentText || '')}
+                                             className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-white/20 text-white border border-white/30 hover:bg-white/30 backdrop-blur-sm transition-all">
+                                             <FileText className="w-3.5 h-3.5" /> Copiar
+                                          </button>
+                                       </div>
+                                    </div>
                                  </div>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                 {formData.onboarding_call_url && (
-                                    <a
-                                       href={formData.onboarding_call_url}
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 shadow-lg transition-all hover:scale-105"
-                                    >
-                                       <Video className="w-4 h-4" /> Abrir llamada inicial
-                                    </a>
+
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+                                 <DataField label="URL llamada inicial" value={formData.onboarding_call_url} path="onboarding_call_url" isEditing={isEditing} onUpdate={updateField}
+                                    onChange={(val) => { updateField('onboarding_call_url', val); updateField('onboarding_initial_assessment_updated_at', new Date().toISOString()); if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name); }} />
+
+                                 <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
+                                    <div className="flex items-center justify-between gap-3 mb-4">
+                                       <div className="flex items-center gap-2">
+                                          <div className="p-1.5 bg-indigo-100 rounded-lg"><Eye className="w-3.5 h-3.5 text-indigo-600" /></div>
+                                          <p className="text-xs font-black text-slate-700 uppercase tracking-wider">Vista equipo</p>
+                                       </div>
+                                       <button onClick={() => setShowFullAssessmentDoc(prev => !prev)}
+                                          className="text-xs font-bold px-4 py-2 rounded-xl border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm">
+                                          {showFullAssessmentDoc ? 'Ocultar documento' : 'Ver documento completo'}
+                                       </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                       <div className="rounded-xl border border-blue-100 bg-white p-4 border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Resumen clínico</p>
+                                          <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.summary || <span className="text-slate-300 italic">Sin datos</span>}</p>
+                                       </div>
+                                       <div className="rounded-xl border border-red-100 bg-white p-4 border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Riesgos / contraindicaciones</p>
+                                          <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.risks || <span className="text-slate-300 italic">Sin datos</span>}</p>
+                                       </div>
+                                       <div className="rounded-xl border border-amber-100 bg-white p-4 border-l-4 border-l-amber-500 shadow-sm hover:shadow-md transition-shadow">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Prioridad actual</p>
+                                          <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.priority || <span className="text-slate-300 italic">Sin datos</span>}</p>
+                                       </div>
+                                       <div className="rounded-xl border border-emerald-100 bg-white p-4 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Próxima acción del equipo</p>
+                                          <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.nextAction || <span className="text-slate-300 italic">Sin datos</span>}</p>
+                                       </div>
+                                    </div>
+                                 </div>
+
+                                 {showFullAssessmentDoc && (
+                                    <div className="space-y-4 border border-slate-200 rounded-xl p-4 bg-slate-50">
+                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                          <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
+                                       </div>
+                                       <DataField label="Valoración inicial (documento completo)" value={formData.onboarding_initial_assessment} path="onboarding_initial_assessment" isTextArea isEditing={isEditing} onUpdate={updateField}
+                                          onChange={(val) => { updateField('onboarding_initial_assessment', val); updateField('onboarding_initial_assessment_updated_at', new Date().toISOString()); if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name); }} />
+                                    </div>
                                  )}
-                                 <button
-                                    onClick={() => navigator.clipboard?.writeText(initialAssessmentText || '')}
-                                    className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white/20 text-white border border-white/30 hover:bg-white/30 backdrop-blur-sm transition-all"
-                                 >
-                                    <FileText className="w-4 h-4" /> Copiar valoración
-                                 </button>
                               </div>
-                           </div>
-                        </div>
-                        <div className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
-                              <div className="p-2 bg-indigo-100 rounded-lg"><Calendar className="w-4 h-4 text-indigo-600" /></div>
-                              <div>
-                                 <p className="text-slate-400 font-semibold">Última actualización</p>
-                                 <p className="text-slate-800 font-bold">{formData.onboarding_initial_assessment_updated_at ? new Date(formData.onboarding_initial_assessment_updated_at).toLocaleString('es-ES') : 'Sin fecha'}</p>
-                              </div>
-                           </div>
-                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
-                              <div className="p-2 bg-purple-100 rounded-lg"><User className="w-4 h-4 text-purple-600" /></div>
-                              <div>
-                                 <p className="text-slate-400 font-semibold">Actualizado por</p>
-                                 <p className="text-slate-800 font-bold">{formData.onboarding_initial_assessment_author || 'Sin autor'}</p>
-                              </div>
-                           </div>
-                           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
-                              <div className="p-2 bg-blue-100 rounded-lg"><FileText className="w-4 h-4 text-blue-600" /></div>
-                              <div>
-                                 <p className="text-slate-400 font-semibold">Secciones detectadas</p>
-                                 <p className="text-slate-800 font-bold">{assessmentSections.length || 0}</p>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-
-                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
-                        <DataField
-                           label="URL llamada inicial"
-                           value={formData.onboarding_call_url}
-                           path="onboarding_call_url"
-                           isEditing={isEditing}
-                           onUpdate={updateField}
-                           onChange={(val) => {
-                              updateField('onboarding_call_url', val);
-                              updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                              if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                           }}
-                        />
-
-                        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
-                           <div className="flex items-center justify-between gap-3 mb-4">
-                              <div className="flex items-center gap-2">
-                                 <div className="p-1.5 bg-indigo-100 rounded-lg"><Eye className="w-3.5 h-3.5 text-indigo-600" /></div>
-                                 <p className="text-xs font-black text-slate-700 uppercase tracking-wider">Vista equipo</p>
-                              </div>
-                              <button
-                                 onClick={() => setShowFullAssessmentDoc(prev => !prev)}
-                                 className="text-xs font-bold px-4 py-2 rounded-xl border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm"
-                              >
-                                 {showFullAssessmentDoc ? 'Ocultar documento' : 'Ver documento completo'}
-                              </button>
-                           </div>
-
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="rounded-xl border border-blue-100 bg-white p-4 border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Resumen clínico</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.summary || <span className="text-slate-300 italic">Sin datos</span>}</p>
-                              </div>
-                              <div className="rounded-xl border border-red-100 bg-white p-4 border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Riesgos / contraindicaciones</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.risks || <span className="text-slate-300 italic">Sin datos</span>}</p>
-                              </div>
-                              <div className="rounded-xl border border-amber-100 bg-white p-4 border-l-4 border-l-amber-500 shadow-sm hover:shadow-md transition-shadow">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Prioridad actual</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.priority || <span className="text-slate-300 italic">Sin datos</span>}</p>
-                              </div>
-                              <div className="rounded-xl border border-emerald-100 bg-white p-4 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Próxima acción del equipo</p>
-                                 <p className="text-sm text-slate-700 leading-relaxed">{assessmentTeamView.nextAction || <span className="text-slate-300 italic">Sin datos</span>}</p>
-                              </div>
-                           </div>
-                        </div>
-
-                        {showFullAssessmentDoc && (
-                           <div className="space-y-4 border border-slate-200 rounded-xl p-4 bg-slate-50">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                 <DataField label="Prioridad principal" value={formData.main_priority_notes} path="main_priority_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                                 <DataField label="Miedos / preocupaciones" value={formData.concerns_fears_notes} path="concerns_fears_notes" isTextArea isEditing={isEditing} onUpdate={updateField} />
-                              </div>
-
-                              <DataField
-                                 label="Valoración inicial (documento completo)"
-                                 value={formData.onboarding_initial_assessment}
-                                 path="onboarding_initial_assessment"
-                                 isTextArea
-                                 isEditing={isEditing}
-                                 onUpdate={updateField}
-                                 onChange={(val) => {
-                                    updateField('onboarding_initial_assessment', val);
-                                    updateField('onboarding_initial_assessment_updated_at', new Date().toISOString());
-                                    if (currentUser?.name) updateField('onboarding_initial_assessment_author', currentUser.name);
-                                 }}
-                              />
                            </div>
                         )}
                      </div>
                   </div>
-               )}
+               )
+               }
 
                {/* --- CHECK-INS TAB --- */}
                {activeTab === 'checkins' && (
@@ -3851,7 +3841,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                 : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse'}`}>
                                                 {c.status === 'reviewed' ? (
-                                                   <><CheckCircle2 className="w-3 h-3" /> Revisado</>
+                                                   <><CircleCheck className="w-3 h-3" /> Revisado</>
                                                 ) : (
                                                    <><Clock className="w-3 h-3" /> Pendiente</>
                                                 )}
@@ -4197,10 +4187,10 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         {/* Sub-tabs for Health */}
                         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
                            <button
-                              onClick={() => setHealthSubTab('medical')}
-                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'medical' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                              onClick={() => setHealthSubTab('clinico')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'clinico' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                            >
-                              <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Médico</span>
+                              <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Clínico</span>
                            </button>
                            <button
                               onClick={() => setHealthSubTab('nutrition')}
@@ -4209,29 +4199,15 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               <span className="flex items-center gap-2"><Utensils className="w-4 h-4" /> Nutrición</span>
                            </button>
                            <button
-                              onClick={() => setHealthSubTab('training')}
-                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'training' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                              onClick={() => setHealthSubTab('fisico')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'fisico' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                            >
                               <span className="flex items-center gap-2"><Dumbbell className="w-4 h-4" /> Físico</span>
                            </button>
-                           {(formData.gender?.toLowerCase() === 'mujer' || formData.gender?.toLowerCase() === 'femenino' || formData.gender?.toLowerCase() === 'female') && (
-                              <button
-                                 onClick={() => setHealthSubTab('hormonal')}
-                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'hormonal' ? 'bg-white text-pink-700 shadow-sm' : 'text-slate-600 hover:text-pink-700'}`}
-                              >
-                                 <span className="flex items-center gap-2"><Heart className="w-4 h-4" /> Hormonal</span>
-                              </button>
-                           )}
-                           <button
-                              onClick={() => setHealthSubTab('oncology')}
-                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${healthSubTab === 'oncology' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-emerald-800'}`}
-                           >
-                              <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Oncología</span>
-                           </button>
                         </div>
 
-                        {/* Medical Sub-tab */}
-                        {healthSubTab === 'medical' && (
+                        {/* Clínico Sub-tab (Medical + Oncology) */}
+                        {healthSubTab === 'clinico' && (
                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                  {[
@@ -4321,7 +4297,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           <span className="text-xs text-slate-400">Sin analítica adjunta</span>
                                        )}
                                        <button
-                                          onClick={() => setActiveTab('assessment')}
+                                          onClick={() => { setActiveTab('overview'); setShowAssessmentSection(true); }}
                                           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
                                        >
                                           <FileCheck className="w-3.5 h-3.5" /> Ver valoración inicial completa
@@ -4345,7 +4321,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                     <div className="flex items-center gap-2">
                                        {formData.nutrition_approved ? (
                                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-                                             <CheckCircle2 className="w-3.5 h-3.5" />
+                                             <CircleCheck className="w-3.5 h-3.5" />
                                              Aprobado
                                              {formData.nutrition_approved_at && (
                                                 <span className="text-emerald-500 font-normal ml-1">
@@ -4397,7 +4373,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                           : 'bg-amber-50 text-amber-700 border-amber-200'
                                           }`}>
-                                          {nutritionVerification.status === 'found' ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                          {nutritionVerification.status === 'found' ? <CircleCheck className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                                           {nutritionVerification.message}
                                        </span>
                                     )}
@@ -4426,7 +4402,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                           {approvingNutrition ? (
                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                           ) : (
-                                             <CheckCircle2 className="w-3.5 h-3.5" />
+                                             <CircleCheck className="w-3.5 h-3.5" />
                                           )}
                                           Aprobar Plan
                                        </button>
@@ -4637,8 +4613,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            </div>
                         )}
 
-                        {/* Training Sub-tab */}
-                        {healthSubTab === 'training' && (
+                        {/* Físico Sub-tab (Training + Hormonal) */}
+                        {healthSubTab === 'fisico' && (
                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                               <div>
                                  <SectionTitle title="Evolución del Peso" icon={<TrendingUp className="w-4 h-4 text-blue-600" />} />
@@ -4792,14 +4768,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                  <p className="text-xs text-slate-400 mb-4">Entrenamientos completados por el cliente en su portal.</p>
                                  <ClientWorkoutHistory clientId={client.id} />
                               </div>
-                           </div>
-                        )}
 
-                        {/* Hormonal Sub-tab (Solo Mujeres) */}
-                        {healthSubTab === 'hormonal' && (
-                           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              {/* Header con selector de estado hormonal */}
-                              <div className="bg-white rounded-3xl border-2 border-pink-200 shadow-lg overflow-hidden">
+                              {/* --- Seguimiento Hormonal (integrado en Físico) --- */}
+                              <div className="bg-white rounded-3xl border-2 border-pink-200 shadow-lg overflow-hidden mt-8">
                                  <div className="bg-gradient-to-r from-pink-600 to-rose-500 px-6 py-4 flex items-center gap-3">
                                     <Heart className="w-6 h-6 text-white" />
                                     <h3 className="text-lg font-black text-white uppercase tracking-wide">Seguimiento Hormonal</h3>
@@ -5097,6 +5068,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            >
                               <span className="flex items-center gap-2"><Target className="w-4 h-4" /> Objetivos</span>
                            </button>
+                           <button
+                              onClick={() => setProgramSubTab('tratamiento')}
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${programSubTab === 'tratamiento' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                           >
+                              <span className="flex items-center gap-2"><Pill className="w-4 h-4" /> Tratamiento</span>
+                           </button>
                         </div>
 
                         {programSubTab === 'plan' && (
@@ -5325,7 +5302,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              formData.goals.goal_3_months_status === 'failed' ? 'bg-red-400 text-white' :
                                                 'bg-amber-400 text-white'
                                              }`}>
-                                             {formData.goals.goal_3_months_status === 'achieved' ? <CheckCircle2 className="w-4 h-4" /> :
+                                             {formData.goals.goal_3_months_status === 'achieved' ? <CircleCheck className="w-4 h-4" /> :
                                                 formData.goals.goal_3_months_status === 'failed' ? <X className="w-4 h-4" /> :
                                                    <Clock className="w-4 h-4" />}
                                           </div>
@@ -5360,7 +5337,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              formData.goals.goal_6_months_status === 'failed' ? 'bg-red-400 text-white' :
                                                 'bg-amber-400 text-white'
                                              }`}>
-                                             {formData.goals.goal_6_months_status === 'achieved' ? <CheckCircle2 className="w-4 h-4" /> :
+                                             {formData.goals.goal_6_months_status === 'achieved' ? <CircleCheck className="w-4 h-4" /> :
                                                 formData.goals.goal_6_months_status === 'failed' ? <X className="w-4 h-4" /> :
                                                    <Clock className="w-4 h-4" />}
                                           </div>
@@ -5395,7 +5372,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              formData.goals.goal_1_year_status === 'failed' ? 'bg-red-400 text-white' :
                                                 'bg-amber-400 text-white'
                                              }`}>
-                                             {formData.goals.goal_1_year_status === 'achieved' ? <CheckCircle2 className="w-4 h-4" /> :
+                                             {formData.goals.goal_1_year_status === 'achieved' ? <CircleCheck className="w-4 h-4" /> :
                                                 formData.goals.goal_1_year_status === 'failed' ? <X className="w-4 h-4" /> :
                                                    <Clock className="w-4 h-4" />}
                                           </div>
@@ -5432,12 +5409,32 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                </div>
                             </div>
                          )}
+
+                        {programSubTab === 'tratamiento' && (
+                           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <TreatmentView clientId={client.id} />
+                           </div>
+                        )}
                      </div>
                   )
                }
 
-               {/* --- MATERIALS TAB CONTENT --- */}
-               {activeTab === 'materials' && (
+               {/* --- DOCUMENTS TAB (merges Materials + Contract) --- */}
+               {activeTab === 'documents' && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                     <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+                        <button onClick={() => setDocumentsSubTab('contrato')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${documentsSubTab === 'contrato' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                           <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Contrato</span>
+                        </button>
+                        <button onClick={() => setDocumentsSubTab('renovaciones')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${documentsSubTab === 'renovaciones' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                           <span className="flex items-center gap-2"><CalendarRange className="w-4 h-4" /> Renovaciones</span>
+                        </button>
+                        <button onClick={() => setDocumentsSubTab('materiales')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${documentsSubTab === 'materiales' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                           <span className="flex items-center gap-2"><FolderOpen className="w-4 h-4" /> Materiales</span>
+                        </button>
+                     </div>
+
+                     {documentsSubTab === 'materiales' && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="flex items-center justify-between mb-6">
                         <SectionTitle title="Documentos y Recursos" icon={<FileText className="w-4 h-4 text-violet-500" />} />
@@ -5452,7 +5449,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                            <p className="text-sm font-semibold text-slate-700 mb-3">Valoración inicial, analíticas y contexto del caso.</p>
                            <div className="flex flex-wrap gap-2">
                               <button
-                                 onClick={() => setActiveTab('assessment')}
+                                 onClick={() => { setActiveTab('overview'); setShowAssessmentSection(true); }}
                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
                               >
                                  Abrir valoración
@@ -5480,17 +5477,6 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               Ir a plan terapéutico
                            </button>
                         </div>
-
-                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Contrato y renovación</p>
-                           <p className="text-sm font-semibold text-slate-700 mb-3">Documentación legal, firma y estado de continuidad.</p>
-                           <button
-                              onClick={() => setActiveTab('contract')}
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                           >
-                              Abrir contrato
-                           </button>
-                        </div>
                      </div>
 
                      <div className="bg-white/50 p-1 rounded-2xl border border-slate-100 shadow-sm">
@@ -5511,9 +5497,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                   </div>
                )}
 
-               {/* --- CONTRACT TAB --- */}
+               {/* --- CONTRACT (inside documents tab) --- */}
                {
-                  activeTab === 'contract' && (() => {
+                  activeTab === 'documents' && documentsSubTab !== 'materiales' && (() => {
                      const program = formData.program || {} as any;
                      const meses = getMesesList();
 
@@ -5682,9 +5668,9 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                            {/* Header */}
                            <div className="flex justify-between items-center">
-                              <SectionTitle title="Contrato de Prestación de Servicios" icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
+                              <SectionTitle title="Contrato de Prestación de Servicios" icon={<CircleCheck className="w-4 h-4 text-emerald-500" />} />
                               <div className="flex items-center gap-3 no-print">
-                                 {contractSubTab === 'contrato' && (
+                                 {documentsSubTab === 'contrato' && (
                                     <button
                                        onClick={() => window.print()}
                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all text-sm font-bold shadow-lg shadow-slate-900/20 group"
@@ -5696,28 +5682,13 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               </div>
                            </div>
 
-                           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit no-print">
-                              <button
-                                 onClick={() => setContractSubTab('contrato')}
-                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${contractSubTab === 'contrato' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                              >
-                                 <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Contrato</span>
-                              </button>
-                              <button
-                                 onClick={() => setContractSubTab('renovaciones')}
-                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${contractSubTab === 'renovaciones' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                              >
-                                 <span className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> Renovaciones</span>
-                              </button>
-                           </div>
-
-                           {contractSubTab === 'contrato' && (
+                           {documentsSubTab === 'contrato' && (
                               <>
                                  {/* Signed Status */}
                                  {formData.program?.contract_signed && (
                                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between no-print">
                                        <div className="flex items-center gap-3">
-                                          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                                          <CircleCheck className="w-6 h-6 text-emerald-500" />
                                           <div>
                                              <p className="font-bold text-emerald-900 text-sm">Contrato Firmado</p>
                                              <p className="text-xs text-emerald-700">
@@ -5982,7 +5953,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                               </>
                            )}
 
-                           {contractSubTab === 'renovaciones' && (
+                           {documentsSubTab === 'renovaciones' && (
                               <div className="no-print">
                                  <div className="mb-3">
                                     <SectionTitle title="Renovaciones y continuidad" icon={<Briefcase className="w-4 h-4 text-violet-500" />} />
@@ -6004,8 +5975,53 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      );
                   })()
                }
+               </div>
+               )}
 
             </div>{/* End of relative z-10 wrapper */}
+
+         {/* Quick Actions FAB */}
+         {activeTab !== 'documents' && !readOnly && (
+            <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+               {showQuickActions && (
+                  <div className="flex flex-col gap-2 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                     <button
+                        onClick={() => { setActiveTab('program'); setProgramSubTab('revisiones'); setShowQuickActions(false); }}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:shadow-xl transition-all whitespace-nowrap"
+                     >
+                        <ClipboardCheck className="w-4 h-4 text-blue-500" /> Nueva revisión
+                     </button>
+                     {client.phone && (
+                        <a
+                           href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:shadow-xl transition-all whitespace-nowrap"
+                           onClick={() => setShowQuickActions(false)}
+                        >
+                           <Send className="w-4 h-4 text-emerald-500" /> Enviar WhatsApp
+                        </a>
+                     )}
+                     <button
+                        onClick={() => { setActiveTab('overview'); setShowQuickActions(false); }}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:shadow-xl transition-all whitespace-nowrap"
+                     >
+                        <Phone className="w-4 h-4 text-purple-500" /> Programar llamada
+                     </button>
+                  </div>
+               )}
+               <button
+                  onClick={() => setShowQuickActions(prev => !prev)}
+                  className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+                     showQuickActions
+                        ? 'bg-slate-800 rotate-45 hover:bg-slate-700'
+                        : 'bg-gradient-to-br from-brand-green to-emerald-600 hover:shadow-2xl hover:scale-105'
+                  }`}
+               >
+                  <Zap className={`w-6 h-6 text-white transition-transform ${showQuickActions ? 'rotate-0' : ''}`} />
+               </button>
+            </div>
+         )}
          </div >
       </div >
    );

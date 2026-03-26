@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, AlertOctagon, CircleCheck } from 'lucide-react';
 
 interface ClientStatusBannerProps {
   daysRemaining: number | null;
@@ -39,7 +39,7 @@ export const ClientStatusBanner: React.FC<ClientStatusBannerProps> = ({ daysRema
         ) : isWarning ? (
           <AlertCircle className="w-6 h-6 text-amber-600" />
         ) : (
-          <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          <CircleCheck className="w-6 h-6 text-emerald-600" />
         )}
       </div>
       <div className="flex-1">

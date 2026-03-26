@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Client, ClientStatus, User } from '../types';
-import { Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, AlertOctagon, TrendingUp, BarChart3, ArrowUpRight, UserMinus, Calendar, CheckCircle2, Clock, FileText, Users, Edit2, Upload, X, Check, Loader2, Landmark, Copy, CreditCard, Eye, EyeOff, XCircle } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, AlertOctagon, TrendingUp, BarChart3, ArrowUpRight, UserMinus, Calendar, CircleCheck, Clock, FileText, Users, Edit2, Upload, X, Check, Loader2, Landmark, Copy, CreditCard, Eye, EyeOff, XCircle } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface PaymentMethod {
@@ -303,7 +303,7 @@ const RenewalRow: React.FC<RenewalRowProps> = ({ renewal, onNavigateToClient, co
       <td className="px-4 py-5 text-center">
         {renewal.isContracted ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-widest">
-            <CheckCircle2 size={12} /> Renovado
+            <CircleCheck size={12} /> Renovado
           </span>
         ) : renewal.status === 'Abandono' ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-widest">

@@ -4,7 +4,7 @@ import { User, UserRole } from '../types';
 import {
     Search, Mail, Phone, Instagram, Linkedin, Calendar,
     Edit2, Camera, Loader2, Save, X, User as UserIcon,
-    Briefcase, MapPin, Cake, Trash2, UserPlus, Link, CheckCircle2, DollarSign, Users
+    Briefcase, MapPin, Cake, Trash2, UserPlus, Link, CircleCheck, DollarSign, Users
 } from 'lucide-react';
 import { compressTeamPhoto } from '../utils/imageCompression';
 import { normalizePhone, isValidPhone, PHONE_HELP_TEXT, PHONE_PLACEHOLDER } from '../utils/phoneUtils';

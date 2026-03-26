@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS oncology_reviews (
   next_review_notes TEXT,
   mood_after INT,                      -- 1-5
   notes TEXT,
+  attachments JSONB DEFAULT '[]'::jsonb,  -- [{url, name, type, size}] files uploaded by client
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

@@ -6,7 +6,7 @@ import {
     MessageCircle, Star, Users, Award,
     TrendingUp, Eye, ThumbsUp, Share2,
     MessageSquare, Calendar, ChevronRight, Activity,
-    Clock, CheckCircle2, AlertCircle, Sparkles,
+    Clock, CircleCheck, AlertCircle, Sparkles,
     Instagram, Youtube, Facebook, Twitter, Plus, Trash2, Edit2, XCircle, Save
 } from 'lucide-react';
 
@@ -572,7 +572,7 @@ const RRSSDashboard: React.FC<RRSSDashboardProps> = ({ user, onNavigateToView, o
                                     <td className="px-8 py-5">
                                         {t.is_published ? (
                                             <span className="inline-flex items-center gap-1.5 text-emerald-600 font-black text-[10px] uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-full">
-                                                <CheckCircle2 className="w-3 h-3" /> Publicado
+                                                <CircleCheck className="w-3 h-3" /> Publicado
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1.5 text-amber-600 font-black text-[10px] uppercase tracking-wider bg-amber-50 px-3 py-1.5 rounded-full">

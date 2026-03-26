@@ -88,7 +88,7 @@ const AppContent: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<User[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<{ id: string; name: string; platform_fee_percentage: number }[]>([]);
-  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'internal-protocols' | 'nutrition-management' | 'training-management' | 'food-calculator' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'coach-manual' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard' | 'doctor-dashboard' | 'doctor-initial-reports' | 'create-medical-report' | 'doctor-medical-reports' | 'doctor-invoices' | 'mass-communication' | 'analytics-ado' | 'analytics-me' | 'coach-agenda' | 'me-dashboard' | 'me-clients' | 'me-closer-performance' | 'me-setter-performance'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'clients' | 'renewals' | 'analytics' | 'analytics-webinars' | 'analytics-profile' | 'profile' | 'settings' | 'client-portal' | 'classes' | 'reviews' | 'food-plans' | 'materials-library' | 'meditation-library' | 'internal-protocols' | 'nutrition-management' | 'training-management' | 'food-calculator' | 'invoices' | 'testimonials' | 'payment-links' | 'team-directory' | 'staff-management' | 'medical-reviews' | 'new-sale' | 'closer-dashboard' | 'coach-capacity' | 'coach-performance' | 'setter-performance' | 'closer-performance' | 'accounting-dashboard' | 'team-announcements' | 'contracts' | 'support-tickets' | 'coach-tasks' | 'coach-manual' | 'leads' | 'chat' | 'assessment-manager' | 'role-permissions' | 'slack-settings' | 'staff-metrics' | 'risk-alerts' | 'direccion-dashboard' | 'doctor-dashboard' | 'doctor-initial-reports' | 'create-medical-report' | 'doctor-medical-reports' | 'doctor-invoices' | 'mass-communication' | 'analytics-ado' | 'analytics-me' | 'coach-agenda' | 'me-dashboard' | 'me-clients' | 'me-closer-performance' | 'me-setter-performance'>('dashboard');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [previousView, setPreviousView] = useState<string | null>(null);
   const [clientsFilter, setClientsFilter] = useState<string | null>(null);
@@ -201,7 +201,7 @@ const AppContent: React.FC = () => {
   const filteredClients = useMemo(() => {
     if (!user) return [];
     const userRoleLower = normalizeRole(user.role);
-    const hasFullVisibility = userRoleLower === 'admin' || userRoleLower === 'head_coach' || userRoleLower === 'contabilidad' || userRoleLower === 'direccion' || userRoleLower === 'doctor';
+    const hasFullVisibility = userRoleLower === 'admin' || userRoleLower === 'head_coach' || userRoleLower === 'contabilidad' || userRoleLower === 'direccion' || userRoleLower === 'doctor' || userRoleLower === 'auditor_externo';
 
     if (hasFullVisibility) return clients;
 
@@ -366,6 +366,10 @@ const AppContent: React.FC = () => {
   };
 
   const handleStatusChange = async (clientId: string, newStatus: ClientStatus, additionalData?: Partial<Client>) => {
+    if (normalizeRole(user?.role) === 'auditor_externo') {
+      toast.error('El rol auditor externo es solo lectura');
+      return;
+    }
     try {
       setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: newStatus, ...additionalData } : c));
       if (selectedClient?.id === clientId) setSelectedClient(prev => prev ? { ...prev, status: newStatus, ...additionalData } : null);
@@ -378,6 +382,10 @@ const AppContent: React.FC = () => {
   };
 
   const handleClientDelete = async (clientId: string, userId?: string) => {
+    if (normalizeRole(user?.role) === 'auditor_externo') {
+      toast.error('El rol auditor externo es solo lectura');
+      return;
+    }
     try {
       if (!window.confirm("¿ESTÁS SEGURO? Esta acción es IRREVERSIBLE y eliminará todos los datos del cliente, sus revisiones, planes y acceso al portal.")) {
         return;
@@ -393,6 +401,10 @@ const AppContent: React.FC = () => {
   };
 
   const handleClientUpdate = async (updatedClient: Client) => {
+    if (normalizeRole(user?.role) === 'auditor_externo') {
+      toast.error('El rol auditor externo es solo lectura');
+      return;
+    }
     try {
       setSelectedClient(updatedClient);
       setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
@@ -458,7 +470,14 @@ const AppContent: React.FC = () => {
   };
 
   const handleNavigate = (view: string, filter?: string) => {
-    if (['dashboard', 'clients', 'renewals', 'analytics', 'analytics-webinars', 'analytics-profile', 'analytics-ado', 'analytics-me', 'profile', 'settings', 'client-portal', 'classes', 'reviews', 'food-plans', 'materials-library', 'internal-protocols', 'nutrition-management', 'training-management', 'food-calculator', 'invoices', 'testimonials', 'payment-links', 'team-directory', 'medical-reviews', 'new-sale', 'closer-dashboard', 'coach-capacity', 'coach-performance', 'setter-performance', 'closer-performance', 'accounting-dashboard', 'team-announcements', 'contracts', 'support-tickets', 'coach-tasks', 'coach-manual', 'leads', 'chat', 'assessment-manager', 'staff-management', 'role-permissions', 'slack-settings', 'staff-metrics', 'risk-alerts', 'coach-agenda', 'direccion-dashboard', 'me-dashboard', 'me-clients', 'me-closer-performance', 'me-setter-performance', 'doctor-dashboard', 'doctor-invoices', 'doctor-initial-reports', 'create-medical-report', 'doctor-medical-reports'].includes(view)) {
+    if (normalizeRole(user?.role) === 'auditor_externo') {
+      if (!['dashboard', 'clients', 'profile'].includes(view)) {
+        setActiveView('dashboard');
+        return;
+      }
+    }
+
+    if (['dashboard', 'clients', 'renewals', 'analytics', 'analytics-webinars', 'analytics-profile', 'analytics-ado', 'analytics-me', 'profile', 'settings', 'client-portal', 'classes', 'reviews', 'food-plans', 'materials-library', 'meditation-library', 'internal-protocols', 'nutrition-management', 'training-management', 'food-calculator', 'invoices', 'testimonials', 'payment-links', 'team-directory', 'medical-reviews', 'new-sale', 'closer-dashboard', 'coach-capacity', 'coach-performance', 'setter-performance', 'closer-performance', 'accounting-dashboard', 'team-announcements', 'contracts', 'support-tickets', 'coach-tasks', 'coach-manual', 'leads', 'chat', 'assessment-manager', 'staff-management', 'role-permissions', 'slack-settings', 'staff-metrics', 'risk-alerts', 'coach-agenda', 'direccion-dashboard', 'me-dashboard', 'me-clients', 'me-closer-performance', 'me-setter-performance', 'doctor-dashboard', 'doctor-invoices', 'doctor-initial-reports', 'create-medical-report', 'doctor-medical-reports'].includes(view)) {
       setActiveView(view as any);
       // Si se navega a clients con filtro, establecerlo
       if (view === 'clients' && filter) {
@@ -472,6 +491,14 @@ const AppContent: React.FC = () => {
       }
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    if (normalizeRole(user.role) !== 'auditor_externo') return;
+    if (!['dashboard', 'clients', 'profile'].includes(activeView)) {
+      setActiveView('dashboard');
+    }
+  }, [user, activeView]);
 
   // Mostrar loading mientras se restaura la sesión
   if (isRestoringSession) {
@@ -488,6 +515,15 @@ const AppContent: React.FC = () => {
   if (!user) {
     return <LandingPage onLogin={handleLogin} error={loginError} />;
   }
+
+  const isExternalAuditor = normalizeRole(user.role) === 'auditor_externo';
+  const dashboardClientStats = {
+    active: filteredClients.filter(c => c.status === ClientStatus.ACTIVE).length,
+    paused: filteredClients.filter(c => c.status === ClientStatus.PAUSED).length,
+    inactive: filteredClients.filter(c => c.status === ClientStatus.INACTIVE).length,
+    dropout: filteredClients.filter(c => c.status === ClientStatus.DROPOUT).length,
+    total: filteredClients.length,
+  };
 
   // --- CLIENT RENDER LOGIC ---
   if (user.role === UserRole.CLIENT) {
@@ -599,6 +635,7 @@ const AppContent: React.FC = () => {
             onViewAsClient={handleViewAsClient}
             currentUser={user}
             coaches={coaches}
+            readOnly={isExternalAuditor}
           />
 
         ) : activeView === 'profile' ? (
@@ -617,6 +654,13 @@ const AppContent: React.FC = () => {
           <FoodPlansLibrary />
         ) : activeView === 'materials-library' ? (
           <MaterialsLibrary currentUser={user} />
+        ) : activeView === 'meditation-library' ? (
+          <MaterialsLibrary
+            currentUser={user}
+            fixedCategory="meditacion"
+            title="Biblioteca de Meditación"
+            subtitle="Sube audios y videos para la zona de meditación del portal"
+          />
         ) : activeView === 'internal-protocols' ? (
           <InternalProtocolsView />
         ) : activeView === 'nutrition-management' ? (
@@ -745,7 +789,29 @@ const AppContent: React.FC = () => {
         ) : activeView === 'me-setter-performance' ? (
           <CRMMEDashboard /> // Placeholder - reuse dashboard for now
         ) : activeView === 'dashboard' ? (
-          (normalizeRole(user.role) === 'admin' || normalizeRole(user.role) === 'head_coach') ? (
+          isExternalAuditor ? (
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h2 className="text-2xl font-black text-slate-800">Dashboard de Auditoría</h2>
+                <p className="text-slate-500 mt-1">Acceso solo lectura para revisión externa.</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Total</p><p className="text-2xl font-black text-slate-800">{dashboardClientStats.total}</p></div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Activos</p><p className="text-2xl font-black text-emerald-600">{dashboardClientStats.active}</p></div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Pausados</p><p className="text-2xl font-black text-amber-600">{dashboardClientStats.paused}</p></div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Bajas</p><p className="text-2xl font-black text-slate-600">{dashboardClientStats.inactive}</p></div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4"><p className="text-xs text-slate-500">Abandono</p><p className="text-2xl font-black text-rose-600">{dashboardClientStats.dropout}</p></div>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <button
+                  onClick={() => handleNavigate('clients')}
+                  className="px-4 py-2 rounded-xl bg-brand-green text-white font-bold hover:opacity-90 transition-opacity"
+                >
+                  Ver cartera de clientes
+                </button>
+              </div>
+            </div>
+          ) : (normalizeRole(user.role) === 'admin' || normalizeRole(user.role) === 'head_coach') ? (
             <ExecutiveDashboard
               clients={filteredClients}
               user={user}

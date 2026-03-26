@@ -5,7 +5,7 @@ import {
     TrendingUp, TrendingDown, Users, DollarSign,
     Target, Activity, AlertCircle, Calendar,
     ChevronRight, Award, Zap, ShieldAlert, Clock, Bell,
-    Eye, X, CheckCircle2, AlertTriangle, Loader2, Rocket
+    Eye, X, CircleCheck, AlertTriangle, Loader2, Rocket
 } from 'lucide-react';
 import { CreateAnnouncement } from './MassCommunication';
 import { StaffPerformance } from './StaffPerformance';
@@ -684,7 +684,7 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ clients, user, 
                             if (pendingClients.length === 0) {
                                 return (
                                     <div className="flex flex-col items-center justify-center h-full py-20 text-slate-400 italic">
-                                        <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-4" />
+                                        <CircleCheck className="w-12 h-12 text-emerald-400 mb-4" />
                                         <p>¡Todos los alumnos activos están al día!</p>
                                     </div>
                                 );

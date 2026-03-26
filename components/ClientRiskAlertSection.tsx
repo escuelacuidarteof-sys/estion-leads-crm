@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClientRiskAlert, RiskReasonCategory, User } from '../types';
 import { riskAlertService, RISK_CATEGORIES, RiskAlertComment } from '../services/riskAlertService';
-import { ShieldAlert, AlertTriangle, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, X, Send, ArrowUpCircle, MessageSquare, User as UserIcon } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CircleCheck, Clock, ChevronDown, ChevronUp, Plus, X, Send, ArrowUpCircle, MessageSquare, User as UserIcon } from 'lucide-react';
 
 interface ClientRiskAlertSectionProps {
     clientId: string;
@@ -260,7 +260,7 @@ export function ClientRiskAlertSection({ clientId, clientName, currentUser }: Cl
                                             className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors border border-green-100"
                                             title="Resolver este motivo"
                                         >
-                                            <CheckCircle2 className="w-4 h-4" />
+                                            <CircleCheck className="w-4 h-4" />
                                         </button>
                                         {alert.status !== 'escalated' && (
                                             <button
@@ -453,7 +453,7 @@ export function ClientRiskAlertSection({ clientId, clientName, currentUser }: Cl
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                        <CircleCheck className="w-5 h-5 text-green-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-800">Resolver Motivo</h3>
@@ -493,7 +493,7 @@ export function ClientRiskAlertSection({ clientId, clientName, currentUser }: Cl
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <CheckCircle2 className="w-4 h-4" />
+                                        <CircleCheck className="w-4 h-4" />
                                         Marcar como Resuelta
                                     </>
                                 )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Eye, CheckCircle2, Clock, Users, TrendingUp } from 'lucide-react';
+import { X, Eye, CircleCheck, Clock, Users, TrendingUp } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface ReadAnalytics {
@@ -198,7 +198,7 @@ export function AnnouncementAnalyticsModal({
                         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-emerald-50 rounded-xl">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                    <CircleCheck className="w-5 h-5 text-emerald-600" />
                                 </div>
                                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Han Leído</span>
                             </div>
@@ -237,7 +237,7 @@ export function AnnouncementAnalyticsModal({
                             {/* Han Leído */}
                             <div>
                                 <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                    <CircleCheck className="w-5 h-5 text-emerald-600" />
                                     Han Leído ({analytics.total_reads})
                                 </h3>
                                 {analytics.readers.length === 0 ? (
@@ -262,7 +262,7 @@ export function AnnouncementAnalyticsModal({
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-emerald-700">
-                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    <CircleCheck className="w-4 h-4" />
                                                     <span className="text-xs font-bold">{formatReadTime(reader.read_at)}</span>
                                                 </div>
                                             </div>

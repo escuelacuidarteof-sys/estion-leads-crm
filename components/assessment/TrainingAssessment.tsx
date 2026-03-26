@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Dumbbell, Play, Youtube, Info,
-    ArrowLeft, CheckCircle2, Loader2, Sparkles, MessageSquare, History
+    ArrowLeft, CircleCheck, Loader2, Sparkles, MessageSquare, History
 } from 'lucide-react';
 import { Client, AssessmentTest } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -175,7 +175,7 @@ export function TrainingAssessment({ client, onBack, onComplete }: TrainingAsses
                         </>
                     ) : (
                         <>
-                            Finalizar Valoración <CheckCircle2 className="w-5 h-5" />
+                            Finalizar Valoración <CircleCheck className="w-5 h-5" />
                         </>
                     )}
                 </button>

@@ -72,6 +72,10 @@ let ROLE_PERMISSIONS: Record<UserRole, string[]> = {
         PERMISSIONS.VIEW_FINANCE,
         PERMISSIONS.MANAGE_TEAM
     ],
+    [UserRole.AUDITOR_EXTERNO]: [
+        PERMISSIONS.VIEW_CLIENTS,
+        PERMISSIONS.VIEW_MEDICAL
+    ],
     [UserRole.DIETITIAN]: [],
     [UserRole.SUPER_ADMIN]: Object.values(PERMISSIONS),
     [UserRole.CLIENT]: []

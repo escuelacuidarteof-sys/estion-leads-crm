@@ -4,7 +4,7 @@ import { mockDb } from '../services/mockSupabase';
 import { supabase } from '../services/supabaseClient';
 import { checkPermission, PERMISSIONS } from '../utils/permissions';
 import { normalizeRole } from '../utils/roleUtils';
-import { Stethoscope, Search, Clock, CheckCircle2, Video, User as UserIcon, Save, X, Lock, FileText, Image, ExternalLink, Download, ClipboardList } from 'lucide-react';
+import { Stethoscope, Search, Clock, CircleCheck, Video, User as UserIcon, Save, X, Lock, FileText, Image, ExternalLink, Download, ClipboardList } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import InitialPatientReport from './InitialPatientReport';
 
@@ -296,7 +296,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ currentUser, onNaviga
             ) : filteredReviews.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
                     <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle2 className="w-8 h-8 text-slate-300" />
+                        <CircleCheck className="w-8 h-8 text-slate-300" />
                     </div>
                     <h3 className="text-slate-600 font-bold mb-2">No hay revisiones que mostrar</h3>
                     <p className="text-slate-400 text-sm mb-6">Prueba cambiar los filtros o verificar la conexión.</p>

@@ -11,12 +11,13 @@ import {
     ReferenceLine
 } from 'recharts';
 import {
-    TrendingDown, Target, Calendar, Award, Activity, Heart, Zap, ChevronRight, Play, CheckCircle2,
+    TrendingDown, Target, Calendar, Award, Activity, Heart, Zap, ChevronRight, Play, CircleCheck,
     X, Video, Utensils, GraduationCap, ExternalLink, Clock, AlertCircle, Phone, Mail, Instagram, Stethoscope,
     Scale, Syringe, Ruler, Footprints, Briefcase, Dumbbell, BookOpen, MessageCircle, TrendingUp,
     Hourglass, User, MapPin, Pill, FileHeart, FileText, CreditCard, Upload, Check, Image as ImageIcon, Loader2, Pencil,
-    Moon, Shield, Sparkles, CheckCircle, Camera
+    Moon, Sun, Shield, Sparkles, CheckCircle, Camera, Leaf, RotateCcw
 } from 'lucide-react';
+import { MeditationView } from './MeditationView';
 import { Client } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import { compressReceiptImage } from '../../utils/imageCompression';
@@ -40,6 +41,30 @@ import { CycleTrackingView } from './CycleTrackingView';
 import { TrainingView } from './TrainingView';
 import { DiaryView } from './DiaryView';
 import { TreatmentView } from './TreatmentView';
+import { TodayTimeline } from './TodayTimeline';
+import { NotificationBell } from './NotificationPanel';
+import { WeeklySummaryCard } from './WeeklySummaryCard';
+import { ProgressPhotos } from './ProgressPhotos';
+import { SymptomInsights } from './SymptomInsights';
+import { MedicationTracker } from './MedicationTracker';
+import { HydrationWidget } from './HydrationWidget';
+import { MedicalHistoryPdf } from './MedicalHistoryPdf';
+import { OnboardingTour, hasCompletedOnboarding, resetOnboarding } from './OnboardingTour';
+import { ThemeProvider, useTheme } from '../../contexts/ThemeContext';
+
+
+function ThemeToggleButton() {
+    const { theme, toggleTheme } = useTheme();
+    return (
+        <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        >
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+        </button>
+    );
+}
 
 interface WeightEntry {
     id: string;
@@ -57,15 +82,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const toast = useToast();
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation' | 'progress_photos'>('dashboard');
     const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
-    const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
-    const [newWeight, setNewWeight] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
     const [showFullPlan, setShowFullPlan] = useState(false);
     const [showFullAssessment, setShowFullAssessment] = useState(false);
+    const [showTour, setShowTour] = useState(() => !hasCompletedOnboarding(client.id));
 
     // Today's Tasks & Weekly Calendar
     const [todayProgramDay, setTodayProgramDay] = useState<any | null>(null);
@@ -123,6 +147,31 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [tempGoal1, setTempGoal1] = useState(client.goals?.goal_1_year || '');
     const [isSavingGoal1, setIsSavingGoal1] = useState(false);
 
+    const DAY_IN_MS = 86400000;
+
+    const toStartOfDay = (input: Date | string) => {
+        const date = new Date(input);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    };
+
+    const getProgramDateMeta = (inputDate: Date, startDate: string, weeksCount: number): { week: number; dayNumber: number } | null => {
+        const totalDays = Math.max(0, weeksCount * 7);
+        if (totalDays === 0) return null;
+
+        const date = toStartOfDay(inputDate);
+        const start = toStartOfDay(startDate);
+        const diffDays = Math.floor((date.getTime() - start.getTime()) / DAY_IN_MS);
+
+        if (diffDays < 0 || diffDays >= totalDays) return null;
+
+        const dayIndex = diffDays + 1;
+        return {
+            week: Math.ceil(dayIndex / 7),
+            dayNumber: ((dayIndex - 1) % 7) + 1
+        };
+    };
+
     useEffect(() => {
         loadData();
     }, [client.id, client.coach_id]);
@@ -162,6 +211,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     useEffect(() => {
         const loadTodayTasks = async () => {
             setIsTodayTasksLoading(true);
+            setTodayProgramDay(null);
+            setTodayWorkout(null);
+            setTodayActivityLogs([]);
             try {
                 const asgn = await trainingService.getClientAssignment(client.id);
                 if (!asgn) return;
@@ -171,15 +223,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                 setWeekProgram(prog);
                 setWeekAssignment(asgn);
 
-                const startDate = new Date(asgn.start_date);
                 const now = new Date();
-                const diffDays = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
-                const calculatedWeek = Math.max(1, Math.ceil((diffDays + 1) / 7));
-                const clampedWeek = Math.min(calculatedWeek, prog.weeks_count);
+                const todayMeta = getProgramDateMeta(now, asgn.start_date, prog.weeks_count);
 
-                let currentDayIndex = now.getDay() || 7;
+                const todayDay = todayMeta
+                    ? prog.days?.find((d: any) => d.week_number === todayMeta.week && d.day_number === todayMeta.dayNumber)
+                    : null;
 
-                const todayDay = prog.days?.find((d: any) => d.week_number === clampedWeek && d.day_number === currentDayIndex);
                 if (todayDay) {
                     setTodayProgramDay(todayDay);
                     const logs = await trainingService.getClientActivityLogs(client.id, todayDay.id);
@@ -288,42 +338,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     useEffect(() => {
         if (activeView === 'reports') markReportsAsRead();
         if (activeView === 'reviews') markReviewsAsRead();
-    }, [activeView]);
 
-    const handleWeightSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newWeight) return;
-        setIsSubmitting(true);
-        try {
-            const weightVal = parseFloat(newWeight);
-            const today = new Date().toISOString().split('T')[0];
-
-            const { error: historyError } = await supabase
-                .from('weight_history')
-                .upsert(
-                    [{
-                        client_id: client.id,
-                        weight: weightVal,
-                        date: today,
-                        source: 'user_input'
-                    }],
-                    {
-                        onConflict: 'client_id,date' // Specify the unique constraint columns
-                    }
-                );
-
-            if (historyError) throw historyError;
-
-            loadData();
-            setIsWeightModalOpen(false);
-            setNewWeight('');
-        } catch (error) {
-            console.error(error);
-            alert("Error al guardar peso");
-        } finally {
-            setIsSubmitting(false);
+        if (activeTab === 'consultas') {
+            markReviewsAsRead();
+            markReportsAsRead();
         }
-    };
+    }, [activeView, activeTab]);
+
+    // Weight is now registered exclusively via CheckinView
 
     const handleSecurityMigration = async (email: string, pass: string) => {
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -780,6 +802,17 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             onBack={() => setActiveView('dashboard')}
         />
     );
+    if (activeView === 'meditation') return (
+        <MeditationView
+            client={client}
+            onBack={() => setActiveView('dashboard')}
+        />
+    );
+    if (activeView === 'progress_photos') return (
+        <div className="max-w-4xl mx-auto py-6 px-4">
+            <ProgressPhotos clientId={client.id} onBack={() => setActiveView('dashboard')} />
+        </div>
+    );
 
     // --- HELPERS ---
     // Parse real metrics from the last check-in responses
@@ -817,12 +850,20 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const apptDaysAway = nextAppt ? Math.ceil((nextAppt.date.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
     const apptLabel = apptDaysAway === 0 ? 'Hoy' : apptDaysAway === 1 ? 'Mañana' : apptDaysAway && apptDaysAway > 0 ? `En ${apptDaysAway} días` : null;
     const hourNow = new Date().getHours();
-    const greeting = hourNow < 12 ? 'Buenos días' : hourNow < 20 ? 'Buenas tardes' : 'Buenas noches';
-    const warmthLine = hourNow < 12
-        ? 'Empezamos el día juntas, paso a paso.'
-        : hourNow < 20
-            ? 'Seguimos avanzando juntas esta tarde.'
-            : 'Cierra el día con calma y foco en ti.';
+    const dayName = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+    const greeting = (() => {
+        if (hourNow >= 6 && hourNow < 12) return '¡Buenos días!';
+        if (hourNow >= 12 && hourNow < 21) return '¡Buenas tardes!';
+        return '¡Buenas noches!';
+    })();
+
+    const warmthLine = (() => {
+        if (hourNow >= 6 && hourNow < 12) return `Feliz ${dayName}. Aquí tienes tu hoja de ruta para hoy.`;
+        if (hourNow >= 12 && hourNow < 21) return `Esperamos que estés teniendo un buen ${dayName}.`;
+        return "Día completado. Descansa y recarga energías.";
+    })();
 
     // Calendar helpers
     const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -837,8 +878,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     const getCalendarWeekDates = () => {
         if (!weekAssignment || !weekProgram) return null;
-        const startDate = new Date(weekAssignment.start_date);
         const now = new Date();
+        const currentProgramMeta = getProgramDateMeta(now, weekAssignment.start_date, weekProgram.weeks_count);
+        if (!currentProgramMeta) return null;
 
         // Calcular el lunes de la semana actual (real)
         const todayDay = now.getDay(); // 0=dom, 1=lun...
@@ -847,21 +889,15 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         weekMonday.setDate(now.getDate() + mondayOffset);
         weekMonday.setHours(0, 0, 0, 0);
 
-        // Calcular qué semana del programa es
-        const startMs = new Date(startDate).setHours(0, 0, 0, 0);
-        const diffDays = Math.floor((weekMonday.getTime() - startMs) / 86400000);
-        const calculatedWeek = Math.max(1, Math.floor(diffDays / 7) + 1);
-        const clampedWeek = Math.min(calculatedWeek, weekProgram.weeks_count);
-
-        return { week: clampedWeek, days: Array.from({ length: 7 }, (_, i) => {
+        return { week: currentProgramMeta.week, days: Array.from({ length: 7 }, (_, i) => {
             const date = new Date(weekMonday);
             date.setDate(date.getDate() + i);
-            // Mapear fecha real a día del programa: días transcurridos desde start_date + 1
-            const daysSinceStart = Math.floor((date.getTime() - startMs) / 86400000);
-            const programDayNumber = daysSinceStart + 1;
-            const dayData = weekProgram.days?.find(
-                (d: any) => d.week_number === clampedWeek && d.day_number === programDayNumber - (clampedWeek - 1) * 7
-            );
+            const programDateMeta = getProgramDateMeta(date, weekAssignment.start_date, weekProgram.weeks_count);
+            const dayData = programDateMeta
+                ? weekProgram.days?.find(
+                    (d: any) => d.week_number === programDateMeta.week && d.day_number === programDateMeta.dayNumber
+                )
+                : null;
             return {
                 dayNumber: i + 1,
                 date,
@@ -919,6 +955,45 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- TAB CONTENT ---
 
+    const OfmPromoCard = ({ compact = false }: { compact?: boolean }) => (
+        <div className={`relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-r from-[#fffdfa] via-[#fffaf0] to-[#fffefb] ${compact ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'} shadow-sm`}>
+            <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-brand-gold/20 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-brand-mint/40 blur-2xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center gap-3.5 sm:gap-4">
+                <div className={`rounded-xl bg-brand-gold/20 text-amber-700 flex items-center justify-center flex-shrink-0 ring-1 ring-brand-gold/30 ${compact ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                    <Sparkles className={compact ? 'w-5 h-5' : 'w-6 h-6'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.16em] font-black text-amber-700/80">Beneficio exclusivo</p>
+                    <p className={`font-black text-brand-dark ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>Suplementación recomendada en OFM Health</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Usa tu código para obtener descuento directo.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={async () => {
+                            try {
+                                await navigator.clipboard.writeText('CUIDARTE10');
+                                toast.success('Código CUIDARTE10 copiado');
+                            } catch {
+                                toast.error('No se pudo copiar automáticamente');
+                            }
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white text-amber-800 text-xs font-black border border-amber-200 hover:bg-amber-50 transition-colors"
+                    >
+                        CUIDARTE10
+                    </button>
+                    <button
+                        onClick={() => window.open('https://www.ofm-health.com/', '_blank', 'noopener,noreferrer')}
+                        className="px-3 py-2 rounded-xl bg-brand-green text-white text-xs font-black hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
+                    >
+                        Ir a OFM
+                        <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     const HomeTab = () => {
         const compact = (value?: string, max = 180) => {
             const clean = (value || '').replace(/\s+/g, ' ').trim();
@@ -932,64 +1007,102 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         return (
             <div className="space-y-4 sm:space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-brand-mint/70 via-white to-emerald-50 p-5 sm:p-6 shadow-sm">
-                    <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-brand-green/10 blur-2xl" />
-                    <div className="absolute -bottom-10 -left-8 w-40 h-40 rounded-full bg-brand-gold/10 blur-2xl" />
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <p className="text-[11px] font-black uppercase tracking-widest text-brand-green">{greeting}</p>
-                            <h2 className="text-[1.65rem] sm:text-3xl font-heading font-black text-brand-dark mt-1 leading-tight">{client.firstName || 'Bienvenida'}, estamos contigo</h2>
-                            <p className="text-sm text-slate-600 mt-2">{warmthLine}</p>
+                            <p className="text-xs font-black text-brand-green uppercase tracking-[0.2em] mb-1">Tu Dashboard</p>
+                            <h1 className="text-2xl sm:text-3xl font-heading font-black text-brand-dark leading-tight flex flex-wrap items-center gap-x-2">
+                                {greeting}, {client.firstName}<span className="inline-block animate-bounce-subtle">✨</span>
+                            </h1>
+                            <p className="text-slate-600 font-medium mt-1">{warmthLine}</p>
                         </div>
-                        {nextAppt && (
-                            <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 w-full md:w-auto md:min-w-[180px]">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Próxima revisión</p>
-                                <p className="text-sm font-bold text-brand-dark mt-1">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
-                                <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
+                        <div className="flex items-center gap-3">
+                            <div id="notification-bell">
+                                <NotificationBell
+                                    clientId={client.id}
+                                    onNavigate={(tab, view) => {
+                                        if (tab) setActiveTab(tab as any);
+                                        if (view) setActiveView(view as any);
+                                    }}
+                                />
                             </div>
-                        )}
+                            {nextAppt && (
+                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-emerald-100 p-3 sm:p-4 text-center ring-4 ring-emerald-50/50">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Siguiente cita</p>
+                                    <p className="text-lg font-black text-brand-dark leading-none">{nextAppt.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                                    <p className="text-xs text-slate-500">{nextAppt.time || 'Hora pendiente'}</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Accesos rápidos</p>
-                    <h2 className="text-xl sm:text-2xl font-heading font-black text-brand-dark">Acciones de hoy</h2>
-                    <p className="text-sm text-slate-600 mt-1">Elige una y seguimos contigo paso a paso.</p>
+                {/* Check-in — siempre visible con 3 estados */}
+                {(() => {
+                    const isAvailable = checkinWindowInfo.isVisibleWindow && !checkinWindowInfo.isCompleted;
+                    const isDone = checkinWindowInfo.isCompleted;
+                    return (
+                        <button
+                            onClick={() => isAvailable && setActiveView('checkin')}
+                            className={`w-full rounded-2xl border p-4 sm:p-5 text-left transition-all ${
+                                isAvailable
+                                    ? 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]'
+                                    : isDone
+                                        ? 'bg-emerald-50/50 border-emerald-200/60 text-emerald-700'
+                                        : 'bg-slate-50 border-slate-200 text-slate-500 cursor-default'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAvailable ? 'bg-emerald-200' : isDone ? 'bg-emerald-100' : 'bg-slate-200'}`}>
+                                    <CircleCheck className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-black leading-tight">
+                                        {isAvailable ? 'Hacer check-in semanal' : isDone ? 'Check-in completado esta semana' : 'Próximo check-in: viernes'}
+                                    </p>
+                                    <p className="text-xs opacity-70 mt-0.5">
+                                        {isAvailable ? 'Disponible hasta el lunes' : isDone ? 'Tu coach revisará tu evolución' : 'Podrás rellenarlo de viernes a lunes'}
+                                    </p>
+                                </div>
+                                {isAvailable && <ChevronRight className="w-5 h-5 opacity-50" />}
+                                {isDone && <span className="text-lg">✓</span>}
+                            </div>
+                        </button>
+                    );
+                })()}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-4 sm:mt-5">
-                        {[
-                            ...(checkinWindowInfo.isVisibleWindow ? [{
-                                label: checkinWindowInfo.isCompleted ? 'Check-in semanal completado' : 'Hacer check-in semanal',
-                                desc: checkinWindowInfo.isCompleted ? 'Ya enviado esta semana' : 'Disponible viernes-lunes',
-                                icon: CheckCircle2,
-                                action: () => setActiveView('checkin'),
-                                tone: checkinWindowInfo.isCompleted
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                    : 'bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-300 text-emerald-900 shadow-sm'
-                            }] : []),
-                            { label: 'Escribir en tu diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
-                            { label: 'Ver próxima revisión', desc: nextAppt ? `${nextAppt.date.toLocaleDateString('es-ES')} ${nextAppt.time ? `· ${nextAppt.time}` : ''}` : 'Sin fecha programada', icon: Calendar, action: () => setActiveView('reviews'), tone: 'bg-violet-50 border-violet-200 text-violet-800' },
-                            { label: 'Ver mi plan de acción', desc: 'Nutrición, hábitos y entrenamiento', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
-                            { label: 'Entrenamiento de hoy', desc: 'Programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
-                            { label: 'Materiales de apoyo', desc: 'Recursos de tu equipo', icon: FileHeart, action: () => setActiveView('materials'), tone: 'bg-slate-50 border-slate-200 text-slate-800' }
-                        ].map(({ label, desc, icon: Icon, action, tone }) => (
-                            <button
-                                key={label}
-                                onClick={action}
-                                className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] min-h-[96px] sm:min-h-[112px] ${tone}`}
-                            >
-                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-2" />
-                                <p className="text-sm sm:text-sm font-black leading-tight">{label}</p>
-                                <p className="text-xs opacity-80 mt-1">{desc}</p>
-                            </button>
-                        ))}
-                    </div>
+                {/* Acciones rápidas — 4 botones en grid 2x2 */}
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    {[
+                        { label: 'Escribir en mi diario', desc: 'Cómo te sientes hoy', icon: FileText, action: () => setActiveView('diary'), tone: 'bg-sky-50 border-sky-200 text-sky-800' },
+                        { label: 'Entrenamiento', desc: 'Tu programa semanal', icon: Dumbbell, action: () => setActiveView('training'), tone: 'bg-rose-50 border-rose-200 text-rose-800' },
+                        { label: 'Mi plan de acción', desc: 'Nutrición y hábitos', icon: Target, action: () => setActiveTab('program'), tone: 'bg-amber-50 border-amber-200 text-amber-800' },
+                        { label: 'Meditación', desc: 'Tu momento de calma', icon: Leaf, action: () => setActiveView('meditation'), tone: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                    ].map(({ label, desc, icon: Icon, action, tone }) => (
+                        <button
+                            key={label}
+                            onClick={action}
+                            className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${tone}`}
+                        >
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5" />
+                            <p className="text-sm font-black leading-tight">{label}</p>
+                            <p className="text-[11px] opacity-70 mt-0.5">{desc}</p>
+                        </button>
+                    ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <WeeklySummaryCard clientId={client.id} />
+
+                <TodayTimeline clientId={client.id} />
+
+                <SymptomInsights clientId={client.id} />
+
+                <OfmPromoCard compact />
+
+                <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 ${!hasActionPlan && !nextAppt && !initialAssessmentSnippet ? 'hidden' : ''}`}>
                     <button
                         type="button"
                         onClick={() => hasActionPlan && setShowFullPlan(true)}
-                        className={`lg:col-span-2 w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all group ${hasActionPlan ? 'hover:shadow-md hover:border-emerald-200' : 'opacity-90 cursor-default'}`}
+                        className={`lg:col-span-2 w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm transition-all group ${hasActionPlan ? 'hover:shadow-md hover:border-emerald-200' : !hasActionPlan ? 'hidden' : 'opacity-90 cursor-default'}`}
                     >
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">Tu plan actual</h3>
@@ -999,25 +1112,25 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                                 </div>
                             ) : (
-                                <span className="text-xs font-semibold text-slate-400">Sin contenido completo</span>
+                                <span className="text-xs font-semibold text-slate-400">Tu coach lo está preparando</span>
                             )}
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="rounded-xl bg-emerald-50/60 border border-emerald-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Nutrición</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Tu equipo aún no ha cargado una acción específica en nutrición.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_nutrition, 320) || 'Estamos diseñando tu plan de nutrición. Te avisaremos cuando esté listo.'}</p>
                             </div>
                             <div className="rounded-xl bg-amber-50/60 border border-amber-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Hábitos</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Tu equipo aún no ha cargado una acción específica en hábitos.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_habits, 320) || 'Estamos definiendo tus hábitos personalizados.'}</p>
                             </div>
                             <div className="rounded-xl bg-sky-50/60 border border-sky-200/60 p-3">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Entrenamiento</p>
-                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu equipo aún no ha cargado una acción específica en entrenamiento.'}</p>
+                                <p className="text-slate-700 mt-1 line-clamp-3">{compact(cAny.action_plan_training, 320) || 'Tu programa de entrenamiento está en preparación.'}</p>
                             </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-[11px]">
-                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Tu equipo añadirá el plan detallado aquí'}</span>
+                            <span className="font-semibold text-slate-500">{hasActionPlan ? 'Toca para leer el plan detallado' : 'Recibirás una notificación cuando esté listo'}</span>
                             {hasActionPlan && <span className="font-bold text-brand-green group-hover:underline">Ver plan completo</span>}
                         </div>
                     </button>
@@ -1036,7 +1149,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     )}
                                 </>
                             ) : (
-                                <p className="text-sm text-slate-600">Tu equipo te avisará cuando esté programada.</p>
+                                <p className="text-sm text-slate-600">Aún no hay cita programada. Tu coach te avisará pronto.</p>
                             )}
                         </div>
 
@@ -1055,7 +1168,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         ) : (
                             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                                 <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Valoración inicial</p>
-                                <p className="text-sm text-slate-600">Aún no hay valoración inicial compartida en portal.</p>
+                                <p className="text-sm text-slate-600">Tu valoración estará disponible tras la primera consulta con el equipo.</p>
                             </div>
                         )}
                     </div>
@@ -1213,6 +1326,13 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             <BodyMeasurementsCard clientId={client.id} initialAbdominal={client.abdominal_perimeter} initialArm={client.arm_perimeter} initialThigh={client.thigh_perimeter} />
             <WellnessCard clientId={client.id} />
 
+            <MedicationTracker clientId={client.id} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <HydrationWidget clientId={client.id} />
+                <StepsCard clientId={client.id} isClientView={true} />
+            </div>
+
             {/* Objetivos */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
                 <p className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-brand-green" /> Mis Objetivos</p>
@@ -1233,7 +1353,20 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             </div>
 
             <AchievementsCard clientId={client.id} />
-            <StepsCard clientId={client.id} isClientView={true} />
+            
+            <button
+                onClick={() => setActiveView('progress_photos')}
+                className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left"
+            >
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Camera className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                    <p className="font-black text-brand-dark text-sm">Fotos de Progreso</p>
+                    <p className="text-xs text-slate-500">Registra tu cambio físico</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+            </button>
         </div>
     );
 
@@ -1266,42 +1399,69 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
             )}
 
             {/* Grid de recursos */}
-            <div className="grid grid-cols-2 gap-3">
-                {[
-                    { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'bg-violet-50', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
-                    { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'bg-orange-50', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
-                    { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'bg-indigo-50', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
-                    { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CheckCircle2, bg: 'bg-sky-50', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
-                ].map(({ label, desc, icon: Icon, bg, color, border, action, badge }) => (
-                    <button key={label} onClick={action} className={`bg-white rounded-2xl p-4 border ${border} shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left`}>
-                        <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center relative`}>
-                            <Icon className={`w-6 h-6 ${color}`} />
-                            {badge && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{badge}</span>}
-                        </div>
-                        <div>
-                            <p className="font-black text-brand-dark text-sm">{label}</p>
-                            <p className="text-xs text-slate-400">{desc}</p>
+            <div className="relative rounded-3xl border border-brand-mint/70 bg-gradient-to-br from-brand-mint/30 via-white to-white p-4 sm:p-5 overflow-hidden">
+                <div className="absolute -top-10 -right-8 w-32 h-32 rounded-full bg-brand-gold/15 blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-8 w-28 h-28 rounded-full bg-brand-green/15 blur-2xl pointer-events-none" />
+
+                <div className="relative flex items-center justify-between mb-4">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-brand-green/70">Tu espacio personal</p>
+                        <p className="text-base font-black text-brand-dark">Herramientas para avanzar cada semana</p>
+                    </div>
+                    <Sparkles className="w-5 h-5 text-brand-gold" />
+                </div>
+
+                <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                        { label: 'Clases', desc: 'Sesiones de la escuela', icon: GraduationCap, bg: 'from-violet-50 to-white', iconBg: 'bg-violet-100/80', color: 'text-violet-600', border: 'border-violet-100', action: () => setActiveView('classes') },
+                        { label: 'Mi Nutrición', desc: 'Tu plan alimentario', icon: Utensils, bg: 'from-orange-50 to-white', iconBg: 'bg-orange-100/80', color: 'text-orange-600', border: 'border-orange-100', action: () => setActiveView('nutrition') },
+                        { label: 'Meditación', desc: 'Paz y enfoque', icon: Leaf, bg: 'from-emerald-50 to-white', iconBg: 'bg-emerald-100/80', color: 'text-emerald-600', border: 'border-emerald-100', action: () => setActiveView('meditation') },
+                        { label: 'Materiales', desc: 'Recursos de tu coach', icon: FileHeart, bg: 'from-indigo-50 to-white', iconBg: 'bg-indigo-100/80', color: 'text-indigo-600', border: 'border-indigo-100', action: () => setActiveView('materials') },
+                        { label: 'Mis Revisiones', desc: 'Feedback semanal', icon: CircleCheck, bg: 'from-sky-50 to-white', iconBg: 'bg-sky-100/80', color: 'text-sky-600', border: 'border-sky-100', action: () => setActiveView('reviews'), badge: unreadReviewsCount > 0 ? unreadReviewsCount : null },
+                    ].map(({ label, desc, icon: Icon, bg, iconBg, color, border, action, badge }) => (
+                        <button
+                            key={label}
+                            onClick={action}
+                            className={`bg-gradient-to-br ${bg} rounded-2xl p-4 border ${border} shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left group`}
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center relative ring-1 ring-white/60`}>
+                                    <Icon className={`w-6 h-6 ${color}`} />
+                                    {badge && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{badge}</span>}
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-green transition-colors" />
+                            </div>
+                            <div className="mt-3">
+                                <p className="font-black text-brand-dark text-sm">{label}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                            </div>
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setActiveView('training')}
+                        className="sm:col-span-2 bg-gradient-to-r from-brand-green to-[#7cb47c] rounded-2xl p-4 border border-brand-green/40 shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/25 hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left text-white group"
+                    >
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center ring-1 ring-white/30">
+                                    <Dumbbell className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-sm">Entrenamientos</p>
+                                    <p className="text-xs text-white/80">Tu programa semanal guiado</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                     </button>
-                ))}
-                <button
-                    onClick={() => setActiveView('training')}
-                    className="col-span-2 bg-white rounded-2xl p-4 border border-brand-mint shadow-sm flex flex-col items-start gap-3 hover:shadow-md active:scale-[0.97] transition-all text-left"
-                >
-                    <div className="w-12 h-12 bg-brand-mint rounded-xl flex items-center justify-center">
-                        <Dumbbell className="w-6 h-6 text-brand-green" />
-                    </div>
-                    <div>
-                        <p className="font-black text-brand-dark text-sm">Entrenamientos</p>
-                        <p className="text-xs text-slate-400">Tu programa semanal</p>
-                    </div>
-                </button>
+                </div>
             </div>
 
             {/* Ciclo hormonal para todas las mujeres */}
             {['mujer', 'femenino', 'female'].includes((client.gender || '').toLowerCase()) && (
-                <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4 border border-pink-100 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left">
-                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                <button onClick={() => setActiveView('cycle')} className="w-full bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 rounded-2xl p-4 border border-pink-100/80 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all text-left group">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-pink-100">
                         <Heart className="w-6 h-6 text-pink-500" />
                     </div>
                     <div className="flex-1">
@@ -1314,7 +1474,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                     : 'Configura tu situación hormonal'}
                         </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0" />
+                    <ChevronRight className="w-5 h-5 text-pink-300 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </button>
             )}
         </div>
@@ -1390,7 +1550,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     <div className="flex-1">
                         <p className="font-black text-brand-dark text-sm">Mi Contrato</p>
                         <p className={`text-xs font-bold ${cAny.program?.contract_signed ? 'text-brand-green' : 'text-amber-600'}`}>
-                            {cAny.program?.contract_signed ? '✓ Firmado' : '⏳ Pendiente de firma'}
+                            {cAny.program?.contract_signed ? '✓ Firmado' : '⌛ Pendiente de firma'}
                         </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
@@ -1403,7 +1563,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         <p className="text-xs text-amber-700 mb-3">Continúa tu transformación con el programa {cAny.renewal_phase_name || 'siguiente'}.</p>
                         {paymentStatus === 'uploaded' ? (
                             <div className="flex items-center gap-2 bg-emerald-50 rounded-xl p-3 border border-emerald-200">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <CircleCheck className="w-4 h-4 text-emerald-600" />
                                 <p className="text-xs text-emerald-700 font-bold">Comprobante enviado — en verificación</p>
                             </div>
                         ) : (
@@ -1432,6 +1592,21 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                     </div>
                 )}
+
+                {/* Repetir tutorial */}
+                <button
+                    onClick={() => { resetOnboarding(client.id); setShowTour(true); setActiveTab('home'); }}
+                    className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.98] transition-all text-left"
+                >
+                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <RotateCcw className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-black text-brand-dark text-sm">Repetir Tutorial</p>
+                        <p className="text-xs text-slate-500">Revisa el recorrido por el portal</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                </button>
             </div>
         );
     };
@@ -1448,10 +1623,11 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
     // --- MAIN RENDER ---
     return (
-        <div className="min-h-screen bg-[#f8faf8] flex flex-col items-center">
+        <ThemeProvider>
+        <div className="min-h-screen bg-[#f8faf8] dark:bg-slate-950 flex flex-col items-center transition-colors">
             <div className="w-full max-w-6xl mx-auto flex flex-col min-h-screen relative">
                 {/* Header fijo */}
-                <div className="bg-white/85 backdrop-blur-md border-b border-slate-100 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                <div className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-brand-green to-brand-green-dark rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
                             <span className="text-white font-heading font-black text-xl">{(client.firstName || '?')[0].toUpperCase()}</span>
@@ -1462,8 +1638,9 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        <ThemeToggleButton />
                         {coachData && (
-                            <div className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-100 pr-3">
+                            <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700 pr-3">
                                 <div className="relative">
                                     {coachData.photo_url ? (
                                         <img src={coachData.photo_url} className="w-9 h-9 rounded-full object-cover shadow-sm" alt={coachData.name} />
@@ -1487,7 +1664,12 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         {activeTab === 'home' && <HomeTab />}
                         {activeTab === 'health' && <HealthTab />}
                         {activeTab === 'program' && <ProgramTab />}
-                        {activeTab === 'treatment' && <TreatmentView clientId={client.id} />}
+                        {activeTab === 'treatment' && (
+                            <div className="space-y-4">
+                                <TreatmentView clientId={client.id} />
+                                <MedicalHistoryPdf client={client} />
+                            </div>
+                        )}
                         {activeTab === 'consultas' && <ConsultasTab />}
                         {activeTab === 'profile' && <ProfileTab />}
                     </div>
@@ -1501,6 +1683,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                             return (
                                 <button
                                     key={id}
+                                    id={`tab-${id}`}
                                     onClick={() => setActiveTab(id)}
                                     className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all relative"
                                 >
@@ -1510,40 +1693,14 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                                             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">{badge > 9 ? '9+' : badge}</span>
                                         )}
                                     </div>
-                                    <span className={`text-[9px] font-bold transition-colors hidden sm:block ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
+                                    <span className={`text-[8px] sm:text-[9px] font-bold transition-colors ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>{label}</span>
                                 </button>
                             );
                         })}
                     </div>
                 </nav>
 
-                {/* Modal Registrar Peso */}
-                {isWeightModalOpen && (
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setIsWeightModalOpen(false)}>
-                        <div className="bg-white rounded-t-3xl p-6 w-full max-w-[480px]" onClick={e => e.stopPropagation()}>
-                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-                            <h3 className="font-heading font-black text-brand-dark text-lg mb-4 flex items-center gap-2"><Scale className="w-5 h-5 text-brand-green" /> Registrar Peso</h3>
-                            <form onSubmit={handleWeightSubmit} className="space-y-4">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    placeholder="Ej: 72.4"
-                                    value={newWeight}
-                                    onChange={e => setNewWeight(e.target.value)}
-                                    className="w-full px-4 py-4 text-2xl font-black text-center bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all"
-                                    autoFocus
-                                />
-                                <p className="text-center text-slate-400 text-xs">kilos · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                <div className="flex gap-3">
-                                    <button type="button" onClick={() => setIsWeightModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-black rounded-xl">Cancelar</button>
-                                    <button type="submit" disabled={isSubmitting || !newWeight} className="flex-1 py-3.5 bg-brand-green text-white font-black rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                {/* Weight modal removed — weight is registered via CheckinView */}
 
                 {/* Modal Pago */}
                 {isPaymentModalOpen && (
@@ -1567,6 +1724,10 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 )}
             </div>
+            {showTour && (
+                <OnboardingTour clientId={client.id} onComplete={() => setShowTour(false)} />
+            )}
         </div>
+        </ThemeProvider>
     );
 }

@@ -5,7 +5,7 @@
 
 import { ClientStatus } from '../types';
 import {
-    CheckCircle2,
+    CircleCheck,
     XCircle,
     Pause,
     AlertOctagon,
@@ -33,7 +33,7 @@ export const getStatusConfig = (status: ClientStatus): StatusConfig => {
             textColor: 'text-green-700',
             borderColor: 'border-green-200',
             label: 'Activo',
-            icon: CheckCircle2,
+            icon: CircleCheck,
             description: 'Cliente activo en programa'
         },
         [ClientStatus.INACTIVE]: {

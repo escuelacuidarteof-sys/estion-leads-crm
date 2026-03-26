@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, Info, AlertCircle, CheckCircle2, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Bell, X, Info, AlertCircle, CircleCheck, AlertTriangle, ChevronRight } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface Announcement {
@@ -205,7 +205,7 @@ export function ClientAnnouncements({ clientId, coachId, inline = false }: Clien
                 bg: 'bg-green-50',
                 border: 'border-green-200',
                 text: 'text-green-800',
-                icon: <CheckCircle2 className="w-5 h-5" />
+                icon: <CircleCheck className="w-5 h-5" />
             }
         };
 
@@ -279,7 +279,7 @@ export function ClientAnnouncements({ clientId, coachId, inline = false }: Clien
                                         </div>
                                         <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                                             <button onClick={dismissModal} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2">
-                                                <CheckCircle2 className="w-5 h-5" /> Entendido
+                                                <CircleCheck className="w-5 h-5" /> Entendido
                                             </button>
                                         </div>
                                     </>
@@ -380,7 +380,7 @@ export function ClientAnnouncements({ clientId, coachId, inline = false }: Clien
                                             onClick={dismissModal}
                                             className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200"
                                         >
-                                            <CheckCircle2 className="w-5 h-5" />
+                                            <CircleCheck className="w-5 h-5" />
                                             Confirmar Lectura
                                         </button>
                                     </div>

@@ -15,6 +15,7 @@ interface ClientCardProps {
     getStatusColor: (status: ClientStatus) => string;
     getStatusLabel: (status: ClientStatus) => string;
     coachName?: string;
+    canManageStatus?: boolean;
 }
 
 const ClientCard: React.FC<ClientCardProps> = ({
@@ -24,7 +25,8 @@ const ClientCard: React.FC<ClientCardProps> = ({
     onUpdateStatus,
     getStatusColor,
     getStatusLabel,
-    coachName
+    coachName,
+    canManageStatus = true
 }) => {
     const isInactive = client.status === ClientStatus.INACTIVE || client.status === ClientStatus.DROPOUT;
 
@@ -130,50 +132,52 @@ const ClientCard: React.FC<ClientCardProps> = ({
             </div>
 
             {/* Actions */}
-            <div
-                className="flex items-center gap-2 pt-3 border-t border-slate-100"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {client.status === ClientStatus.ACTIVE && (
-                    <>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onUpdateStatus(client.id, ClientStatus.PAUSED);
-                            }}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors text-sm font-medium"
-                        >
-                            <PauseCircle className="w-4 h-4" />
-                            <span>Pausar</span>
-                        </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm('¿Deseas dar de baja a este cliente?')) {
-                                    onUpdateStatus(client.id, ClientStatus.INACTIVE);
-                                }
-                            }}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium"
-                        >
-                            <XCircle className="w-4 h-4" />
-                            <span>Baja</span>
-                        </button>
-                    </>
-                )}
+            {canManageStatus && (
+                <div
+                    className="flex items-center gap-2 pt-3 border-t border-slate-100"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {client.status === ClientStatus.ACTIVE && (
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onUpdateStatus(client.id, ClientStatus.PAUSED);
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors text-sm font-medium"
+                            >
+                                <PauseCircle className="w-4 h-4" />
+                                <span>Pausar</span>
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('¿Deseas dar de baja a este cliente?')) {
+                                        onUpdateStatus(client.id, ClientStatus.INACTIVE);
+                                    }
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium"
+                            >
+                                <XCircle className="w-4 h-4" />
+                                <span>Baja</span>
+                            </button>
+                        </>
+                    )}
 
-                {client.status !== ClientStatus.ACTIVE && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdateStatus(client.id, ClientStatus.ACTIVE);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-sm font-medium"
-                    >
-                        <PlayCircle className="w-4 h-4" />
-                        <span>Reactivar</span>
-                    </button>
-                )}
-            </div>
+                    {client.status !== ClientStatus.ACTIVE && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateStatus(client.id, ClientStatus.ACTIVE);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-sm font-medium"
+                        >
+                            <PlayCircle className="w-4 h-4" />
+                            <span>Reactivar</span>
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

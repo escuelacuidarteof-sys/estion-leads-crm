@@ -10,6 +10,8 @@ import {
     X,
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     RotateCcw
 } from 'lucide-react';
 import { NutritionRecipe, RecipeCategory, MealSlot } from '../../types';
@@ -18,7 +20,7 @@ interface WeeklyPlannerProps {
     recipes: NutritionRecipe[];
     planId: string;
     grid: Record<string, string | null>;
-    onGridChange: (grid: Record<string, string | null>) => void;
+    onGridChange: (grid: Record<string, string | null>, weekOffset?: number) => void;
 }
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -38,29 +40,68 @@ function getStorageKey(planId: string) {
 }
 
 export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPlannerProps) {
-    const [pickerOpen, setPickerOpen] = useState<string | null>(null); // "day-meal" or null
+    const [pickerOpen, setPickerOpen] = useState<string | null>(null);
     const [expandedDay, setExpandedDay] = useState<number | null>(null);
+    const [weekOffset, setWeekOffset] = useState(0); // 0 = esta semana, 1 = siguiente
 
     const cellKey = (day: number, meal: MealSlot) => `${day}-${meal}`;
+    const weekStorageKey = (offset: number) => `${getStorageKey(planId)}${offset > 0 ? `_w${offset}` : ''}`;
+
+    // Load week grid from localStorage when weekOffset changes
+    const getActiveGrid = (): Record<string, string | null> => {
+        if (weekOffset === 0) return grid;
+        try {
+            const saved = localStorage.getItem(weekStorageKey(weekOffset));
+            return saved ? JSON.parse(saved) : {};
+        } catch { return {}; }
+    };
+
+    const [nextWeekGrid, setNextWeekGrid] = useState<Record<string, string | null>>(() => {
+        try {
+            const saved = localStorage.getItem(weekStorageKey(1));
+            return saved ? JSON.parse(saved) : {};
+        } catch { return {}; }
+    });
+
+    const activeGrid = weekOffset === 0 ? grid : nextWeekGrid;
 
     const setRecipeForCell = (day: number, meal: MealSlot, recipeId: string | null) => {
         const key = cellKey(day, meal);
-        const newGrid = { ...grid };
+        const newGrid = { ...activeGrid };
         if (recipeId) {
             newGrid[key] = recipeId;
         } else {
             delete newGrid[key];
         }
-        onGridChange(newGrid);
-        try {
-            localStorage.setItem(getStorageKey(planId), JSON.stringify(newGrid));
-        } catch { }
+        if (weekOffset === 0) {
+            onGridChange(newGrid);
+            try { localStorage.setItem(getStorageKey(planId), JSON.stringify(newGrid)); } catch { }
+        } else {
+            setNextWeekGrid(newGrid);
+            try { localStorage.setItem(weekStorageKey(weekOffset), JSON.stringify(newGrid)); } catch { }
+        }
         setPickerOpen(null);
     };
 
+    // Week dates
+    const getWeekDates = () => {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset + (weekOffset * 7));
+        return DAYS.map((_, i) => {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            return d;
+        });
+    };
+    const weekDates = getWeekDates();
+    const weekLabel = weekOffset === 0 ? 'Esta semana' : 'Semana siguiente';
+
     const getRecipeForCell = (day: number, meal: MealSlot): NutritionRecipe | undefined => {
         const key = cellKey(day, meal);
-        const recipeId = grid[key];
+        const recipeId = activeGrid[key];
         if (!recipeId) return undefined;
         return recipes.find(r => r.id === recipeId);
     };
@@ -77,14 +118,17 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
     };
 
     const handleClearAll = () => {
-        if (Object.keys(grid).length === 0) return;
-        onGridChange({});
-        try {
-            localStorage.setItem(getStorageKey(planId), JSON.stringify({}));
-        } catch { }
+        if (Object.keys(activeGrid).length === 0) return;
+        if (weekOffset === 0) {
+            onGridChange({});
+            try { localStorage.setItem(getStorageKey(planId), JSON.stringify({})); } catch { }
+        } else {
+            setNextWeekGrid({});
+            try { localStorage.setItem(weekStorageKey(weekOffset), JSON.stringify({})); } catch { }
+        }
     };
 
-    const totalFilledCells = Object.keys(grid).length;
+    const totalFilledCells = Object.keys(activeGrid).length;
 
     // Recipe Picker component
     const RecipePicker = ({ day, meal, category }: { day: number; meal: MealSlot; category: RecipeCategory }) => {
@@ -138,6 +182,7 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
                 const isExpanded = expandedDay === dayIdx;
                 const dayCal = getDayCalories(dayIdx);
                 const filledMeals = MEALS.filter(m => getRecipeForCell(dayIdx, m.id)).length;
+                const dateStr = weekDates[dayIdx] ? `${weekDates[dayIdx].getDate()}/${weekDates[dayIdx].getMonth() + 1}` : '';
 
                 return (
                     <div key={dayIdx} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -147,7 +192,7 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
                         >
                             <div className="flex items-center gap-3">
                                 <span className="font-bold text-slate-800">{dayName}</span>
-                                <span className="text-xs text-slate-400">{filledMeals}/4 comidas</span>
+                                <span className="text-xs text-slate-400">{dateStr} · {filledMeals}/4</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 {dayCal > 0 && (
@@ -165,29 +210,42 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
                                     const recipe = getRecipeForCell(dayIdx, meal.id);
                                     const Icon = meal.icon;
                                     return (
-                                        <div key={meal.id} className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                                <Icon className="w-4 h-4 text-slate-500" />
+                                        <div key={meal.id}>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Icon className="w-4 h-4 text-slate-400" />
+                                                <span className="text-xs font-semibold text-slate-500">{meal.label}</span>
                                             </div>
                                             {recipe ? (
-                                                <div className="flex-1 flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="text-sm font-medium text-slate-800 truncate">{recipe.name}</p>
-                                                        {recipe.calories && (
-                                                            <p className="text-xs text-orange-500">{recipe.calories} kcal</p>
-                                                        )}
+                                                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm font-medium text-slate-800">{recipe.name}</p>
+                                                            {recipe.calories && (
+                                                                <p className="text-xs text-orange-500 mt-0.5">{recipe.calories} kcal</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => setRecipeForCell(dayIdx, meal.id, null)}
-                                                        className="p-1 hover:bg-red-100 rounded-full ml-2 flex-shrink-0"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                                    </button>
+                                                    <div className="flex gap-2 mt-2 pt-2 border-t border-green-200">
+                                                        <button
+                                                            onClick={() => setPickerOpen(cellKey(dayIdx, meal.id))}
+                                                            className="flex-1 py-1.5 text-xs font-bold text-green-700 bg-green-100 hover:bg-green-200 rounded-lg transition-colors flex items-center justify-center gap-1"
+                                                        >
+                                                            <RotateCcw className="w-3 h-3" />
+                                                            Cambiar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setRecipeForCell(dayIdx, meal.id, null)}
+                                                            className="py-1.5 px-3 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center gap-1"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                            Quitar
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <button
                                                     onClick={() => setPickerOpen(cellKey(dayIdx, meal.id))}
-                                                    className="flex-1 py-2 border-2 border-dashed border-slate-200 rounded-lg text-slate-400 text-sm hover:border-green-300 hover:text-green-500 transition-colors flex items-center justify-center gap-1"
+                                                    className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm hover:border-green-300 hover:text-green-500 transition-colors flex items-center justify-center gap-1"
                                                 >
                                                     <Plus className="w-3.5 h-3.5" />
                                                     Elegir {meal.label.toLowerCase()}
@@ -239,14 +297,14 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
                                     return (
                                         <td key={dayIdx} className="p-1 align-top">
                                             {recipe ? (
-                                                <div className="bg-green-50 border border-green-200 rounded-lg p-2 min-h-[60px] relative group">
-                                                    <p className="text-xs font-medium text-slate-700 line-clamp-2 pr-4">{recipe.name}</p>
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-2 min-h-[60px] relative">
+                                                    <p className="text-xs font-medium text-slate-700 line-clamp-2 pr-5">{recipe.name}</p>
                                                     {recipe.calories && (
                                                         <p className="text-[10px] text-orange-500 mt-0.5 font-semibold">{recipe.calories} kcal</p>
                                                     )}
                                                     <button
                                                         onClick={() => setRecipeForCell(dayIdx, meal.id, null)}
-                                                        className="absolute top-1 right-1 p-0.5 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                                                        className="absolute top-1 right-1 p-1 bg-white/80 rounded-full shadow-sm hover:bg-red-50 transition-colors"
                                                     >
                                                         <X className="w-3 h-3 text-red-400" />
                                                     </button>
@@ -276,7 +334,7 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="font-bold text-slate-800 text-lg">Planificador Semanal</h3>
-                    <p className="text-sm text-slate-500">Arrastra tus recetas favoritas a cada día</p>
+                    <p className="text-sm text-slate-500">Elige tus recetas para cada día</p>
                 </div>
                 {totalFilledCells > 0 && (
                     <button
@@ -284,9 +342,33 @@ export function WeeklyPlanner({ recipes, planId, grid, onGridChange }: WeeklyPla
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        Limpiar Todo
+                        Limpiar
                     </button>
                 )}
+            </div>
+
+            {/* Week selector */}
+            <div className="flex items-center justify-between bg-slate-50 rounded-xl p-2">
+                <button
+                    onClick={() => setWeekOffset(Math.max(0, weekOffset - 1))}
+                    disabled={weekOffset === 0}
+                    className="p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-30"
+                >
+                    <ChevronLeft className="w-4 h-4 text-slate-600" />
+                </button>
+                <div className="text-center">
+                    <p className="text-sm font-bold text-slate-700">{weekLabel}</p>
+                    <p className="text-[10px] text-slate-400">
+                        {weekDates[0]?.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} — {weekDates[6]?.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </p>
+                </div>
+                <button
+                    onClick={() => setWeekOffset(Math.min(1, weekOffset + 1))}
+                    disabled={weekOffset >= 1}
+                    className="p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-30"
+                >
+                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                </button>
             </div>
 
             {/* Grid */}

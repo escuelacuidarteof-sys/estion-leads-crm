@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import {
-  Database, CheckCircle2, Send, FileText, Loader2, RefreshCw, DollarSign
+  Database, CircleCheck, Send, FileText, Loader2, RefreshCw, DollarSign
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { PaymentMethodsManager } from './PaymentMethodsManager';
@@ -17,6 +17,8 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser }) => {
     n8n_webhook_new_sale: '',
     n8n_webhook_onboarding_completed: '',
     n8n_webhook_enabled: 'false',
+    n8n_webhook_telegram_broadcast: '',
+    n8n_webhook_telegram_enabled: 'false',
     telegram_bot_token: ''
   });
 
@@ -162,6 +164,40 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser }) => {
 
                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors">
                   <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                    Webhook: Mensaje Grupal Telegram
+                  </label>
+                  <div className="relative text-black">
+                    <input
+                      type="url"
+                      className="w-full pl-4 pr-12 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      placeholder="https://su-n8n.host/webhook/mensaje_clientes"
+                      value={webhookSettings.n8n_webhook_telegram_broadcast}
+                      onChange={(e) => setWebhookSettings(prev => ({ ...prev, n8n_webhook_telegram_broadcast: e.target.value }))}
+                    />
+                    <Send className="absolute right-4 top-3.5 w-5 h-5 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-800">Activar Telegram Grupal</h3>
+                      <p className="text-sm text-slate-500">Controla solo el envío masivo por webhook de n8n</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={webhookSettings.n8n_webhook_telegram_enabled === 'true'}
+                        onChange={(e) => setWebhookSettings(prev => ({ ...prev, n8n_webhook_telegram_enabled: e.target.checked ? 'true' : 'false' }))}
+                      />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors">
+                  <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
                     Telegram Bot Token
                   </label>
                   <div className="relative text-black">
@@ -186,7 +222,7 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ currentUser }) => {
                   disabled={savingSettings}
                   className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                 >
-                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <CircleCheck className="w-5 h-5" />}
                   Guardar Configuración
                 </button>
               </div>

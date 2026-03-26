@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Sparkles, RefreshCw, CircleCheck, Clock, AlertCircle } from 'lucide-react';
 import { Client, AssessmentTest } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from './ToastProvider';
@@ -47,7 +47,7 @@ export const AssessmentTab: React.FC<AssessmentTabProps> = ({ client, onRequestN
                     <div className="flex items-start gap-4">
                         <div className={`p-3 rounded-xl ${hasCompleted ? 'bg-emerald-100' : 'bg-amber-100'}`}>
                             {hasCompleted ? (
-                                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                                <CircleCheck className="w-6 h-6 text-emerald-600" />
                             ) : (
                                 <Clock className="w-6 h-6 text-amber-600" />
                             )}
