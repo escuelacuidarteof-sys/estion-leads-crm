@@ -793,7 +793,6 @@ let mockUsers: User[] = [
     email: 'contabilidad@demo.com',
     role: UserRole.CONTABILIDAD,
     avatarUrl: 'https://ui-avatars.com/api/?name=Contabilidad+Demo',
-    password: '123'
   },
 ];
 
@@ -866,15 +865,18 @@ const mapMedicalReviewToRow = (review: Partial<MedicalReview>) => {
 };
 
 // --- AUTHENTICATION ---
+// DEV-only flag: mock/backdoor auth is ONLY available in development builds.
+// Vite strips this code entirely from production bundles.
+const IS_DEV = import.meta.env.DEV;
+
 export const mockAuth = {
   login: async (identifier: string, password?: string, manualRoleType?: 'staff' | 'client'): Promise<User | null> => {
     const rawEmail = (identifier || '').toLowerCase().trim();
     const rawPass = (password || '').trim();
-    const isMasterPass = ['admin123', 'test123', '123', '1234', '123456'].includes(rawPass);
 
     console.log(`Intentando login para: ${rawEmail}`);
 
-    // --- 1. REAL SUPABASE AUTH ---
+    // --- 1. REAL SUPABASE AUTH (always active) ---
     let authData: any = null;
     let authError: any = null;
 
@@ -888,18 +890,14 @@ export const mockAuth = {
     }
 
     // --- 2. SESSION & PROFILE ---
-    if (authData?.user || (isMasterPass && (
-      rawEmail.endsWith('@test.com') ||
-      rawEmail.endsWith('@demo.com')
-    ))) {
-
-      const userId = authData?.user?.id;
+    if (authData?.user) {
+      const userId = authData.user.id;
 
       // Try to get profile from public.users (absolute priority)
       const { data: dbUser } = await supabase
         .from('users')
         .select('*')
-        .eq(userId ? 'id' : 'email', userId || rawEmail)
+        .eq('id', userId)
         .maybeSingle();
 
       if (dbUser) {
@@ -910,30 +908,58 @@ export const mockAuth = {
           email: dbUser.email,
           role: dbUser.role as UserRole,
           avatarUrl: dbUser.avatar_url || `https://ui-avatars.com/api/?name=${dbUser.name}`,
-          isMockSession: !authData?.user
-        };
-      }
-
-      // If no DB profile but real Auth, use metadata
-      if (authData?.user) {
-        console.warn('Usuario Auth OK pero no encontrado en tabla public.users. Usando metadatos.');
-        return {
-          id: authData.user.id,
-          name: authData.user.user_metadata?.full_name || rawEmail.split('@')[0].toUpperCase(),
-          email: rawEmail,
-          role: (authData.user.user_metadata?.role as UserRole) || UserRole.CLIENT,
-          avatarUrl: authData.user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${rawEmail}`,
           isMockSession: false
         };
       }
 
-      // Backdoor mode (mock users)
-      if (isMasterPass) {
-        console.log('Backdoor detectado (Modo Mock)');
-        const mockMatch = mockUsers.find(u => u.email.toLowerCase() === rawEmail);
-        if (mockMatch) return mockMatch;
+      // If no DB profile but real Auth, use metadata
+      console.warn('Usuario Auth OK pero no encontrado en tabla public.users. Usando metadatos.');
+      return {
+        id: authData.user.id,
+        name: authData.user.user_metadata?.full_name || rawEmail.split('@')[0].toUpperCase(),
+        email: rawEmail,
+        role: (authData.user.user_metadata?.role as UserRole) || UserRole.CLIENT,
+        avatarUrl: authData.user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${rawEmail}`,
+        isMockSession: false
+      };
+    }
 
-        // Dynamic fallback by prefix
+    // --- 2B. DIRECT USERS TABLE AUTH (fallback when Supabase Auth not configured for this user) ---
+    if (!authData?.user && rawEmail.includes('@') && rawPass) {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('id, name, email, role, avatar_url')
+        .eq('email', rawEmail)
+        .maybeSingle();
+
+      if (dbUser) {
+        // Verify password via Supabase Auth (not plain text comparison)
+        const { data: verifyAuth } = await supabase.auth.signInWithPassword({
+          email: rawEmail,
+          password: rawPass
+        });
+        if (verifyAuth?.user) {
+          console.log(`Login verificado via Auth para ${rawEmail} (Rol: ${dbUser.role})`);
+          return {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: dbUser.role as UserRole,
+            avatarUrl: dbUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(dbUser.name)}`,
+            isMockSession: false
+          };
+        }
+      }
+    }
+
+    // --- 2C. MOCK/DEV BACKDOOR (only in development) ---
+    if (IS_DEV) {
+      const isMockPass = ['admin123', 'test123', '123456'].includes(rawPass);
+      if (isMockPass && (rawEmail.endsWith('@test.com') || rawEmail.endsWith('@demo.com'))) {
+        console.warn('[DEV] Backdoor mock login activado');
+        const mockMatch = mockUsers.find(u => u.email.toLowerCase() === rawEmail);
+        if (mockMatch) return { ...mockMatch, isMockSession: true };
+
         let role = UserRole.COACH;
         if (rawEmail.startsWith('admin')) role = UserRole.ADMIN;
         if (rawEmail.startsWith('closer')) role = UserRole.CLOSER;
@@ -947,27 +973,6 @@ export const mockAuth = {
           email: rawEmail,
           role: role,
           isMockSession: true
-        };
-      }
-    }
-
-    // --- 2B. DIRECT USERS TABLE AUTH (when Supabase Auth is not configured for this user) ---
-    if (!authData?.user && rawEmail.includes('@') && rawPass) {
-      const { data: dbUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', rawEmail)
-        .maybeSingle();
-
-      if (dbUser && dbUser.password === rawPass) {
-        console.log(`Login directo via tabla users para ${rawEmail} (Rol: ${dbUser.role})`);
-        return {
-          id: dbUser.id,
-          name: dbUser.name,
-          email: dbUser.email,
-          role: dbUser.role as UserRole,
-          avatarUrl: dbUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(dbUser.name)}`,
-          isMockSession: false
         };
       }
     }
@@ -1682,26 +1687,25 @@ export const mockDb = {
 
       if (crmError) throw crmError;
 
-      // Create Auth User (users table) so they can login immediately
-      if (newClient.password && newClient.email) {
-        console.log('Creating Auth User for Client...');
-        const { error: authError } = await supabase
+      // Create user profile in users table (password managed via Supabase Auth, not stored here)
+      if (newClient.email) {
+        console.log('Creating user profile for client...');
+        const clientName = `${newClient.firstName || ''} ${newClient.surname || ''}`.trim();
+        const { error: profileError } = await supabase
           .from('users')
           .insert({
             id: crmData.id,
             email: newClient.email,
-            password: newClient.password,
-            name: `${newClient.firstName || ''} ${newClient.surname || ''}`.trim(),
+            name: clientName,
             role: UserRole.CLIENT,
             avatar_url: `https://ui-avatars.com/api/?name=${newClient.firstName}`
           });
 
-        if (authError) {
-          console.warn('Could not sync ID for Auth User, creating with new ID:', authError.message);
+        if (profileError) {
+          console.warn('Could not sync ID for user profile, creating with new ID:', profileError.message);
           await supabase.from('users').insert({
             email: newClient.email,
-            password: newClient.password,
-            name: `${newClient.firstName || ''} ${newClient.surname || ''}`.trim(),
+            name: clientName,
             role: UserRole.CLIENT,
             avatar_url: `https://ui-avatars.com/api/?name=${newClient.firstName}`
           });
@@ -1738,7 +1742,6 @@ export const mockAdmin = {
           role: row.role as UserRole,
           max_clients: row.max_clients,
           avatarUrl: row.avatarUrl || row.avatar_url || `https://ui-avatars.com/api/?name=${row.name}`,
-          password: row.password,
           tier: row.tier,
           is_exclusive: row.is_exclusive,
           performance_notes: row.performance_notes,
@@ -1756,8 +1759,7 @@ export const mockAdmin = {
             name: u.name,
             email: u.email,
             role: u.role,
-            avatar_url: u.avatarUrl,
-            password: u.password || '123456'
+            avatar_url: u.avatarUrl
           })))
           .select();
 
@@ -1784,8 +1786,7 @@ export const mockAdmin = {
     const newUserObj = {
       ...user,
       id: tempId,
-      avatarUrl: user.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}`,
-      password: tempPassword
+      avatarUrl: user.avatarUrl || `https://ui-avatars.com/api/?name=${user.name}`
     };
 
     // ATTEMPT PROFESSIONAL INVITATION (Edge Function)
@@ -1813,7 +1814,7 @@ export const mockAdmin = {
     } catch (edgeError: any) {
       console.warn('Edge Function not available or failed. Falling back to Manual Mode.', edgeError);
 
-      // FALLBACK: MANUAL DATABASE INSERTION
+      // FALLBACK: MANUAL DATABASE INSERTION (without password - use Supabase Auth for credentials)
       try {
         const { data, error } = await supabase
           .from('users')
@@ -1822,8 +1823,7 @@ export const mockAdmin = {
             name: newUserObj.name,
             email: newUserObj.email,
             role: newUserObj.role,
-            avatar_url: newUserObj.avatarUrl,
-            password: newUserObj.password
+            avatar_url: newUserObj.avatarUrl
           })
           .select()
           .single();
@@ -1857,7 +1857,6 @@ export const mockAdmin = {
           role: user.role,
           max_clients: user.max_clients,
           avatar_url: user.avatarUrl,
-          password: (user as any).password,
           tier: user.tier,
           is_exclusive: user.is_exclusive,
           performance_notes: user.performance_notes,
