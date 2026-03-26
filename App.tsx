@@ -865,6 +865,19 @@ const AppContent: React.FC = () => {
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { UpdatePasswordPage } from './components/UpdatePasswordPage';
 
+// Detect ?code= in URL and ensure hash route is set for password recovery
+// This fixes mobile browsers that lose the #/update-password hash during Supabase redirect
+if (typeof window !== 'undefined') {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const currentHash = window.location.hash;
+
+  // If there's a code param but no hash route (or just #/), redirect to update-password
+  if (code && (!currentHash || currentHash === '#' || currentHash === '#/')) {
+    window.location.hash = '#/update-password';
+  }
+}
+
 const App: React.FC = () => {
   return (
     <HashRouter>

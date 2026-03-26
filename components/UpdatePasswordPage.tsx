@@ -17,22 +17,48 @@ export const UpdatePasswordPage: React.FC = () => {
         let isMounted = true;
 
         const initRecovery = async () => {
-            // With PKCE flow + hash router, Supabase puts ?code=xxx before the #
-            // We need to manually exchange it for a session
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
 
+            // Step 1: Check if Supabase auto-detection already created a session
+            const { data: { session: existingSession } } = await supabase.auth.getSession();
+            if (!isMounted) return;
+
+            if (existingSession) {
+                // Session already exists (Supabase detectSessionInUrl may have consumed the code)
+                setHasRecoverySession(true);
+                setError(null);
+                // Clean URL
+                if (code) {
+                    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+                }
+                setCheckingSession(false);
+                return;
+            }
+
+            // Step 2: If no session yet but we have a code, try manual exchange
             if (code) {
                 try {
                     const { error } = await supabase.auth.exchangeCodeForSession(code);
                     if (!isMounted) return;
                     if (error) {
-                        setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+                        // Code might already be consumed - check session one more time
+                        const { data: { session: retrySession } } = await supabase.auth.getSession();
+                        if (retrySession) {
+                            setHasRecoverySession(true);
+                            setError(null);
+                        } else {
+                            setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+                        }
                         setCheckingSession(false);
                         return;
                     }
                     // Clean the code from URL without reload
                     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+                    setHasRecoverySession(true);
+                    setError(null);
+                    setCheckingSession(false);
+                    return;
                 } catch {
                     if (!isMounted) return;
                     setError('Error al validar el enlace. Por favor, solicita uno nuevo.');
@@ -41,19 +67,9 @@ export const UpdatePasswordPage: React.FC = () => {
                 }
             }
 
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!isMounted) return;
-
-            if (session) {
-                setHasRecoverySession(true);
-                setError(null);
-            } else {
-                setHasRecoverySession(false);
-                if (!code) {
-                    setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
-                }
-            }
-
+            // Step 3: No code and no session
+            setHasRecoverySession(false);
+            setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
             setCheckingSession(false);
         };
 
@@ -217,7 +233,7 @@ export const UpdatePasswordPage: React.FC = () => {
                 </div>
             </div>
             <p className="mt-12 text-[10px] text-[#1a2e1a]/30 font-mono z-10">
-                ACADEMIA DIABETES ONLINE
+                ESCUELA CUIDARTE
             </p>
             <style>{`
                 @keyframes progress {
