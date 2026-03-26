@@ -10,7 +10,12 @@ import {
     ClientTrainingAssignment,
     ClientDayLog,
     ClientExerciseLog,
-    ClientActivityLog
+    ClientActivityLog,
+    ClientProgramDay,
+    ClientProgramActivity,
+    ClientWorkout,
+    ClientWorkoutBlock,
+    ClientWorkoutExercise
 } from '../types';
 
 const ASSESSMENT_PREFIX = '__ASSESSMENT__:';
@@ -770,6 +775,418 @@ export const trainingService = {
 
         if (error) throw error;
         return data || [];
+    },
+
+    // --- CLIENT PROGRAM CUSTOMIZATION ---
+
+    async materializeClientProgram(assignmentId: string): Promise<{ days: ClientProgramDay[]; workouts: ClientWorkout[] }> {
+        // 1. Get the assignment to find program_id
+        const { data: assignment, error: assignmentError } = await supabase
+            .from('client_training_assignments')
+            .select('*')
+            .eq('id', assignmentId)
+            .single();
+
+        if (assignmentError || !assignment) throw assignmentError || new Error('Assignment not found');
+
+        // 2. Load full program via existing getProgramById
+        const program = await this.getProgramById(assignment.program_id);
+        if (!program) throw new Error('Program not found');
+
+        const materializedDays: ClientProgramDay[] = [];
+        const materializedWorkouts: ClientWorkout[] = [];
+        // Map from source workout_id -> new client_workout.id
+        const workoutIdMap: Record<string, string> = {};
+
+        // 3. For each day, insert into client_program_days
+        for (const day of program.days) {
+            const { data: savedDay, error: dayError } = await supabase
+                .from('client_program_days')
+                .insert({
+                    assignment_id: assignmentId,
+                    source_day_id: day.id,
+                    week_number: day.week_number,
+                    day_number: day.day_number,
+                    is_rest_day: !day.activities || day.activities.length === 0
+                })
+                .select()
+                .single();
+
+            if (dayError) throw dayError;
+
+            // 4. For each workout referenced by activities: deep-copy to client tables
+            const savedActivities: ClientProgramActivity[] = [];
+
+            for (const activity of (day.activities || [])) {
+                let clientActivityId: string | undefined = activity.activity_id;
+
+                if (activity.type === 'workout' && activity.activity_id) {
+                    // Check if we already copied this workout
+                    if (!workoutIdMap[activity.activity_id]) {
+                        const sourceWorkout = await this.getWorkoutById(activity.activity_id);
+                        if (sourceWorkout) {
+                            // Insert client_workout
+                            const { data: savedWorkout, error: wError } = await supabase
+                                .from('client_workouts')
+                                .insert({
+                                    assignment_id: assignmentId,
+                                    source_workout_id: sourceWorkout.id,
+                                    name: sourceWorkout.name,
+                                    description: sourceWorkout.description,
+                                    goal: sourceWorkout.goal,
+                                    notes: sourceWorkout.notes
+                                })
+                                .select()
+                                .single();
+
+                            if (wError) throw wError;
+
+                            // Insert blocks and exercises
+                            for (const block of (sourceWorkout.blocks || [])) {
+                                const { data: savedBlock, error: bError } = await supabase
+                                    .from('client_workout_blocks')
+                                    .insert({
+                                        client_workout_id: savedWorkout.id,
+                                        name: block.name,
+                                        description: block.description,
+                                        position: block.position,
+                                        structure_type: 'standard'
+                                    })
+                                    .select()
+                                    .single();
+
+                                if (bError) throw bError;
+
+                                if (block.exercises && block.exercises.length > 0) {
+                                    const exerciseInserts = block.exercises.map((ex: any) => ({
+                                        block_id: savedBlock.id,
+                                        exercise_id: ex.exercise_id || ex.exercise?.id,
+                                        sets: ex.sets || 3,
+                                        reps: ex.reps || '',
+                                        rest_seconds: ex.rest_seconds || 0,
+                                        notes: ex.notes,
+                                        position: ex.position,
+                                        superset_id: ex.superset_id || null,
+                                        superset_rounds: ex.superset_rounds || null
+                                    }));
+
+                                    const { error: exError } = await supabase
+                                        .from('client_workout_exercises')
+                                        .insert(exerciseInserts);
+
+                                    if (exError) throw exError;
+                                }
+                            }
+
+                            workoutIdMap[activity.activity_id] = savedWorkout.id;
+                            materializedWorkouts.push(savedWorkout);
+                        }
+                    }
+                    clientActivityId = workoutIdMap[activity.activity_id];
+                }
+
+                // 5. Insert client_program_activities
+                const { data: savedActivity, error: actError } = await supabase
+                    .from('client_program_activities')
+                    .insert({
+                        client_day_id: savedDay.id,
+                        source_activity_id: activity.id,
+                        type: activity.type,
+                        activity_id: clientActivityId,
+                        title: activity.title,
+                        description: activity.description,
+                        position: activity.position,
+                        color: activity.color,
+                        config: activity.config || {}
+                    })
+                    .select()
+                    .single();
+
+                if (actError) throw actError;
+                savedActivities.push(savedActivity);
+            }
+
+            materializedDays.push({ ...savedDay, activities: savedActivities });
+        }
+
+        // 6. Mark assignment as customized
+        await supabase
+            .from('client_training_assignments')
+            .update({ is_customized: true })
+            .eq('id', assignmentId);
+
+        return { days: materializedDays, workouts: materializedWorkouts };
+    },
+
+    async getClientProgramData(assignmentId: string): Promise<TrainingProgram | null> {
+        // 1. Query client_program_days for this assignment
+        const { data: days, error: daysError } = await supabase
+            .from('client_program_days')
+            .select('*')
+            .eq('assignment_id', assignmentId)
+            .order('week_number', { ascending: true })
+            .order('day_number', { ascending: true });
+
+        if (daysError) throw daysError;
+        if (!days || days.length === 0) return null;
+
+        // 2. Get all day IDs and query activities
+        const dayIds = days.map((d: any) => d.id);
+        const { data: activities, error: actError } = await supabase
+            .from('client_program_activities')
+            .select('*')
+            .in('client_day_id', dayIds)
+            .order('position', { ascending: true });
+
+        if (actError) throw actError;
+
+        // 3. Get assignment info for program_id
+        const { data: assignment } = await supabase
+            .from('client_training_assignments')
+            .select('program_id')
+            .eq('id', assignmentId)
+            .single();
+
+        // 4. Get program metadata
+        let programMeta: any = { id: assignmentId, name: 'Custom Program', weeks_count: 1 };
+        if (assignment?.program_id) {
+            const { data: prog } = await supabase
+                .from('training_programs')
+                .select('id, name, description, weeks_count, created_by, created_at, updated_at')
+                .eq('id', assignment.program_id)
+                .single();
+            if (prog) programMeta = prog;
+        }
+
+        // 5. Assemble into TrainingProgram-compatible shape
+        return {
+            ...programMeta,
+            days: days.map((day: any) => ({
+                id: day.id,
+                program_id: programMeta.id,
+                week_number: day.week_number,
+                day_number: day.day_number,
+                activities: (activities || [])
+                    .filter((a: any) => a.client_day_id === day.id)
+                    .map((a: any) => ({
+                        id: a.id,
+                        day_id: day.id,
+                        type: a.type,
+                        activity_id: a.activity_id,
+                        title: a.title,
+                        description: a.description,
+                        position: a.position,
+                        color: a.color,
+                        config: a.config
+                    }))
+            }))
+        };
+    },
+
+    async getClientWorkoutById(clientWorkoutId: string): Promise<ClientWorkout | null> {
+        // 1. Get client workout header
+        const { data: workout, error } = await supabase
+            .from('client_workouts')
+            .select('*')
+            .eq('id', clientWorkoutId)
+            .single();
+
+        if (error || !workout) return null;
+
+        // 2. Get blocks
+        const { data: blocks } = await supabase
+            .from('client_workout_blocks')
+            .select('*')
+            .eq('client_workout_id', clientWorkoutId)
+            .order('position', { ascending: true });
+
+        if (!blocks || blocks.length === 0) {
+            return { ...workout, blocks: [] };
+        }
+
+        // 3. Get all exercises for these blocks
+        const blockIds = blocks.map((b: any) => b.id);
+        const { data: workoutExercises } = await supabase
+            .from('client_workout_exercises')
+            .select('*')
+            .in('block_id', blockIds)
+            .order('position', { ascending: true });
+
+        if (!workoutExercises || workoutExercises.length === 0) {
+            return { ...workout, blocks: blocks.map((b: any) => ({ ...b, exercises: [] })) };
+        }
+
+        // 4. Get exercise details from shared library
+        const exerciseIds = [...new Set(
+            workoutExercises.map((we: any) => we.exercise_id).filter(Boolean)
+        )];
+        const { data: exercises } = exerciseIds.length > 0
+            ? await supabase.from('training_exercises').select('*').in('id', exerciseIds)
+            : { data: [] };
+
+        const exerciseMap: Record<string, any> = Object.fromEntries(
+            (exercises || []).map((e: any) => [e.id, e])
+        );
+
+        return {
+            ...workout,
+            blocks: blocks.map((block: any) => ({
+                ...block,
+                exercises: workoutExercises
+                    .filter((we: any) => we.block_id === block.id)
+                    .map((we: any) => ({ ...we, exercise: exerciseMap[we.exercise_id] || null }))
+            }))
+        };
+    },
+
+    async saveClientWorkout(clientWorkout: Partial<ClientWorkout>): Promise<ClientWorkout> {
+        const isNew = !clientWorkout.id || clientWorkout.id === '';
+
+        const workoutData = {
+            name: clientWorkout.name,
+            description: clientWorkout.description,
+            goal: clientWorkout.goal,
+            notes: clientWorkout.notes
+        };
+
+        let savedWorkout: any;
+
+        if (isNew) {
+            const { data, error } = await supabase
+                .from('client_workouts')
+                .insert({
+                    ...workoutData,
+                    assignment_id: clientWorkout.assignment_id,
+                    source_workout_id: clientWorkout.source_workout_id
+                })
+                .select()
+                .single();
+            if (error) throw error;
+            savedWorkout = data;
+        } else {
+            const { data, error } = await supabase
+                .from('client_workouts')
+                .update(workoutData)
+                .eq('id', clientWorkout.id)
+                .select()
+                .single();
+            if (error) throw error;
+            savedWorkout = data;
+        }
+
+        // Handle blocks and exercises (delete-and-reinsert)
+        if (clientWorkout.blocks) {
+            if (!isNew) {
+                await supabase.from('client_workout_blocks').delete().eq('client_workout_id', savedWorkout.id);
+            }
+
+            for (let i = 0; i < clientWorkout.blocks.length; i++) {
+                const block = clientWorkout.blocks[i];
+                const { data: savedBlock, error: blockError } = await supabase
+                    .from('client_workout_blocks')
+                    .insert({
+                        client_workout_id: savedWorkout.id,
+                        name: block.name,
+                        description: block.description,
+                        position: i,
+                        structure_type: block.structure_type || 'standard'
+                    })
+                    .select()
+                    .single();
+
+                if (blockError) throw blockError;
+
+                if (block.exercises && block.exercises.length > 0) {
+                    const exerciseInserts = block.exercises.map((we, index) => {
+                        const sRounds = we.superset_rounds || we.sets || 3;
+                        return {
+                            block_id: savedBlock.id,
+                            exercise_id: we.exercise_id || we.exercise?.id,
+                            sets: we.superset_id ? sRounds : (we.sets || 3),
+                            reps: we.reps,
+                            rest_seconds: we.rest_seconds,
+                            notes: we.notes,
+                            superset_id: we.superset_id || null,
+                            superset_rounds: we.superset_id ? sRounds : null,
+                            position: index
+                        };
+                    });
+
+                    const { error: exError } = await supabase
+                        .from('client_workout_exercises')
+                        .insert(exerciseInserts);
+
+                    if (exError) throw exError;
+                }
+            }
+        }
+
+        return this.getClientWorkoutById(savedWorkout.id) as Promise<ClientWorkout>;
+    },
+
+    async moveClientActivity(activityId: string, toDayId: string, newPosition: number): Promise<void> {
+        const { error } = await supabase
+            .from('client_program_activities')
+            .update({ client_day_id: toDayId, position: newPosition })
+            .eq('id', activityId);
+
+        if (error) throw error;
+    },
+
+    async addClientActivity(clientDayId: string, activity: Partial<ClientProgramActivity>): Promise<ClientProgramActivity> {
+        const { data, error } = await supabase
+            .from('client_program_activities')
+            .insert({
+                client_day_id: clientDayId,
+                source_activity_id: activity.source_activity_id || null,
+                type: activity.type || 'custom',
+                activity_id: activity.activity_id || null,
+                title: activity.title,
+                description: activity.description,
+                position: activity.position ?? 0,
+                color: activity.color,
+                config: activity.config || {}
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async removeClientActivity(activityId: string): Promise<void> {
+        const { error } = await supabase
+            .from('client_program_activities')
+            .delete()
+            .eq('id', activityId);
+
+        if (error) throw error;
+    },
+
+    async resetClientCustomization(assignmentId: string): Promise<void> {
+        // Delete all client_program_days (CASCADE should delete children activities)
+        const { error: daysError } = await supabase
+            .from('client_program_days')
+            .delete()
+            .eq('assignment_id', assignmentId);
+
+        if (daysError) throw daysError;
+
+        // Also delete client_workouts for this assignment
+        const { error: workoutsError } = await supabase
+            .from('client_workouts')
+            .delete()
+            .eq('assignment_id', assignmentId);
+
+        if (workoutsError) throw workoutsError;
+
+        // Mark assignment as not customized
+        const { error: updateError } = await supabase
+            .from('client_training_assignments')
+            .update({ is_customized: false })
+            .eq('id', assignmentId);
+
+        if (updateError) throw updateError;
     },
 
     async getClientAllDayLogs(clientId: string): Promise<(ClientDayLog & {

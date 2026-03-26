@@ -935,6 +935,69 @@ export interface ClientTrainingAssignment {
   end_date?: string;
   assigned_by?: string;
   assigned_at?: string;
+  is_customized?: boolean;
+}
+
+// --- CLIENT PROGRAM CUSTOMIZATION ---
+
+export interface ClientProgramDay {
+  id: string;
+  assignment_id: string;
+  source_day_id?: string;
+  week_number: number;
+  day_number: number;
+  is_rest_day: boolean;
+  activities: ClientProgramActivity[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ClientProgramActivity {
+  id: string;
+  client_day_id: string;
+  source_activity_id?: string;
+  type: 'workout' | 'walking' | 'metrics' | 'photo' | 'form' | 'custom';
+  activity_id?: string;
+  title?: string;
+  description?: string;
+  position: number;
+  color?: string;
+  config?: Record<string, any>;
+}
+
+export interface ClientWorkout {
+  id: string;
+  assignment_id: string;
+  source_workout_id?: string;
+  name: string;
+  description?: string;
+  goal?: string;
+  notes?: string;
+  blocks: ClientWorkoutBlock[];
+}
+
+export interface ClientWorkoutBlock {
+  id: string;
+  client_workout_id: string;
+  name: string;
+  description?: string;
+  position: number;
+  structure_type: string;
+  exercises: ClientWorkoutExercise[];
+}
+
+export interface ClientWorkoutExercise {
+  id: string;
+  block_id: string;
+  exercise_id?: string;
+  exercise?: Exercise;
+  sets: number;
+  reps: string;
+  rest_seconds: number;
+  notes?: string;
+  position: number;
+  superset_id?: string;
+  superset_rounds?: number;
 }
 
 export interface ClientDayLog {

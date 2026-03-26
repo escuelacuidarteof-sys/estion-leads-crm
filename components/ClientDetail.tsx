@@ -33,6 +33,7 @@ import RenewalTimeline from './RenewalTimeline';
 import { ClientNutritionSelector } from './nutrition/ClientNutritionSelector';
 import { ClientTrainingSelector } from './training/ClientTrainingSelector';
 import { ClientWorkoutHistory } from './training/ClientWorkoutHistory';
+import { ClientProgramEditor } from './training/ClientProgramEditor';
 import { generateContractHTML, calculateDaysFromMonths, getMesesList, ContractData } from '../utils/contractTemplate';
 import { getContractHistory, saveContractToHistory, deleteContractFromHistory, ContractHistoryRecord } from '../services/contractHistoryService';
 import { StepsCard, StepsSummary } from './client-portal/StepsCard';
@@ -719,6 +720,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
    const [contractHistory, setContractHistory] = useState<ContractHistoryRecord[]>([]);
    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+   const [customizeEditor, setCustomizeEditor] = useState<{ assignmentId: string; programName: string; isCustomized: boolean } | null>(null);
 
    // Sincronizar formData cuando el prop client cambie (ej: tras un onSave exitoso)
    useEffect(() => {
@@ -4745,8 +4747,12 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                        <div className="p-5">
                                           <ClientTrainingSelector
                                              clientId={client.id}
+                                             clientName={client.firstName}
                                              currentUser={currentUser!}
                                              onAssigned={() => { }}
+                                             onCustomize={(assignmentId, programName, isCustomized) => {
+                                                setCustomizeEditor({ assignmentId, programName, isCustomized });
+                                             }}
                                           />
                                           <p className="text-xs text-slate-400 mt-4 leading-relaxed">
                                              El programa asignado aquí es el que verá el cliente en su portal bajo "Entrenamientos".
@@ -6023,6 +6029,25 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
             </div>
          )}
          </div >
+
+         {/* Client Program Editor Modal */}
+         {customizeEditor && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+               <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl">
+                  <ClientProgramEditor
+                     assignmentId={customizeEditor.assignmentId}
+                     clientId={client.id}
+                     clientName={client.firstName || 'Cliente'}
+                     programName={customizeEditor.programName}
+                     isCustomized={customizeEditor.isCustomized}
+                     onClose={() => setCustomizeEditor(null)}
+                     onSaved={() => {
+                        setCustomizeEditor(null);
+                     }}
+                  />
+               </div>
+            </div>
+         )}
       </div >
    );
 };

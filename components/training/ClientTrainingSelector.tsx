@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Check, Search, AlertCircle } from 'lucide-react';
+import { Dumbbell, Check, Search, AlertCircle, Pencil } from 'lucide-react';
 import { TrainingProgram, User, ClientTrainingAssignment } from '../../types';
 import { trainingService } from '../../services/trainingService';
 
 interface ClientTrainingSelectorProps {
     clientId: string;
+    clientName?: string;
     currentUser: User;
     onAssigned?: () => void;
+    onCustomize?: (assignmentId: string, programName: string, isCustomized: boolean) => void;
 }
 
 export function ClientTrainingSelector({
     clientId,
+    clientName,
     currentUser,
-    onAssigned
+    onAssigned,
+    onCustomize
 }: ClientTrainingSelectorProps) {
     const [programs, setPrograms] = useState<TrainingProgram[]>([]);
     const [assignments, setAssignments] = useState<ClientTrainingAssignment[]>([]);
@@ -322,7 +326,20 @@ export function ClientTrainingSelector({
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {assignment.is_customized && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-mint text-brand-green">Personalizado</span>
+                                        )}
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusClasses}`}>{status}</span>
+                                        {onCustomize && (status === 'Activo' || status === 'Futuro') && (
+                                            <button
+                                                onClick={() => onCustomize(assignment.id, getProgramName(assignment.program_id), !!assignment.is_customized)}
+                                                className="text-[10px] font-bold text-brand-green hover:text-brand-dark flex items-center gap-1"
+                                                title="Personalizar programa para este cliente"
+                                            >
+                                                <Pencil className="w-3 h-3" />
+                                                Editar
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleRemoveAssignment(assignment.id)}
                                             disabled={isAssigning}

@@ -1108,7 +1108,10 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
                 }
                 setAssignment(asgn);
 
-                const prog = await trainingService.getProgramById(asgn.program_id);
+                // If program is customized, load client-specific data; otherwise load template
+                const prog = asgn.is_customized
+                    ? await trainingService.getClientProgramData(asgn.id)
+                    : await trainingService.getProgramById(asgn.program_id);
                 if (!prog) {
                     setLoading(false);
                     return;
@@ -1163,14 +1166,18 @@ export function TrainingView({ client, onBack }: TrainingViewProps) {
         }
 
         setWorkoutLoading(true);
-        trainingService.getWorkoutById(workoutId).then((w) => {
+        // Use client workout loader if program is customized
+        const loader = assignment?.is_customized
+            ? trainingService.getClientWorkoutById(workoutId)
+            : trainingService.getWorkoutById(workoutId);
+        loader.then((w: any) => {
             setSelectedWorkout(w);
             setWorkoutLoading(false);
         }).catch(() => {
             setSelectedWorkout(null);
             setWorkoutLoading(false);
         });
-    }, [selectedDay, selectedWeek, program]);
+    }, [selectedDay, selectedWeek, program, assignment]);
 
     const getDayData = (week: number, dayNumber: number): ProgramDay | null => {
         if (!program) return null;
