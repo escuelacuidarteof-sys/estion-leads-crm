@@ -114,7 +114,14 @@ export const UpdatePasswordPage: React.FC = () => {
                 navigate('/');
             }, 3000);
         } catch (err: any) {
-            setError(err.message || 'Error al actualizar la contraseña.');
+            const msg = err.message || '';
+            if (msg.includes('different from the old password')) {
+                setError('La nueva contraseña debe ser diferente a la anterior.');
+            } else if (msg.includes('at least')) {
+                setError('La contraseña debe tener al menos 6 caracteres.');
+            } else {
+                setError(msg || 'Error al actualizar la contraseña.');
+            }
         } finally {
             setLoading(false);
         }
