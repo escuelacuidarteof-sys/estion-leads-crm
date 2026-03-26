@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity, Trophy, Flame, Timer } from 'lucide-react';
+import { Play, Pause, Square, CheckCircle, Clock, Save, ArrowLeft, Dumbbell, Calendar, Info, Target, Zap, Activity, Trophy, Flame, Timer, Volume2, VolumeX } from 'lucide-react';
 import { Workout, WorkoutBlock, WorkoutExercise, ClientDayLog, ClientExerciseLog } from '../../types';
 import { trainingService } from '../../services/trainingService';
 
@@ -355,13 +355,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
     const [hideCompletedGroups, setHideCompletedGroups] = useState(false);
     const [lastFocusedStepKey, setLastFocusedStepKey] = useState<string | null>(null);
     const [restTimer, setRestTimer] = useState<{ remaining: number; total: number; label: string; running: boolean } | null>(null);
+    const [restSoundEnabled, setRestSoundEnabled] = useState(true);
     const [pendingAutoAdvance, setPendingAutoAdvance] = useState(false);
+    const [previousLogs, setPreviousLogs] = useState<Record<string, { weight_used: string; reps_completed: string; completed_at: string }>>({});
 
     const groupedBlocks = groupWorkoutBlocks(workout.blocks || []);
     const sessionGuide = getSessionGuide(workout.name);
     const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const summaryRef = useRef<HTMLDivElement | null>(null);
     const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const wakeLockRef = useRef<WakeLockSentinel | null>(null);
     const latestDraftRef = useRef<{
         completedSets: Record<string, { weight: number | null; reps: number | null; completed: boolean }[]>;
         assessmentResults: Record<string, { values: Record<string, any>; completed: boolean }>;
@@ -598,6 +601,43 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
         return () => clearInterval(interval);
     }, [isStarted, isPaused]);
 
+    /* ── Wake Lock ── */
+    useEffect(() => {
+        let released = false;
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLockRef.current = await navigator.wakeLock.request('screen');
+                    wakeLockRef.current.addEventListener('release', () => { wakeLockRef.current = null; });
+                }
+            } catch { /* silenciar */ }
+        };
+        if (isStarted) requestWakeLock();
+        const handleVisibility = () => { if (document.visibilityState === 'visible' && isStarted && !released) requestWakeLock(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            released = true;
+            document.removeEventListener('visibilitychange', handleVisibility);
+            if (wakeLockRef.current) { wakeLockRef.current.release().catch(() => {}); wakeLockRef.current = null; }
+        };
+    }, [isStarted]);
+
+    /* ── Load previous exercise logs ── */
+    useEffect(() => {
+        if (!clientId || !workout.blocks) return;
+        const exerciseIds: string[] = [];
+        (workout.blocks || []).forEach(block => {
+            (block.exercises || []).forEach(exercise => {
+                if (exercise.exercise_id) exerciseIds.push(exercise.exercise_id);
+            });
+        });
+        if (exerciseIds.length > 0) {
+            trainingService.getLastExerciseLogs(clientId, [...new Set(exerciseIds)])
+                .then(setPreviousLogs)
+                .catch(() => setPreviousLogs({}));
+        }
+    }, [clientId, workout.blocks]);
+
     useEffect(() => {
         if (!restTimer?.running) {
             if (restIntervalRef.current) {
@@ -610,7 +650,24 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
         restIntervalRef.current = setInterval(() => {
             setRestTimer((prev) => {
                 if (!prev || !prev.running) return prev;
-                if (prev.remaining <= 1) return { ...prev, remaining: 0, running: false };
+                if (prev.remaining <= 1) {
+                    // Audio beep when rest finishes
+                    if (restSoundEnabled && typeof window !== 'undefined' && 'AudioContext' in window) {
+                        try {
+                            const audioCtx = new window.AudioContext();
+                            const oscillator = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            oscillator.type = 'sine';
+                            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                            oscillator.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.18);
+                        } catch { /* silenciar */ }
+                    }
+                    return { ...prev, remaining: 0, running: false };
+                }
                 return { ...prev, remaining: prev.remaining - 1 };
             });
         }, 1000);
@@ -621,7 +678,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
                 restIntervalRef.current = null;
             }
         };
-    }, [restTimer?.running]);
+    }, [restTimer?.running, restSoundEnabled]);
 
     useEffect(() => {
         if (!pendingAutoAdvance) return;
@@ -1181,6 +1238,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
                                                                         setLog={setLog}
                                                                         isDone={isDone}
                                                                         onSetUpdate={(field, val) => handleSetUpdate(we.id, currentRound, field, val, stepKey)}
+                                                                        previousLog={we.exercise_id ? previousLogs[we.exercise_id] : undefined}
                                                                     />
                                                                 </div>
                                                             );
@@ -1235,6 +1293,7 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
                                                                 void handleAssessmentComplete(exercise, assessmentTemplate);
                                                             }
                                                         }}
+                                                        previousLog={exercise.exercise_id ? previousLogs[exercise.exercise_id] : undefined}
                                                     />
                                                         );
                                                     })()}
@@ -1314,7 +1373,16 @@ export function ActiveWorkoutSession({ workout, clientId, dayId, activityId, onC
 
             {restTimer && (
                 <div className="fixed bottom-24 right-4 z-20 bg-slate-900 text-white rounded-2xl shadow-xl px-4 py-3 min-w-[180px]">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">{restTimer.label}</p>
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">{restTimer.label}</p>
+                        <button
+                            onClick={() => setRestSoundEnabled(prev => !prev)}
+                            className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                            title={restSoundEnabled ? 'Silenciar' : 'Activar sonido'}
+                        >
+                            {restSoundEnabled ? <Volume2 className="w-3.5 h-3.5 text-slate-300" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+                        </button>
+                    </div>
                     <p className="text-2xl font-black leading-none mt-1">{Math.floor(restTimer.remaining / 60).toString().padStart(2, '0')}:{(restTimer.remaining % 60).toString().padStart(2, '0')}</p>
                     <div className="flex items-center gap-2 mt-2">
                         <button
@@ -1769,13 +1837,15 @@ function SupersetExerciseRoundEntry({
     roundIndex,
     setLog,
     isDone,
-    onSetUpdate
+    onSetUpdate,
+    previousLog
 }: {
     exercise: WorkoutExercise;
     roundIndex: number;
     setLog: { weight?: number | null; reps?: number | null; completed?: boolean };
     isDone: boolean;
     onSetUpdate: (field: 'weight' | 'reps' | 'completed', value: any) => void;
+    previousLog?: { weight_used: string; reps_completed: string; completed_at: string } | null;
 }) {
     const extractYoutubeId = (url?: string) => {
         if (!url) return null;
@@ -1811,6 +1881,15 @@ function SupersetExerciseRoundEntry({
                     </h4>
                     {exercise.reps && (
                         <span className="text-[10px] font-bold text-slate-400">{exercise.reps} reps</span>
+                    )}
+                    {previousLog && (
+                        <p className="text-[10px] text-slate-400 truncate">
+                            Anterior: {(() => {
+                                const weights = previousLog.weight_used.split(',').map(w => w.trim());
+                                const reps = previousLog.reps_completed.split(',').map(r => r.trim());
+                                return weights.map((w, i) => `${w}kg ×${reps[i] || '?'}`).join(', ');
+                            })()}
+                        </p>
                     )}
                 </div>
 
@@ -1878,7 +1957,8 @@ function ExerciseEntry({
     assessmentErrors,
     onAssessmentFieldChange,
     onAssessmentComplete,
-    isSupersetChild = false
+    isSupersetChild = false,
+    previousLog
 }: {
     exercise: WorkoutExercise;
     completedSets: any[];
@@ -1889,6 +1969,7 @@ function ExerciseEntry({
     onAssessmentFieldChange?: (fieldKey: string, value: any) => void;
     onAssessmentComplete?: () => void;
     isSupersetChild?: boolean;
+    previousLog?: { weight_used: string; reps_completed: string; completed_at: string } | null;
 }) {
     const setsArray = Array.from({ length: exercise.sets || 1 });
     const [selectedSetIdx, setSelectedSetIdx] = useState(0);
@@ -2007,6 +2088,19 @@ function ExerciseEntry({
                             </span>
                         )}
                     </div>
+                    {previousLog && (
+                        <p className="text-[11px] text-slate-400 mt-1 truncate" title={(() => {
+                            const weights = previousLog.weight_used.split(',').map(w => w.trim());
+                            const reps = previousLog.reps_completed.split(',').map(r => r.trim());
+                            return `Anterior: ${weights.map((w, i) => `${w}kg ×${reps[i] || '?'}`).join(', ')}`;
+                        })()}>
+                            Anterior: {(() => {
+                                const weights = previousLog.weight_used.split(',').map(w => w.trim());
+                                const reps = previousLog.reps_completed.split(',').map(r => r.trim());
+                                return weights.map((w, i) => `${w}kg ×${reps[i] || '?'}`).join(', ');
+                            })()}
+                        </p>
+                    )}
                 </div>
             </div>
 

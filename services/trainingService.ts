@@ -1597,6 +1597,60 @@ export const trainingService = {
                 const tb = new Date(b.completed_at || 0).getTime();
                 return tb - ta;
             });
+    },
+
+    async getLastExerciseLogs(clientId: string, exerciseIds: string[]): Promise<Record<string, { weight_used: string; reps_completed: string; completed_at: string }>> {
+        if (!exerciseIds.length) return {};
+
+        const { data: workoutExercises } = await supabase
+            .from('training_workout_exercises')
+            .select('id, exercise_id')
+            .in('exercise_id', exerciseIds);
+
+        if (!workoutExercises || workoutExercises.length === 0) return {};
+
+        const weToExId: Record<string, string> = {};
+        workoutExercises.forEach(we => { weToExId[we.id] = we.exercise_id; });
+        const weIds = workoutExercises.map(we => we.id);
+
+        const { data: dayLogs } = await supabase
+            .from('training_client_day_logs')
+            .select('id, completed_at')
+            .eq('client_id', clientId)
+            .order('completed_at', { ascending: false });
+
+        if (!dayLogs || dayLogs.length === 0) return {};
+
+        const logIds = dayLogs.map(l => l.id);
+        const logDateMap: Record<string, string> = {};
+        dayLogs.forEach(l => { logDateMap[l.id] = l.completed_at; });
+
+        const { data: exerciseLogs } = await supabase
+            .from('training_client_exercise_logs')
+            .select('log_id, workout_exercise_id, weight_used, reps_completed')
+            .in('log_id', logIds)
+            .in('workout_exercise_id', weIds);
+
+        if (!exerciseLogs || exerciseLogs.length === 0) return {};
+
+        const result: Record<string, { weight_used: string; reps_completed: string; completed_at: string }> = {};
+
+        for (const log of exerciseLogs) {
+            const exId = weToExId[log.workout_exercise_id];
+            if (!exId) continue;
+            const completedAt = logDateMap[log.log_id] || '';
+            if (!log.weight_used) continue;
+
+            if (!result[exId] || completedAt > result[exId].completed_at) {
+                result[exId] = {
+                    weight_used: log.weight_used,
+                    reps_completed: log.reps_completed || '',
+                    completed_at: completedAt,
+                };
+            }
+        }
+
+        return result;
     }
 };
 
