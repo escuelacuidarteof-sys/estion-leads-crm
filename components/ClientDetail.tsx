@@ -720,7 +720,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
    const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
    const [contractHistory, setContractHistory] = useState<ContractHistoryRecord[]>([]);
    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-   const [customizeEditor, setCustomizeEditor] = useState<{ assignmentId: string; programName: string; isCustomized: boolean } | null>(null);
+   const [customizeEditor, setCustomizeEditor] = useState<{ assignmentId: string; programName: string; isCustomized: boolean; startDate: string } | null>(null);
 
    // Sincronizar formData cuando el prop client cambie (ej: tras un onSave exitoso)
    useEffect(() => {
@@ -4750,8 +4750,8 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                                              clientName={client.firstName}
                                              currentUser={currentUser!}
                                              onAssigned={() => { }}
-                                             onCustomize={(assignmentId, programName, isCustomized) => {
-                                                setCustomizeEditor({ assignmentId, programName, isCustomized });
+                                             onCustomize={(assignmentId, programName, isCustomized, startDate) => {
+                                                setCustomizeEditor({ assignmentId, programName, isCustomized, startDate });
                                              }}
                                           />
                                           <p className="text-xs text-slate-400 mt-4 leading-relaxed">
@@ -6040,6 +6040,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      clientName={client.firstName || 'Cliente'}
                      programName={customizeEditor.programName}
                      isCustomized={customizeEditor.isCustomized}
+                     startDate={customizeEditor.startDate}
                      onClose={() => setCustomizeEditor(null)}
                      onSaved={() => {
                         setCustomizeEditor(null);

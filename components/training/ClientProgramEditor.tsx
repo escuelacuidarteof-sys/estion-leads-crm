@@ -14,6 +14,7 @@ interface ClientProgramEditorProps {
     clientName: string;
     programName: string;
     isCustomized: boolean;
+    startDate: string; // Assignment start date (YYYY-MM-DD)
     onClose: () => void;
     onSaved?: () => void;
 }
@@ -34,12 +35,37 @@ function getActivityStyle(type: string) {
     return ACTIVITY_STYLES[type] || ACTIVITY_STYLES.custom;
 }
 
+// Calculate real calendar date for a program day
+function getCalendarDate(startDate: string, weekNumber: number, dayNumber: number): Date {
+    const start = new Date(startDate + 'T00:00:00');
+    const dayOffset = ((weekNumber - 1) * 7) + (dayNumber - 1);
+    const date = new Date(start);
+    date.setDate(date.getDate() + dayOffset);
+    return date;
+}
+
+function formatCalendarDate(date: Date): string {
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
+function getWeekdayName(date: Date): string {
+    return date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '');
+}
+
+function isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear();
+}
+
 export function ClientProgramEditor({
     assignmentId,
     clientId,
     clientName,
     programName,
     isCustomized: initialCustomized,
+    startDate: assignmentStartDate,
     onClose,
     onSaved
 }: ClientProgramEditorProps) {
@@ -88,16 +114,25 @@ export function ClientProgramEditor({
         loadProgram();
     }, [loadProgram]);
 
-    // Get days for the selected week
+    // Get days for the selected week with real calendar dates
     const weekDays = useMemo(() => {
         if (!program?.days) return [];
-        return DAY_NAMES.map((_, idx) => {
+        return Array.from({ length: 7 }, (_, idx) => {
             const dayNumber = idx + 1;
-            return program.days.find(
+            const calendarDate = getCalendarDate(assignmentStartDate, selectedWeek, dayNumber);
+            const programDay = program.days.find(
                 d => d.week_number === selectedWeek && d.day_number === dayNumber
             ) || null;
+            return {
+                programDay,
+                calendarDate,
+                dayNumber,
+                weekdayName: getWeekdayName(calendarDate),
+                dateLabel: formatCalendarDate(calendarDate),
+                today: isToday(calendarDate),
+            };
         });
-    }, [program, selectedWeek]);
+    }, [program, selectedWeek, assignmentStartDate]);
 
     const totalWeeks = program?.weeks_count || 1;
 
@@ -166,11 +201,14 @@ export function ClientProgramEditor({
 
     // All days in current week that have an id (for move targets)
     const availableMoveTargets = useMemo(() => {
-        if (!program?.days) return [];
-        return program.days
-            .filter(d => d.week_number === selectedWeek && d.id)
-            .map(d => ({ id: d.id, dayNumber: d.day_number, label: DAY_NAMES_FULL[d.day_number - 1] || `Día ${d.day_number}` }));
-    }, [program, selectedWeek]);
+        return weekDays
+            .filter(wd => wd.programDay?.id)
+            .map(wd => ({
+                id: wd.programDay!.id,
+                dayNumber: wd.dayNumber,
+                label: `${wd.weekdayName} ${wd.dateLabel}`
+            }));
+    }, [weekDays]);
 
     const content = (
         <div className="fixed inset-0 z-50 bg-white flex flex-col" style={{ fontFamily: "'Open Sans', sans-serif" }}>
@@ -265,7 +303,7 @@ export function ClientProgramEditor({
                             onSelect={setSelectedWeek}
                         />
                         <DayGrid
-                            weekDays={weekDays}
+                            weekDaysData={weekDays}
                             readOnly
                             expandedActivity={expandedActivity}
                             onToggleExpand={setExpandedActivity}
@@ -291,7 +329,7 @@ export function ClientProgramEditor({
                         </div>
 
                         <DayGrid
-                            weekDays={weekDays}
+                            weekDaysData={weekDays}
                             readOnly={false}
                             expandedActivity={expandedActivity}
                             onToggleExpand={setExpandedActivity}
@@ -386,8 +424,17 @@ function WeekSelector({
     );
 }
 
+interface WeekDayData {
+    programDay: ProgramDay | null;
+    calendarDate: Date;
+    dayNumber: number;
+    weekdayName: string;
+    dateLabel: string;
+    today: boolean;
+}
+
 function DayGrid({
-    weekDays,
+    weekDaysData,
     readOnly,
     expandedActivity,
     onToggleExpand,
@@ -398,7 +445,7 @@ function DayGrid({
     removingId,
     moveTargets,
 }: {
-    weekDays: (ProgramDay | null)[];
+    weekDaysData: WeekDayData[];
     readOnly: boolean;
     expandedActivity: string | null;
     onToggleExpand: (id: string | null) => void;
@@ -413,19 +460,24 @@ function DayGrid({
         <>
             {/* Desktop: horizontal grid */}
             <div className="hidden md:grid grid-cols-7 gap-3">
-                {DAY_NAMES.map((name, idx) => {
-                    const day = weekDays[idx];
+                {weekDaysData.map((wd, idx) => {
+                    const day = wd.programDay;
                     const activities = day?.activities || [];
                     const isEmpty = activities.length === 0;
 
                     return (
                         <div key={idx} className="flex flex-col">
-                            <div className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                                {name}
+                            <div className={`text-center mb-2 ${wd.today ? 'bg-brand-green text-white rounded-xl py-1.5 px-1' : ''}`}>
+                                <div className={`text-xs font-semibold uppercase tracking-wider ${wd.today ? 'text-white' : 'text-gray-400'}`}>
+                                    {wd.weekdayName}
+                                </div>
+                                <div className={`text-sm font-bold ${wd.today ? 'text-white' : 'text-gray-600'}`}>
+                                    {wd.dateLabel}
+                                </div>
                             </div>
                             <div className={`
                                 flex-1 rounded-2xl border p-2.5 min-h-[140px] transition-colors
-                                ${isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
+                                ${wd.today ? 'border-brand-green/30 bg-brand-mint/10' : isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
                             `}>
                                 {isEmpty ? (
                                     <div className="flex items-center justify-center h-full text-xs text-gray-300">
@@ -459,18 +511,20 @@ function DayGrid({
 
             {/* Mobile: vertical list */}
             <div className="md:hidden flex flex-col gap-3">
-                {DAY_NAMES_FULL.map((name, idx) => {
-                    const day = weekDays[idx];
+                {weekDaysData.map((wd, idx) => {
+                    const day = wd.programDay;
                     const activities = day?.activities || [];
                     const isEmpty = activities.length === 0;
 
                     return (
                         <div key={idx} className={`
                             rounded-2xl border p-3 transition-colors
-                            ${isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
+                            ${wd.today ? 'border-brand-green/30 bg-brand-mint/10' : isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
                         `}>
-                            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                                {name}
+                            <div className={`flex items-center gap-2 mb-2 ${wd.today ? 'text-brand-green' : 'text-gray-400'}`}>
+                                <span className="text-xs font-semibold uppercase tracking-wider">{wd.weekdayName}</span>
+                                <span className={`text-sm font-bold ${wd.today ? 'text-brand-green' : 'text-gray-600'}`}>{wd.dateLabel}</span>
+                                {wd.today && <span className="text-[10px] font-bold bg-brand-green text-white px-2 py-0.5 rounded-full">Hoy</span>}
                             </div>
                             {isEmpty ? (
                                 <div className="text-xs text-gray-300 py-2">Descanso</div>

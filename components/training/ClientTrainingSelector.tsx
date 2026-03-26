@@ -8,7 +8,7 @@ interface ClientTrainingSelectorProps {
     clientName?: string;
     currentUser: User;
     onAssigned?: () => void;
-    onCustomize?: (assignmentId: string, programName: string, isCustomized: boolean) => void;
+    onCustomize?: (assignmentId: string, programName: string, isCustomized: boolean, startDate: string) => void;
 }
 
 export function ClientTrainingSelector({
@@ -332,7 +332,7 @@ export function ClientTrainingSelector({
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusClasses}`}>{status}</span>
                                         {onCustomize && (status === 'Activo' || status === 'Futuro') && (
                                             <button
-                                                onClick={() => onCustomize(assignment.id, getProgramName(assignment.program_id), !!assignment.is_customized)}
+                                                onClick={() => onCustomize(assignment.id, getProgramName(assignment.program_id), !!assignment.is_customized, assignment.start_date)}
                                                 className="text-[10px] font-bold text-brand-green hover:text-brand-dark flex items-center gap-1"
                                                 title="Personalizar programa para este cliente"
                                             >
