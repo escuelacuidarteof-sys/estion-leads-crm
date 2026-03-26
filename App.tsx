@@ -865,26 +865,34 @@ const AppContent: React.FC = () => {
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { UpdatePasswordPage } from './components/UpdatePasswordPage';
 
-// Intercept Supabase implicit flow tokens for password recovery
-// Supabase redirects with #access_token=xxx&type=recovery in the hash
-// We need to extract tokens BEFORE HashRouter consumes the hash
+// Intercept Supabase auth redirects before HashRouter processes the hash
 if (typeof window !== 'undefined') {
   const hash = window.location.hash;
+  const search = window.location.search;
 
+  // Handle Supabase error redirects (expired links, etc.)
+  // Error appears in both query string and hash: ?error=access_denied&error_code=otp_expired
+  if (search.includes('error=') && search.includes('error_code=')) {
+    const urlParams = new URLSearchParams(search);
+    const errorCode = urlParams.get('error_code') || '';
+    const errorDesc = urlParams.get('error_description') || '';
+    sessionStorage.setItem('supabase_auth_error', JSON.stringify({ code: errorCode, description: errorDesc }));
+    // Clean URL and redirect to forgot-password
+    window.history.replaceState({}, '', window.location.pathname);
+    window.location.hash = '#/forgot-password';
+  }
   // Check for implicit flow recovery tokens in hash
-  if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
-    // Store the full hash for Supabase to process, then redirect to update-password
+  else if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
     sessionStorage.setItem('supabase_recovery_hash', hash.substring(1));
-    // Let Supabase detectSessionInUrl process the tokens first, then redirect
     window.location.hash = '#/update-password';
   }
-
-  // Also handle PKCE ?code= param (fallback)
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
-  const currentHash = window.location.hash;
-  if (code && (!currentHash || currentHash === '#' || currentHash === '#/')) {
-    window.location.hash = '#/update-password';
+  // Handle PKCE ?code= param (fallback)
+  else {
+    const urlParams = new URLSearchParams(search);
+    const code = urlParams.get('code');
+    if (code && (!hash || hash === '#' || hash === '#/')) {
+      window.location.hash = '#/update-password';
+    }
   }
 }
 

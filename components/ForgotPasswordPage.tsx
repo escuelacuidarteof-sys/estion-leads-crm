@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle2, Activity, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
@@ -9,6 +9,24 @@ export const ForgotPasswordPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [resending, setResending] = useState(false);
     const [resent, setResent] = useState(false);
+
+    // Check for auth errors from expired/invalid recovery links
+    useEffect(() => {
+        const storedError = sessionStorage.getItem('supabase_auth_error');
+        if (storedError) {
+            sessionStorage.removeItem('supabase_auth_error');
+            try {
+                const parsed = JSON.parse(storedError);
+                if (parsed.code === 'otp_expired') {
+                    setError('El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.');
+                } else {
+                    setError('El enlace no es válido. Por favor, solicita uno nuevo.');
+                }
+            } catch {
+                setError('El enlace no es válido. Por favor, solicita uno nuevo.');
+            }
+        }
+    }, []);
 
     const sendResetEmail = async () => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
