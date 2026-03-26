@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Check, Search, AlertCircle, Pencil } from 'lucide-react';
+import { Dumbbell, Check, Search, AlertCircle, Pencil, Calendar, Trash2, Link2, X } from 'lucide-react';
 import { TrainingProgram, User, ClientTrainingAssignment } from '../../types';
 import { trainingService } from '../../services/trainingService';
 
@@ -29,6 +29,11 @@ export function ClientTrainingSelector({
     const [overlapConflicts, setOverlapConflicts] = useState<ClientTrainingAssignment[]>([]);
     const [pendingAssignProgramId, setPendingAssignProgramId] = useState<string | null>(null);
     const [pendingRange, setPendingRange] = useState<{ start_date: string; end_date: string } | null>(null);
+    const [editingDateId, setEditingDateId] = useState<string | null>(null);
+    const [editingDateValue, setEditingDateValue] = useState('');
+    const [dateError, setDateError] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [chainingId, setChainingId] = useState<string | null>(null);
 
     const toStartOfDay = (input: Date | string) => {
         const date = new Date(input);
@@ -110,12 +115,46 @@ export function ClientTrainingSelector({
     const handleRemoveAssignment = async (assignmentId: string) => {
         try {
             setIsAssigning(true);
-            await trainingService.removeClientAssignment(clientId, assignmentId);
+            await trainingService.cancelClientAssignment(assignmentId);
+            setConfirmDeleteId(null);
             await loadData();
             if (onAssigned) onAssigned();
         } catch (err: any) {
             console.error('Error removing assignment:', err);
             setError(err.message || 'Error al quitar asignación');
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    const handleUpdateStartDate = async (assignmentId: string) => {
+        try {
+            setDateError(null);
+            setIsAssigning(true);
+            await trainingService.updateAssignmentStartDate(assignmentId, editingDateValue, clientId);
+            setEditingDateId(null);
+            await loadData();
+            if (onAssigned) onAssigned();
+        } catch (err: any) {
+            if (err?.code === 'TRAINING_OVERLAP') {
+                setDateError('La nueva fecha se solapa con otros programas asignados.');
+            } else {
+                setDateError(err.message || 'Error al cambiar fecha');
+            }
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    const handleSetNextProgram = async (assignmentId: string, nextProgramId: string | null) => {
+        try {
+            setIsAssigning(true);
+            await trainingService.setNextProgram(assignmentId, nextProgramId);
+            setChainingId(null);
+            await loadData();
+        } catch (err: any) {
+            console.error('Error setting next program:', err);
+            setError(err.message || 'Error al enlazar programa');
         } finally {
             setIsAssigning(false);
         }
@@ -301,53 +340,177 @@ export function ClientTrainingSelector({
                 {assignments.length === 0 ? (
                     <p className="text-xs text-slate-400">No hay planes programados.</p>
                 ) : (
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                         {assignments.map((assignment) => {
                             const start = toStartOfDay(assignment.start_date);
                             const end = assignment.end_date ? toStartOfDay(assignment.end_date) : start;
-                            const status = today.getTime() < start.getTime()
-                                ? 'Futuro'
-                                : today.getTime() > end.getTime()
-                                    ? 'Finalizado'
-                                    : 'Activo';
+                            const assignmentStatus = assignment.status === 'completed'
+                                ? 'Finalizado'
+                                : today.getTime() < start.getTime()
+                                    ? 'Futuro'
+                                    : today.getTime() > end.getTime()
+                                        ? 'Finalizado'
+                                        : 'Activo';
 
-                            const statusClasses = status === 'Activo'
+                            const statusClasses = assignmentStatus === 'Activo'
                                 ? 'bg-emerald-100 text-emerald-700'
-                                : status === 'Futuro'
+                                : assignmentStatus === 'Futuro'
                                     ? 'bg-blue-100 text-blue-700'
                                     : 'bg-slate-100 text-slate-600';
 
+                            const isEditingDate = editingDateId === assignment.id;
+                            const isConfirmingDelete = confirmDeleteId === assignment.id;
+                            const isChaining = chainingId === assignment.id;
+                            const nextProgramName = assignment.next_program_id ? getProgramName(assignment.next_program_id) : null;
+
                             return (
-                                <div key={assignment.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-slate-700 truncate">{getProgramName(assignment.program_id)}</p>
-                                        <p className="text-xs text-slate-500">
-                                            {formatDate(assignment.start_date)} - {assignment.end_date ? formatDate(assignment.end_date) : 'Sin fecha fin'}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {assignment.is_customized && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-mint text-brand-green">Personalizado</span>
-                                        )}
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusClasses}`}>{status}</span>
-                                        {onCustomize && (status === 'Activo' || status === 'Futuro') && (
+                                <div key={assignment.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                                    {/* Header row */}
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-slate-700 truncate">{getProgramName(assignment.program_id)}</p>
+                                            {isEditingDate ? (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <input
+                                                        type="date"
+                                                        value={editingDateValue}
+                                                        onChange={(e) => { setEditingDateValue(e.target.value); setDateError(null); }}
+                                                        className="text-xs px-2 py-1 border border-brand-green rounded-lg focus:ring-1 focus:ring-brand-green outline-none"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleUpdateStartDate(assignment.id)}
+                                                        disabled={isAssigning}
+                                                        className="text-[10px] font-bold text-white bg-brand-green px-2 py-1 rounded-lg disabled:opacity-50"
+                                                    >
+                                                        OK
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setEditingDateId(null); setDateError(null); }}
+                                                        className="text-[10px] font-bold text-slate-500 px-1"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                    {formatDate(assignment.start_date)} - {assignment.end_date ? formatDate(assignment.end_date) : 'Sin fecha fin'}
+                                                    <button
+                                                        onClick={() => { setEditingDateId(assignment.id); setEditingDateValue(assignment.start_date); setDateError(null); }}
+                                                        className="text-slate-400 hover:text-brand-green ml-1"
+                                                        title="Cambiar fecha de inicio"
+                                                    >
+                                                        <Calendar className="w-3 h-3" />
+                                                    </button>
+                                                </p>
+                                            )}
+                                            {dateError && isEditingDate && (
+                                                <p className="text-[10px] text-rose-600 mt-1">{dateError}</p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            {assignment.is_customized && (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-mint text-brand-green">Personalizado</span>
+                                            )}
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${statusClasses}`}>{assignmentStatus}</span>
+                                            {onCustomize && (assignmentStatus === 'Activo' || assignmentStatus === 'Futuro') && (
+                                                <button
+                                                    onClick={() => onCustomize(assignment.id, getProgramName(assignment.program_id), !!assignment.is_customized, assignment.start_date)}
+                                                    className="text-[10px] font-bold text-brand-green hover:text-brand-dark flex items-center gap-1"
+                                                    title="Personalizar programa para este cliente"
+                                                >
+                                                    <Pencil className="w-3 h-3" />
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => onCustomize(assignment.id, getProgramName(assignment.program_id), !!assignment.is_customized, assignment.start_date)}
-                                                className="text-[10px] font-bold text-brand-green hover:text-brand-dark flex items-center gap-1"
-                                                title="Personalizar programa para este cliente"
+                                                onClick={() => setChainingId(isChaining ? null : assignment.id)}
+                                                className={`text-[10px] font-bold flex items-center gap-0.5 ${nextProgramName ? 'text-brand-green' : 'text-slate-400 hover:text-brand-green'}`}
+                                                title={nextProgramName ? `Encadenado → ${nextProgramName}` : 'Enlazar programa siguiente'}
                                             >
-                                                <Pencil className="w-3 h-3" />
-                                                Editar
+                                                <Link2 className="w-3 h-3" />
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={() => handleRemoveAssignment(assignment.id)}
-                                            disabled={isAssigning}
-                                            className="text-[10px] font-bold text-rose-500 hover:text-rose-700"
-                                        >
-                                            Eliminar
-                                        </button>
+                                            <button
+                                                onClick={() => setConfirmDeleteId(assignment.id)}
+                                                disabled={isAssigning}
+                                                className="text-slate-400 hover:text-rose-500"
+                                                title="Eliminar asignación"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {/* Chain badge */}
+                                    {nextProgramName && !isChaining && (
+                                        <div className="flex items-center gap-1 text-[10px] text-brand-green bg-brand-mint/40 px-2 py-1 rounded-lg">
+                                            <Link2 className="w-3 h-3" />
+                                            <span className="font-bold">Siguiente:</span> {nextProgramName}
+                                        </div>
+                                    )}
+
+                                    {/* Chain selector */}
+                                    {isChaining && (
+                                        <div className="bg-white border border-slate-200 rounded-lg p-2 space-y-1">
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase">Programa siguiente</p>
+                                            <div className="max-h-[120px] overflow-y-auto space-y-1">
+                                                {programs
+                                                    .filter(p => p.id !== assignment.program_id)
+                                                    .map(p => (
+                                                        <button
+                                                            key={p.id}
+                                                            onClick={() => handleSetNextProgram(assignment.id, p.id)}
+                                                            className={`w-full text-left text-xs px-2 py-1.5 rounded-lg transition-colors ${
+                                                                assignment.next_program_id === p.id
+                                                                    ? 'bg-brand-mint text-brand-green font-bold'
+                                                                    : 'hover:bg-slate-50 text-slate-700'
+                                                            }`}
+                                                        >
+                                                            {p.name}
+                                                            {p.weeks_count && <span className="text-[10px] text-slate-400 ml-1">({p.weeks_count} sem.)</span>}
+                                                        </button>
+                                                    ))
+                                                }
+                                            </div>
+                                            <div className="flex gap-1 pt-1 border-t border-slate-100">
+                                                {assignment.next_program_id && (
+                                                    <button
+                                                        onClick={() => handleSetNextProgram(assignment.id, null)}
+                                                        className="text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1"
+                                                    >
+                                                        Desenlazar
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => setChainingId(null)}
+                                                    className="text-[10px] font-bold text-slate-500 px-2 py-1 ml-auto"
+                                                >
+                                                    Cerrar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Delete confirmation */}
+                                    {isConfirmingDelete && (
+                                        <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 space-y-2">
+                                            <p className="text-xs font-bold text-rose-800">¿Eliminar asignación de {getProgramName(assignment.program_id)}?</p>
+                                            <p className="text-[10px] text-rose-600">Los registros y avances del cliente se conservarán.</p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setConfirmDeleteId(null)}
+                                                    className="flex-1 text-[10px] font-bold px-2 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRemoveAssignment(assignment.id)}
+                                                    disabled={isAssigning}
+                                                    className="flex-1 text-[10px] font-bold px-2 py-1.5 rounded-lg bg-rose-600 text-white disabled:opacity-50"
+                                                >
+                                                    Eliminar asignación
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

@@ -90,10 +90,14 @@ export function ClientProgramEditor({
     const [addActivityType, setAddActivityType] = useState<string>('workout');
     const [addActivityTitle, setAddActivityTitle] = useState('');
     const [savingActivity, setSavingActivity] = useState(false);
+    const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
+    const [selectedTemplateWorkoutId, setSelectedTemplateWorkoutId] = useState<string | null>(null);
+    const [workoutSearchQuery, setWorkoutSearchQuery] = useState('');
 
-    // Load exercises library once
+    // Load exercises and workouts library once
     useEffect(() => {
         trainingService.getExercises().then(setExercises).catch(console.error);
+        trainingService.getWorkouts().then(setAvailableWorkouts).catch(console.error);
     }, []);
 
     // Load program data
@@ -262,32 +266,56 @@ export function ClientProgramEditor({
             );
 
             let activityId: string | undefined;
+            let activityTitle = addActivityTitle;
 
             if (addActivityType === 'workout') {
-                // Create a new empty client workout
-                const newWorkout = await trainingService.createClientWorkout(
-                    assignmentId,
-                    addActivityTitle || `Entrenamiento ${new Date().toLocaleDateString('es-ES')}`
-                );
-                activityId = newWorkout.id;
+                if (selectedTemplateWorkoutId) {
+                    // Clone from template library
+                    const cloned = await trainingService.cloneTemplateToClientWorkout(selectedTemplateWorkoutId, assignmentId);
+                    activityId = cloned.id;
+                    if (!activityTitle) activityTitle = cloned.name || 'Entrenamiento';
+                } else {
+                    // Create a new empty client workout
+                    const newWorkout = await trainingService.createClientWorkout(
+                        assignmentId,
+                        activityTitle || `Entrenamiento ${new Date().toLocaleDateString('es-ES')}`
+                    );
+                    activityId = newWorkout.id;
+                }
             }
 
             await trainingService.addClientActivity(dayId, {
                 type: addActivityType as any,
                 activity_id: activityId,
-                title: addActivityTitle || (addActivityType === 'workout' ? 'Entrenamiento' : addActivityType === 'walking' ? 'Paseo' : addActivityType === 'metrics' ? 'Métricas' : 'Actividad'),
+                title: activityTitle || (addActivityType === 'workout' ? 'Entrenamiento' : addActivityType === 'walking' ? 'Paseo' : addActivityType === 'metrics' ? 'Métricas' : 'Actividad'),
                 position: 99
             });
 
             setAddingToDay(null);
             setAddActivityTitle('');
             setAddActivityType('workout');
+            setSelectedTemplateWorkoutId(null);
+            setWorkoutSearchQuery('');
             await loadProgram();
         } catch (err: any) {
             console.error('Error adding activity:', err);
             setError(err?.message || 'Error al añadir actividad');
         } finally {
             setSavingActivity(false);
+        }
+    };
+
+    // Save client workout as template in the library
+    const handleSaveAsTemplate = async (name: string) => {
+        if (!editingWorkout) return;
+        try {
+            await trainingService.saveClientWorkoutAsTemplate(editingWorkout.workoutId, name);
+            // Refresh workout library
+            const updated = await trainingService.getWorkouts();
+            setAvailableWorkouts(updated);
+        } catch (err: any) {
+            console.error('Error saving as template:', err);
+            throw err;
         }
     };
 
@@ -467,6 +495,7 @@ export function ClientProgramEditor({
                             onClose={() => { setEditingWorkout(null); setWorkoutData(null); }}
                             availableExercises={exercises}
                             onSaveExercise={handleSaveExercise}
+                            onSaveAsTemplate={handleSaveAsTemplate}
                         />
                     </div>
                 ) : null
@@ -496,7 +525,7 @@ export function ClientProgramEditor({
                                     ].map(({ type, label, Icon }) => (
                                         <button
                                             key={type}
-                                            onClick={() => setAddActivityType(type)}
+                                            onClick={() => { setAddActivityType(type); setSelectedTemplateWorkoutId(null); setWorkoutSearchQuery(''); }}
                                             className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-xs font-medium ${
                                                 addActivityType === type
                                                     ? 'border-brand-green bg-brand-mint/30 text-brand-green'
@@ -509,6 +538,53 @@ export function ClientProgramEditor({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Workout library selector */}
+                            {addActivityType === 'workout' && availableWorkouts.length > 0 && (
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">Elegir de librería</label>
+                                    <input
+                                        type="text"
+                                        value={workoutSearchQuery}
+                                        onChange={e => setWorkoutSearchQuery(e.target.value)}
+                                        placeholder="Buscar workout..."
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green mb-1.5"
+                                    />
+                                    <div className="max-h-[140px] overflow-y-auto space-y-1 border border-gray-100 rounded-xl p-1.5">
+                                        <button
+                                            onClick={() => setSelectedTemplateWorkoutId(null)}
+                                            className={`w-full text-left text-xs px-2.5 py-2 rounded-lg transition-colors ${
+                                                !selectedTemplateWorkoutId
+                                                    ? 'bg-brand-mint/40 text-brand-green font-bold'
+                                                    : 'hover:bg-gray-50 text-gray-600'
+                                            }`}
+                                        >
+                                            + Crear vacío
+                                        </button>
+                                        {availableWorkouts
+                                            .filter(w => !workoutSearchQuery || w.name.toLowerCase().includes(workoutSearchQuery.toLowerCase()))
+                                            .map(w => (
+                                                <button
+                                                    key={w.id}
+                                                    onClick={() => { setSelectedTemplateWorkoutId(w.id); if (!addActivityTitle) setAddActivityTitle(w.name); }}
+                                                    className={`w-full text-left text-xs px-2.5 py-2 rounded-lg transition-colors ${
+                                                        selectedTemplateWorkoutId === w.id
+                                                            ? 'bg-brand-mint/40 text-brand-green font-bold'
+                                                            : 'hover:bg-gray-50 text-gray-700'
+                                                    }`}
+                                                >
+                                                    <span className="font-medium">{w.name}</span>
+                                                    {w.blocks && w.blocks.length > 0 && (
+                                                        <span className="text-[10px] text-gray-400 ml-1">
+                                                            ({w.blocks.reduce((sum, b) => sum + (b.exercises?.length || 0), 0)} ejerc.)
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-xs font-medium text-gray-500 mb-1.5">Nombre (opcional)</label>

@@ -31,6 +31,7 @@ interface WorkoutEditorProps {
     onClose: () => void;
     availableExercises: Exercise[];
     onSaveExercise: (exercise: Partial<Exercise>) => Promise<void>;
+    onSaveAsTemplate?: (name: string) => Promise<void>;
 }
 
 const BLOCK_ICONS: Record<string, any> = {
@@ -45,7 +46,7 @@ const BLOCK_COLORS: Record<string, string> = {
     'Finisher': 'from-rose-500 to-pink-600',
 };
 
-export function WorkoutEditor({ workout, onSave, onClose, availableExercises, onSaveExercise }: WorkoutEditorProps) {
+export function WorkoutEditor({ workout, onSave, onClose, availableExercises, onSaveExercise, onSaveAsTemplate }: WorkoutEditorProps) {
     const [name, setName] = useState(workout?.name || '');
     const [blocks, setBlocks] = useState<WorkoutBlock[]>(() => {
         if (workout?.blocks && workout.blocks.length > 0) return workout.blocks;
@@ -67,6 +68,9 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
     const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
     const [editingBlockName, setEditingBlockName] = useState('');
     const [previewExerciseId, setPreviewExerciseId] = useState<string | null>(null);
+    const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const [savingTemplate, setSavingTemplate] = useState(false);
 
     const selectedBlock = blocks.find(b => b.id === selectedBlockId);
 
@@ -239,11 +243,32 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                 name: name.trim(),
                 blocks
             });
+            // If onSaveAsTemplate is available, offer to save as template before closing
+            if (onSaveAsTemplate) {
+                setSaving(false);
+                setTemplateName(name.trim() + ' (copia)');
+                setShowSaveAsTemplate(true);
+                return;
+            }
             // Parent handles closing via setSelectedWorkout(null)
         } catch (error) {
             setSaveError('Error al guardar. Intenta de nuevo.');
             console.error('Error saving workout:', error);
             setSaving(false);
+        }
+    };
+
+    const handleSaveTemplate = async () => {
+        if (!onSaveAsTemplate || !templateName.trim()) return;
+        try {
+            setSavingTemplate(true);
+            await onSaveAsTemplate(templateName.trim());
+            setShowSaveAsTemplate(false);
+        } catch (error) {
+            console.error('Error saving as template:', error);
+            setSaveError('Error al guardar como plantilla.');
+        } finally {
+            setSavingTemplate(false);
         }
     };
 
@@ -782,6 +807,46 @@ export function WorkoutEditor({ workout, onSave, onClose, availableExercises, on
                     }}
                     onClose={() => setIsCreatingExercise(false)}
                 />
+            )}
+
+            {/* Save as Template Dialog */}
+            {showSaveAsTemplate && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+                        <h3 className="text-lg font-bold text-slate-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                            ¿Guardar como plantilla?
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                            Los cambios del cliente ya se han guardado. ¿Quieres guardar también este workout como plantilla reutilizable?
+                        </p>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Nombre de la plantilla</label>
+                            <input
+                                type="text"
+                                value={templateName}
+                                onChange={e => setTemplateName(e.target.value)}
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                            />
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowSaveAsTemplate(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                            >
+                                No, solo para este cliente
+                            </button>
+                            <button
+                                onClick={handleSaveTemplate}
+                                disabled={savingTemplate || !templateName.trim()}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl transition-colors disabled:opacity-50"
+                                style={{ backgroundColor: '#6BA06B' }}
+                            >
+                                <Save className="w-4 h-4" />
+                                {savingTemplate ? 'Guardando...' : 'Guardar como plantilla'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

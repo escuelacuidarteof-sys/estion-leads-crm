@@ -498,13 +498,19 @@ export const trainingService = {
         if (error) throw error;
     },
 
-    async getClientAssignments(clientId: string): Promise<ClientTrainingAssignment[]> {
-        const { data, error } = await supabase
+    async getClientAssignments(clientId: string, options?: { includeAll?: boolean }): Promise<ClientTrainingAssignment[]> {
+        let query = supabase
             .from('client_training_assignments')
             .select('*')
             .eq('client_id', clientId)
             .order('start_date', { ascending: true })
             .order('assigned_at', { ascending: true });
+
+        if (!options?.includeAll) {
+            query = query.or('status.is.null,status.neq.cancelled');
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         const assignments = data || [];
@@ -524,13 +530,27 @@ export const trainingService = {
             (programs || []).map((p: any) => [p.id, Number(p.weeks_count) || 1])
         );
 
-        return assignments.map((assignment: any) => {
+        const enriched = assignments.map((assignment: any) => {
             const weeksCount = programWeeksMap[assignment.program_id] || 1;
             return {
                 ...assignment,
                 end_date: calculateProgramEndDate(assignment.start_date, weeksCount)
             };
         });
+
+        // Lazy chain check: auto-create next assignments for expired programs
+        const today = formatDateYYYYMMDD(new Date());
+        for (const a of enriched) {
+            if (a.next_program_id && a.end_date && a.end_date < today && a.status !== 'completed') {
+                try {
+                    await this.checkAndChainAssignment(clientId, a);
+                } catch {
+                    // Silent — chaining is best-effort
+                }
+            }
+        }
+
+        return enriched;
     },
 
     async getClientAssignmentForDate(clientId: string, dateInput: Date | string = new Date()): Promise<ClientTrainingAssignment | null> {
@@ -1230,6 +1250,214 @@ export const trainingService = {
             .eq('id', assignmentId);
 
         if (updateError) throw updateError;
+    },
+
+    // --- ASSIGNMENT MANAGEMENT ---
+
+    async updateAssignmentStartDate(assignmentId: string, newStartDate: string, clientId: string): Promise<ClientTrainingAssignment> {
+        // Get current assignment to find program
+        const { data: assignment, error: fetchError } = await supabase
+            .from('client_training_assignments')
+            .select('*')
+            .eq('id', assignmentId)
+            .single();
+
+        if (fetchError || !assignment) throw fetchError || new Error('Asignación no encontrada');
+
+        // Get program weeks_count to calculate new end_date
+        const { data: program } = await supabase
+            .from('training_programs')
+            .select('weeks_count')
+            .eq('id', assignment.program_id)
+            .single();
+
+        const weeksCount = Number(program?.weeks_count) || 1;
+        const normalizedStart = formatDateYYYYMMDD(new Date(newStartDate));
+        const newEndDate = calculateProgramEndDate(normalizedStart, weeksCount);
+
+        // Check for conflicts
+        const conflicts = await this.getAssignmentConflicts(clientId, normalizedStart, newEndDate, assignmentId);
+        if (conflicts.length > 0) {
+            const conflictError: any = new Error('La nueva fecha se solapa con otros programas asignados.');
+            conflictError.code = 'TRAINING_OVERLAP';
+            conflictError.conflicts = conflicts;
+            throw conflictError;
+        }
+
+        const { data, error } = await supabase
+            .from('client_training_assignments')
+            .update({ start_date: normalizedStart })
+            .eq('id', assignmentId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { ...data, end_date: newEndDate };
+    },
+
+    async cancelClientAssignment(assignmentId: string): Promise<ClientTrainingAssignment> {
+        const { data, error } = await supabase
+            .from('client_training_assignments')
+            .update({ status: 'cancelled' })
+            .eq('id', assignmentId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async setNextProgram(assignmentId: string, nextProgramId: string | null): Promise<void> {
+        if (nextProgramId) {
+            // Validate program exists
+            const { data: program, error: progError } = await supabase
+                .from('training_programs')
+                .select('id')
+                .eq('id', nextProgramId)
+                .single();
+
+            if (progError || !program) throw new Error('Programa siguiente no encontrado');
+        }
+
+        const { error } = await supabase
+            .from('client_training_assignments')
+            .update({ next_program_id: nextProgramId })
+            .eq('id', assignmentId);
+
+        if (error) throw error;
+    },
+
+    async checkAndChainAssignment(clientId: string, assignment: ClientTrainingAssignment): Promise<void> {
+        if (!assignment.next_program_id || !assignment.end_date) return;
+        if (assignment.status === 'completed') return;
+
+        const today = formatDateYYYYMMDD(new Date());
+        if (assignment.end_date >= today) return; // Not expired yet
+
+        // Check if a chained assignment already exists
+        const endDate = toStartOfDay(assignment.end_date);
+        const nextStart = new Date(endDate);
+        nextStart.setDate(nextStart.getDate() + 1);
+        const nextStartStr = formatDateYYYYMMDD(nextStart);
+
+        const { data: existing } = await supabase
+            .from('client_training_assignments')
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('program_id', assignment.next_program_id)
+            .eq('start_date', nextStartStr)
+            .maybeSingle();
+
+        if (existing) {
+            // Already chained, just mark as completed
+            await supabase
+                .from('client_training_assignments')
+                .update({ status: 'completed' })
+                .eq('id', assignment.id);
+            return;
+        }
+
+        // Create the chained assignment
+        await this.assignProgramToClient(clientId, assignment.next_program_id, nextStartStr, 'system', { allowOverlap: true });
+
+        // Mark original as completed
+        await supabase
+            .from('client_training_assignments')
+            .update({ status: 'completed' })
+            .eq('id', assignment.id);
+    },
+
+    // --- CLONE & TEMPLATE WORKOUTS ---
+
+    async cloneTemplateToClientWorkout(templateWorkoutId: string, assignmentId: string): Promise<ClientWorkout> {
+        const sourceWorkout = await this.getWorkoutById(templateWorkoutId);
+        if (!sourceWorkout) throw new Error('Workout plantilla no encontrado');
+
+        // Create client workout
+        const { data: savedWorkout, error: wError } = await supabase
+            .from('client_workouts')
+            .insert({
+                assignment_id: assignmentId,
+                source_workout_id: sourceWorkout.id,
+                name: sourceWorkout.name,
+                description: sourceWorkout.description,
+                goal: sourceWorkout.goal,
+                notes: sourceWorkout.notes
+            })
+            .select()
+            .single();
+
+        if (wError) throw wError;
+
+        // Copy blocks and exercises
+        for (const block of (sourceWorkout.blocks || [])) {
+            const { data: savedBlock, error: bError } = await supabase
+                .from('client_workout_blocks')
+                .insert({
+                    client_workout_id: savedWorkout.id,
+                    name: block.name,
+                    description: block.description,
+                    position: block.position,
+                    structure_type: 'standard'
+                })
+                .select()
+                .single();
+
+            if (bError) throw bError;
+
+            if (block.exercises && block.exercises.length > 0) {
+                const exerciseInserts = block.exercises.map((ex: any) => ({
+                    block_id: savedBlock.id,
+                    exercise_id: ex.exercise_id || ex.exercise?.id,
+                    sets: ex.sets || 3,
+                    reps: ex.reps || '',
+                    rest_seconds: ex.rest_seconds || 0,
+                    notes: ex.notes,
+                    position: ex.position,
+                    superset_id: ex.superset_id || null,
+                    superset_rounds: ex.superset_rounds || null
+                }));
+
+                const { error: exError } = await supabase
+                    .from('client_workout_exercises')
+                    .insert(exerciseInserts);
+
+                if (exError) throw exError;
+            }
+        }
+
+        return this.getClientWorkoutById(savedWorkout.id) as Promise<ClientWorkout>;
+    },
+
+    async saveClientWorkoutAsTemplate(clientWorkoutId: string, name: string, createdBy?: string): Promise<Workout> {
+        const clientWorkout = await this.getClientWorkoutById(clientWorkoutId);
+        if (!clientWorkout) throw new Error('Client workout no encontrado');
+
+        // Create template workout
+        const templateData: Partial<Workout> = {
+            name,
+            description: clientWorkout.description,
+            goal: clientWorkout.goal,
+            notes: clientWorkout.notes,
+            blocks: (clientWorkout.blocks || []).map((block: any) => ({
+                name: block.name,
+                description: block.description,
+                position: block.position,
+                exercises: (block.exercises || []).map((ex: any) => ({
+                    exercise_id: ex.exercise_id,
+                    exercise: ex.exercise,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    rest_seconds: ex.rest_seconds,
+                    notes: ex.notes,
+                    position: ex.position,
+                    superset_id: ex.superset_id,
+                    superset_rounds: ex.superset_rounds
+                }))
+            }))
+        };
+
+        return this.saveWorkout(templateData);
     },
 
     async getClientAllDayLogs(clientId: string): Promise<(ClientDayLog & {

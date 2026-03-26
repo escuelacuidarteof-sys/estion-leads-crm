@@ -936,6 +936,8 @@ export interface ClientTrainingAssignment {
   assigned_by?: string;
   assigned_at?: string;
   is_customized?: boolean;
+  status?: 'active' | 'cancelled' | 'completed';
+  next_program_id?: string;
 }
 
 // --- CLIENT PROGRAM CUSTOMIZATION ---
