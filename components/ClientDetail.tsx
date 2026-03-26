@@ -5408,7 +5408,7 @@ const ClientDetail: React.FC<ClientDetailProps> = ({
                      startDate={customizeEditor.startDate}
                      onClose={() => setCustomizeEditor(null)}
                      onSaved={() => {
-                        setCustomizeEditor(null);
+                        // Don't close editor — allow multiple edits without navigating back
                      }}
                   />
                </div>
