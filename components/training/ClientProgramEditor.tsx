@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import {
     ArrowLeft, Dumbbell, Footprints, Activity, BarChart3,
     Camera, ClipboardList, Sparkles, X, MoveHorizontal,
-    RotateCcw, Loader2, AlertTriangle, Check, ChevronDown
+    RotateCcw, Loader2, AlertTriangle, Check, ChevronDown,
+    Plus, Edit3
 } from 'lucide-react';
-import { TrainingProgram, ProgramDay, ProgramActivity, ClientProgramDay } from '../../types';
+import { TrainingProgram, ProgramDay, ProgramActivity, ClientProgramDay, Exercise, Workout } from '../../types';
 import { trainingService } from '../../services/trainingService';
+import { WorkoutEditor } from './WorkoutEditor';
 
 interface ClientProgramEditorProps {
     assignmentId: string;
@@ -80,6 +82,19 @@ export function ClientProgramEditor({
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [resetting, setResetting] = useState(false);
     const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
+    const [editingWorkout, setEditingWorkout] = useState<{ workoutId: string; activityId: string } | null>(null);
+    const [workoutData, setWorkoutData] = useState<Workout | null>(null);
+    const [loadingWorkout, setLoadingWorkout] = useState(false);
+    const [exercises, setExercises] = useState<Exercise[]>([]);
+    const [addingToDay, setAddingToDay] = useState<{ dayId: string | null; weekNumber: number; dayNumber: number } | null>(null);
+    const [addActivityType, setAddActivityType] = useState<string>('workout');
+    const [addActivityTitle, setAddActivityTitle] = useState('');
+    const [savingActivity, setSavingActivity] = useState(false);
+
+    // Load exercises library once
+    useEffect(() => {
+        trainingService.getExercises().then(setExercises).catch(console.error);
+    }, []);
 
     // Load program data
     const loadProgram = useCallback(async () => {
@@ -197,6 +212,93 @@ export function ClientProgramEditor({
         } finally {
             setResetting(false);
         }
+    };
+
+    // Open workout editor for a client workout
+    const handleEditWorkout = async (workoutId: string, activityId: string) => {
+        setLoadingWorkout(true);
+        setEditingWorkout({ workoutId, activityId });
+        try {
+            const wk = await trainingService.getClientWorkoutById(workoutId);
+            setWorkoutData(wk as any);
+        } catch (err: any) {
+            console.error('Error loading client workout:', err);
+            setError(err?.message || 'Error al cargar el workout');
+            setEditingWorkout(null);
+        } finally {
+            setLoadingWorkout(false);
+        }
+    };
+
+    // Save edited client workout
+    const handleSaveWorkout = async (workoutPartial: Partial<Workout>) => {
+        if (!editingWorkout) return;
+        try {
+            await trainingService.saveClientWorkout({
+                ...workoutPartial,
+                id: editingWorkout.workoutId,
+                assignment_id: assignmentId
+            } as any);
+            setEditingWorkout(null);
+            setWorkoutData(null);
+            await loadProgram();
+        } catch (err: any) {
+            console.error('Error saving client workout:', err);
+            throw err;
+        }
+    };
+
+    // Add activity to a day
+    const handleAddActivity = async () => {
+        if (!addingToDay || !customized) return;
+        setSavingActivity(true);
+        setError('');
+        try {
+            // Ensure the day exists (creates it if rest day / missing)
+            const dayId = await trainingService.ensureClientDay(
+                assignmentId,
+                addingToDay.weekNumber,
+                addingToDay.dayNumber
+            );
+
+            let activityId: string | undefined;
+
+            if (addActivityType === 'workout') {
+                // Create a new empty client workout
+                const newWorkout = await trainingService.createClientWorkout(
+                    assignmentId,
+                    addActivityTitle || `Entrenamiento ${new Date().toLocaleDateString('es-ES')}`
+                );
+                activityId = newWorkout.id;
+            }
+
+            await trainingService.addClientActivity(dayId, {
+                type: addActivityType as any,
+                activity_id: activityId,
+                title: addActivityTitle || (addActivityType === 'workout' ? 'Entrenamiento' : addActivityType === 'walking' ? 'Paseo' : addActivityType === 'metrics' ? 'Métricas' : 'Actividad'),
+                position: 99
+            });
+
+            setAddingToDay(null);
+            setAddActivityTitle('');
+            setAddActivityType('workout');
+            await loadProgram();
+        } catch (err: any) {
+            console.error('Error adding activity:', err);
+            setError(err?.message || 'Error al añadir actividad');
+        } finally {
+            setSavingActivity(false);
+        }
+    };
+
+    const handleSaveExercise = async (exercise: Partial<Exercise>) => {
+        if (exercise.id) {
+            await trainingService.updateExercise(exercise.id, exercise);
+        } else {
+            await trainingService.createExercise(exercise);
+        }
+        const updated = await trainingService.getExercises();
+        setExercises(updated);
     };
 
     // All days in current week that have an id (for move targets)
@@ -339,10 +441,107 @@ export function ClientProgramEditor({
                             onRemove={handleRemoveActivity}
                             removingId={removing}
                             moveTargets={availableMoveTargets}
+                            onEditWorkout={handleEditWorkout}
+                            onAddActivity={(dayId, weekNumber, dayNumber) => {
+                                setAddingToDay({ dayId, weekNumber, dayNumber });
+                                setAddActivityTitle('');
+                                setAddActivityType('workout');
+                            }}
+                            selectedWeek={selectedWeek}
                         />
                     </div>
                 )}
             </div>
+
+            {/* Workout Editor overlay */}
+            {editingWorkout && (
+                loadingWorkout ? (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30">
+                        <Loader2 size={32} className="animate-spin text-white" />
+                    </div>
+                ) : workoutData ? (
+                    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
+                        <WorkoutEditor
+                            workout={workoutData}
+                            onSave={handleSaveWorkout}
+                            onClose={() => { setEditingWorkout(null); setWorkoutData(null); }}
+                            availableExercises={exercises}
+                            onSaveExercise={handleSaveExercise}
+                        />
+                    </div>
+                ) : null
+            )}
+
+            {/* Add Activity modal */}
+            {addingToDay && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-brand-dark" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                                Añadir actividad
+                            </h3>
+                            <button onClick={() => setAddingToDay(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Tipo</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { type: 'workout', label: 'Entreno', Icon: Dumbbell },
+                                        { type: 'walking', label: 'Paseo', Icon: Footprints },
+                                        { type: 'metrics', label: 'Métricas', Icon: Activity },
+                                    ].map(({ type, label, Icon }) => (
+                                        <button
+                                            key={type}
+                                            onClick={() => setAddActivityType(type)}
+                                            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-xs font-medium ${
+                                                addActivityType === type
+                                                    ? 'border-brand-green bg-brand-mint/30 text-brand-green'
+                                                    : 'border-gray-100 text-gray-500 hover:border-gray-200'
+                                            }`}
+                                        >
+                                            <Icon size={20} />
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Nombre (opcional)</label>
+                                <input
+                                    type="text"
+                                    value={addActivityTitle}
+                                    onChange={e => setAddActivityTitle(e.target.value)}
+                                    placeholder={addActivityType === 'workout' ? 'Ej: Tren superior' : 'Ej: Paseo 30 min'}
+                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end mt-6">
+                            <button
+                                onClick={() => setAddingToDay(null)}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleAddActivity}
+                                disabled={savingActivity}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors disabled:opacity-60"
+                                style={{ backgroundColor: '#6BA06B' }}
+                            >
+                                {savingActivity && <Loader2 size={14} className="animate-spin" />}
+                                Añadir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Reset confirmation dialog */}
             {showResetConfirm && (
@@ -444,6 +643,9 @@ function DayGrid({
     onRemove,
     removingId,
     moveTargets,
+    onEditWorkout,
+    onAddActivity,
+    selectedWeek,
 }: {
     weekDaysData: WeekDayData[];
     readOnly: boolean;
@@ -455,6 +657,9 @@ function DayGrid({
     onRemove?: (activityId: string) => void;
     removingId?: string | null;
     moveTargets?: { id: string; dayNumber: number; label: string }[];
+    onEditWorkout?: (workoutId: string, activityId: string) => void;
+    onAddActivity?: (dayId: string | null, weekNumber: number, dayNumber: number) => void;
+    selectedWeek?: number;
 }) {
     return (
         <>
@@ -479,12 +684,12 @@ function DayGrid({
                                 flex-1 rounded-2xl border p-2.5 min-h-[140px] transition-colors
                                 ${wd.today ? 'border-brand-green/30 bg-brand-mint/10' : isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
                             `}>
-                                {isEmpty ? (
+                                {isEmpty && readOnly ? (
                                     <div className="flex items-center justify-center h-full text-xs text-gray-300">
                                         Descanso
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2 h-full">
                                         {activities.map(act => (
                                             <ActivityCard
                                                 key={act.id}
@@ -499,8 +704,17 @@ function DayGrid({
                                                 onRemove={() => onRemove?.(act.id)}
                                                 isRemoving={removingId === act.id}
                                                 moveTargets={moveTargets?.filter(t => t.id !== day?.id)}
+                                                onEditWorkout={onEditWorkout}
                                             />
                                         ))}
+                                        {!readOnly && (
+                                            <button
+                                                onClick={() => onAddActivity?.(day?.id || null, selectedWeek || 1, wd.dayNumber)}
+                                                className="mt-auto flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-gray-200 text-gray-400 hover:border-brand-green hover:text-brand-green hover:bg-brand-mint/20 transition-all text-[11px] font-medium"
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -519,14 +733,14 @@ function DayGrid({
                     return (
                         <div key={idx} className={`
                             rounded-2xl border p-3 transition-colors
-                            ${wd.today ? 'border-brand-green/30 bg-brand-mint/10' : isEmpty ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
+                            ${wd.today ? 'border-brand-green/30 bg-brand-mint/10' : isEmpty && readOnly ? 'bg-gray-50/50 border-gray-100' : 'bg-white border-gray-150 shadow-sm'}
                         `}>
                             <div className={`flex items-center gap-2 mb-2 ${wd.today ? 'text-brand-green' : 'text-gray-400'}`}>
                                 <span className="text-xs font-semibold uppercase tracking-wider">{wd.weekdayName}</span>
                                 <span className={`text-sm font-bold ${wd.today ? 'text-brand-green' : 'text-gray-600'}`}>{wd.dateLabel}</span>
                                 {wd.today && <span className="text-[10px] font-bold bg-brand-green text-white px-2 py-0.5 rounded-full">Hoy</span>}
                             </div>
-                            {isEmpty ? (
+                            {isEmpty && readOnly ? (
                                 <div className="text-xs text-gray-300 py-2">Descanso</div>
                             ) : (
                                 <div className="flex flex-col gap-2">
@@ -544,8 +758,18 @@ function DayGrid({
                                             onRemove={() => onRemove?.(act.id)}
                                             isRemoving={removingId === act.id}
                                             moveTargets={moveTargets?.filter(t => t.id !== day?.id)}
+                                            onEditWorkout={onEditWorkout}
                                         />
                                     ))}
+                                    {!readOnly && (
+                                        <button
+                                            onClick={() => onAddActivity?.(day?.id || null, selectedWeek || 1, wd.dayNumber)}
+                                            className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-brand-green hover:text-brand-green hover:bg-brand-mint/20 transition-all text-xs font-medium"
+                                        >
+                                            <Plus size={14} />
+                                            Añadir actividad
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -568,6 +792,7 @@ function ActivityCard({
     onRemove,
     isRemoving,
     moveTargets,
+    onEditWorkout,
 }: {
     activity: ProgramActivity;
     readOnly: boolean;
@@ -580,6 +805,7 @@ function ActivityCard({
     onRemove?: () => void;
     isRemoving?: boolean;
     moveTargets?: { id: string; dayNumber: number; label: string }[];
+    onEditWorkout?: (workoutId: string, activityId: string) => void;
 }) {
     const style = getActivityStyle(activity.type);
     const Icon = style.icon;
@@ -630,12 +856,16 @@ function ActivityCard({
                 {expanded && activity.type === 'workout' && (
                     <div className="mt-2 pt-2 border-t border-amber-100">
                         <p className="text-[11px] text-gray-500">
-                            {activity.description || 'Haz clic para ver los ejercicios en el editor de workout.'}
+                            {activity.description || 'Haz clic para ver los ejercicios.'}
                         </p>
-                        {activity.workout_id && (
-                            <span className="inline-block mt-1 text-[10px] text-amber-500 font-mono">
-                                ID: {activity.workout_id.slice(0, 8)}...
-                            </span>
+                        {!readOnly && activity.workout_id && onEditWorkout && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onEditWorkout(activity.workout_id!, activity.id); }}
+                                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+                            >
+                                <Edit3 size={11} />
+                                Editar ejercicios
+                            </button>
                         )}
                     </div>
                 )}

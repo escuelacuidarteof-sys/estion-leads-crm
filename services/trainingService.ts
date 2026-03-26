@@ -1154,6 +1154,49 @@ export const trainingService = {
         return data;
     },
 
+    async ensureClientDay(assignmentId: string, weekNumber: number, dayNumber: number): Promise<string> {
+        // Check if day already exists
+        const { data: existing } = await supabase
+            .from('client_program_days')
+            .select('id')
+            .eq('assignment_id', assignmentId)
+            .eq('week_number', weekNumber)
+            .eq('day_number', dayNumber)
+            .maybeSingle();
+
+        if (existing) return existing.id;
+
+        // Create the day
+        const { data, error } = await supabase
+            .from('client_program_days')
+            .insert({
+                assignment_id: assignmentId,
+                week_number: weekNumber,
+                day_number: dayNumber,
+                is_rest_day: false
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data.id;
+    },
+
+    async createClientWorkout(assignmentId: string, name: string): Promise<ClientWorkout> {
+        const { data, error } = await supabase
+            .from('client_workouts')
+            .insert({
+                assignment_id: assignmentId,
+                name,
+                description: ''
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { ...data, blocks: [] };
+    },
+
     async removeClientActivity(activityId: string): Promise<void> {
         const { error } = await supabase
             .from('client_program_activities')
