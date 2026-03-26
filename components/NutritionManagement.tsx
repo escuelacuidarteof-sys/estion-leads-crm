@@ -58,6 +58,7 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
   const [newPlanDietType, setNewPlanDietType] = useState<DietType | ''>('');
   const [newPlanMonth, setNewPlanMonth] = useState<string>('');
   const [newPlanFortnight, setNewPlanFortnight] = useState<string>('');
+  const [newPlanVisibility, setNewPlanVisibility] = useState<'public' | 'private'>('public');
   const [newPlanTags, setNewPlanTags] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -97,6 +98,7 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
         diet_type: newPlanDietType as DietType || undefined,
         target_month: newPlanMonth ? parseInt(newPlanMonth) : undefined,
         target_fortnight: newPlanFortnight ? parseInt(newPlanFortnight) as 1 | 2 : undefined,
+        visibility_scope: newPlanVisibility,
         tags: newPlanTags ? newPlanTags.split(',').map(t => t.trim()).filter(Boolean) : [],
         created_by: currentUser.id
       });
@@ -108,6 +110,7 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
       setNewPlanDietType('');
       setNewPlanMonth('');
       setNewPlanFortnight('');
+      setNewPlanVisibility('public');
       setNewPlanTags('');
 
       // Open editor for the new plan
@@ -495,14 +498,24 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
             >
               {/* Status Badge & quick actions */}
               <div className="flex items-start justify-between mb-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${plan.status === 'published'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-amber-100 text-amber-700'
-                    }`}
-                >
-                  {plan.status === 'published' ? 'Publicado' : 'Borrador'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${plan.status === 'published'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-amber-100 text-amber-700'
+                      }`}
+                  >
+                    {plan.status === 'published' ? 'Publicado' : 'Borrador'}
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${plan.visibility_scope === 'private'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-blue-100 text-blue-700'
+                      }`}
+                  >
+                    {plan.visibility_scope === 'private' ? 'Privado' : 'Publico'}
+                  </span>
+                </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleClonePlan(plan)}
@@ -723,6 +736,23 @@ export function NutritionManagement({ currentUser }: NutritionManagementProps) {
                       <option value="2">2ª Quincena</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Visibilidad
+                  </label>
+                  <select
+                    value={newPlanVisibility}
+                    onChange={e => setNewPlanVisibility(e.target.value as 'public' | 'private')}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="public">Publico (auto-asignable)</option>
+                    <option value="private">Privado (solo asignacion manual)</option>
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Los planes privados solo los ve el cliente al que se asigne manualmente.
+                  </p>
                 </div>
 
                 <div>

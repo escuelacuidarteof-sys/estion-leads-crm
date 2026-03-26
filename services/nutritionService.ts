@@ -66,6 +66,7 @@ export const nutritionService = {
       .insert({
         name: plan.name,
         description: plan.description,
+        visibility_scope: plan.visibility_scope || 'public',
         tags: plan.tags || [],
         target_calories: plan.target_calories,
         diet_type: plan.diet_type,
@@ -643,6 +644,7 @@ export const nutritionService = {
       .insert({
         name: `${originalPlan.name} (Copia)`,
         description: originalPlan.description,
+        visibility_scope: originalPlan.visibility_scope || 'public',
         tags: originalPlan.tags || [],
         target_calories: originalPlan.target_calories,
         diet_type: originalPlan.diet_type,
@@ -793,6 +795,7 @@ export const nutritionService = {
       .from('nutrition_plans')
       .select('*')
       .eq('status', 'published')
+      .eq('visibility_scope', 'public')
       .eq('diet_type', dietType)
       .eq('target_calories', calories)
       .eq('target_month', month)

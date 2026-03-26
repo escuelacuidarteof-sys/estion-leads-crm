@@ -17,73 +17,64 @@ export const UpdatePasswordPage: React.FC = () => {
         let isMounted = true;
 
         const initRecovery = async () => {
+            // Give Supabase a moment to process the implicit tokens via detectSessionInUrl
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Also try to restore session from stored recovery hash (from App.tsx intercept)
+            const storedHash = sessionStorage.getItem('supabase_recovery_hash');
+            if (storedHash) {
+                sessionStorage.removeItem('supabase_recovery_hash');
+                // Parse tokens from the stored hash
+                const params = new URLSearchParams(storedHash);
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                if (accessToken && refreshToken) {
+                    try {
+                        await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken,
+                        });
+                    } catch (e) {
+                        console.warn('Failed to set session from stored hash:', e);
+                    }
+                }
+            }
+
+            // Also handle PKCE ?code= param as fallback
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
-
-            // Step 1: Check if Supabase auto-detection already created a session
-            const { data: { session: existingSession } } = await supabase.auth.getSession();
-            if (!isMounted) return;
-
-            if (existingSession) {
-                // Session already exists (Supabase detectSessionInUrl may have consumed the code)
-                setHasRecoverySession(true);
-                setError(null);
-                // Clean URL
-                if (code) {
-                    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-                }
-                setCheckingSession(false);
-                return;
-            }
-
-            // Step 2: If no session yet but we have a code, try manual exchange
             if (code) {
                 try {
-                    const { error } = await supabase.auth.exchangeCodeForSession(code);
-                    if (!isMounted) return;
-                    if (error) {
-                        // Code might already be consumed - check session one more time
-                        const { data: { session: retrySession } } = await supabase.auth.getSession();
-                        if (retrySession) {
-                            setHasRecoverySession(true);
-                            setError(null);
-                        } else {
-                            setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
-                        }
-                        setCheckingSession(false);
-                        return;
-                    }
-                    // Clean the code from URL without reload
+                    await supabase.auth.exchangeCodeForSession(code);
                     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-                    setHasRecoverySession(true);
-                    setError(null);
-                    setCheckingSession(false);
-                    return;
-                } catch {
-                    if (!isMounted) return;
-                    setError('Error al validar el enlace. Por favor, solicita uno nuevo.');
-                    setCheckingSession(false);
-                    return;
+                } catch (e) {
+                    console.warn('PKCE code exchange failed:', e);
                 }
             }
 
-            // Step 3: No code and no session
-            setHasRecoverySession(false);
-            setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+            // Check if we have a valid session now
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!isMounted) return;
+
+            if (session) {
+                setHasRecoverySession(true);
+                setError(null);
+            } else {
+                setHasRecoverySession(false);
+                setError('El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.');
+            }
             setCheckingSession(false);
         };
 
+        // Listen for auth state changes (PASSWORD_RECOVERY event from Supabase)
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (!isMounted) return;
 
-            if (event === 'PASSWORD_RECOVERY' || session) {
+            if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
                 setHasRecoverySession(true);
                 setError(null);
-            } else if (!session) {
-                setHasRecoverySession(false);
+                setCheckingSession(false);
             }
-
-            setCheckingSession(false);
         });
 
         initRecovery();

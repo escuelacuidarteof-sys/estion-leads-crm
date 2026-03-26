@@ -12,7 +12,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
     const sendResetEmail = async () => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/#/update-password`,
+            redirectTo: `${window.location.origin}`,
         });
 
         if (error) {
@@ -158,7 +158,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 </div>
             </div>
             <p className="mt-12 text-[10px] text-[#1a2e1a]/30 font-mono z-10">
-                ACADEMIA DIABETES ONLINE
+                ESCUELA CUIDARTE
             </p>
         </div>
     );

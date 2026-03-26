@@ -751,6 +751,7 @@ export interface NutritionPlan {
   id: string;
   name: string;
   description?: string;
+  visibility_scope?: 'public' | 'private';
   tags: string[];
   target_calories?: number;
   diet_type?: DietType;

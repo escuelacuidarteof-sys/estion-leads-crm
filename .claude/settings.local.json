@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find C:UsersjmartDesktopestion-leads-crm -type f \\\\\\(-name .env* -o -name *email* -o -name *config* \\\\\\) ! -path */node_modules/*)"
     ]
   }
 }
