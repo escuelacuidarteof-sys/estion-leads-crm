@@ -895,7 +895,13 @@ function ActivityCard({
                     ${compact ? 'p-2' : 'p-3'}
                     ${activity.type === 'workout' ? 'cursor-pointer' : ''}
                 `}
-                onClick={activity.type === 'workout' ? onToggleExpand : undefined}
+                onClick={activity.type === 'workout' ? () => {
+                    if (!readOnly && activity.workout_id && onEditWorkout) {
+                        onEditWorkout(activity.workout_id, activity.id);
+                    } else {
+                        onToggleExpand?.();
+                    }
+                } : undefined}
             >
                 <div className="flex items-center gap-2">
                     <Icon size={compact ? 14 : 16} className={style.text} />

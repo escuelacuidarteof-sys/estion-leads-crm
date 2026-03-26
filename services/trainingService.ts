@@ -993,6 +993,7 @@ export const trainingService = {
                         day_id: day.id,
                         type: a.type,
                         activity_id: a.activity_id,
+                        workout_id: a.type === 'workout' ? a.activity_id : undefined,
                         title: a.title,
                         description: a.description,
                         position: a.position,
