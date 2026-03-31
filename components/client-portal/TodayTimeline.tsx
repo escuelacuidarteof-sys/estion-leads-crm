@@ -58,26 +58,68 @@ export function TodayTimeline({ clientId, nutritionPlanId }: TodayTimelineProps)
         });
       }
 
-      // 3. Meals from WeeklyPlanner
-      if (nutritionPlanId) {
-        try {
+      // 3. Meals from WeeklyPlanner (via Supabase)
+      try {
+        let planId = nutritionPlanId ?? null;
+        if (!planId) {
+          const { data: assignment } = await supabase
+            .from('client_nutrition_assignments')
+            .select('plan_id')
+            .eq('client_id', clientId)
+            .eq('active', true)
+            .maybeSingle();
+          planId = assignment?.plan_id ?? null;
+        }
+        if (planId) {
           const d = new Date();
           const dayOfWeek = d.getDay() === 0 ? 6 : d.getDay() - 1;
-          const saved = localStorage.getItem(`ec_crm_weekly_plan_${nutritionPlanId}`);
-          if (saved) {
-            const grid = JSON.parse(saved);
-            if (grid[`${dayOfWeek}-breakfast`]) {
-              allItems.push({ id: 'meal-b', type: 'meal', time_of_day: 'morning', title: 'Desayuno', description: grid[`${dayOfWeek}-breakfast`], completed: false });
-            }
-            if (grid[`${dayOfWeek}-lunch`]) {
-              allItems.push({ id: 'meal-l', type: 'meal', time_of_day: 'afternoon', title: 'Almuerzo', description: grid[`${dayOfWeek}-lunch`], completed: false });
-            }
-            if (grid[`${dayOfWeek}-dinner`]) {
-              allItems.push({ id: 'meal-d', type: 'meal', time_of_day: 'evening', title: 'Cena', description: grid[`${dayOfWeek}-dinner`], completed: false });
+
+          const { data: stateRow } = await supabase
+            .from('client_meal_plan_state')
+            .select('grid')
+            .eq('client_id', clientId)
+            .eq('plan_id', planId)
+            .maybeSingle();
+
+          const grid: Record<string, string | null> = (stateRow?.grid as any) ?? (() => {
+            try {
+              const s = localStorage.getItem(`ec_crm_weekly_plan_${planId}`);
+              return s ? JSON.parse(s) : {};
+            } catch { return {}; }
+          })();
+
+          const mealSlots = [
+            { slot: 'breakfast', time_of_day: 'morning' as const, title: 'Desayuno', id: 'meal-b' },
+            { slot: 'lunch', time_of_day: 'afternoon' as const, title: 'Almuerzo', id: 'meal-l' },
+            { slot: 'dinner', time_of_day: 'evening' as const, title: 'Cena', id: 'meal-d' },
+            { slot: 'snack', time_of_day: 'afternoon' as const, title: 'Snack', id: 'meal-s' },
+          ];
+
+          const slotsWithRecipe = mealSlots
+            .map(s => ({ ...s, recipeId: grid[`${dayOfWeek}-${s.slot}`] }))
+            .filter(s => s.recipeId);
+
+          if (slotsWithRecipe.length > 0) {
+            const ids = slotsWithRecipe.map(s => s.recipeId!);
+            const { data: recipeRows } = await supabase
+              .from('nutrition_recipes')
+              .select('id, name')
+              .in('id', ids);
+            const recipeMap = new Map(recipeRows?.map(r => [r.id, r.name]) ?? []);
+
+            for (const s of slotsWithRecipe) {
+              allItems.push({
+                id: s.id,
+                type: 'meal',
+                time_of_day: s.time_of_day,
+                title: s.title,
+                description: recipeMap.get(s.recipeId!) ?? undefined,
+                completed: false,
+              });
             }
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
       // 4. Treatment
       const { data: treatments } = await supabase.from('treatment_sessions').select('*').eq('client_id', clientId).eq('session_date', today);

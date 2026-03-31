@@ -1036,6 +1036,8 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                     </div>
                 </div>
 
+                <TodayTimeline clientId={client.id} />
+
                 {/* Check-in — siempre visible con 3 estados */}
                 {(() => {
                     const isAvailable = checkinWindowInfo.isVisibleWindow && !checkinWindowInfo.isCompleted;
@@ -1092,7 +1094,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
 
                 <WeeklySummaryCard clientId={client.id} />
 
-                <TodayTimeline clientId={client.id} />
+                <AchievementsCard clientId={client.id} />
 
                 <SymptomInsights clientId={client.id} />
 

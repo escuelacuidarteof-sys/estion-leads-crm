@@ -153,19 +153,23 @@ export function CheckinView({ client, onBack }: CheckinViewProps) {
 
     if (step === 4) {
         return (
-            <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center justify-center text-center">
-                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                    <CircleCheck className="w-12 h-12 text-emerald-600" />
+            <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white p-6 flex flex-col items-center justify-center text-center">
+                <div className="w-28 h-28 bg-emerald-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                    <CircleCheck className="w-14 h-14 text-emerald-600" />
                 </div>
-                <h2 className="text-3xl font-bold text-slate-800 mb-4">¡Reporte Enviado!</h2>
-                <p className="text-slate-600 max-w-md mb-8">
-                    Tu coach revisará tus síntomas y sensaciones de esta semana. ¡Gracias por dedicar este momento a ti misma!
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Check-in completado</p>
+                <h2 className="text-3xl font-bold text-brand-dark mb-3">¡Lo estás haciendo genial!</h2>
+                <p className="text-slate-500 max-w-sm mb-2 leading-relaxed">
+                    Tu reporte ha llegado. Tu coach lo revisará antes del próximo martes.
+                </p>
+                <p className="text-xs text-slate-400 max-w-xs mb-10">
+                    Seguir enviando tus check-ins cada semana es uno de los factores más importantes en tu progreso. ✨
                 </p>
                 <button
                     onClick={onBack}
-                    className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors"
+                    className="px-8 py-3 bg-brand-green text-white rounded-2xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-100"
                 >
-                    Volver al Inicio
+                    Volver al inicio
                 </button>
             </div>
         );
