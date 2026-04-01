@@ -34,35 +34,83 @@ function timeAgo(dateStr: string): string {
 
 export { timeAgo };
 
-function getReadIds(clientId: string): Set<string> {
+// In-memory cache of read IDs per client (loaded from Supabase on first call)
+const readCache = new Map<string, Set<string>>();
+let cacheLoaded = new Map<string, boolean>();
+
+async function ensureReadCacheLoaded(clientId: string): Promise<Set<string>> {
+  if (cacheLoaded.get(clientId)) return readCache.get(clientId) || new Set();
+
+  const ids = new Set<string>();
   try {
-    const raw = localStorage.getItem(`ec_crm_notif_read_${clientId}`);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch { return new Set(); }
+    const { data } = await supabase
+      .from('client_notifications_read')
+      .select('notification_id')
+      .eq('client_id', clientId);
+    data?.forEach(r => ids.add(r.notification_id));
+  } catch (err) {
+    console.warn('Error loading read notifications:', err);
+  }
+  readCache.set(clientId, ids);
+  cacheLoaded.set(clientId, true);
+  return ids;
 }
 
-export function markNotificationRead(clientId: string, notifId: string) {
-  const ids = getReadIds(clientId);
+export async function loadReadIds(clientId: string): Promise<Set<string>> {
+  return ensureReadCacheLoaded(clientId);
+}
+
+export async function markNotificationRead(clientId: string, notifId: string) {
+  const ids = await ensureReadCacheLoaded(clientId);
+  if (ids.has(notifId)) return; // already read
   ids.add(notifId);
-  try { localStorage.setItem(`ec_crm_notif_read_${clientId}`, JSON.stringify([...ids])); } catch {}
+  readCache.set(clientId, ids);
+  try {
+    await supabase
+      .from('client_notifications_read')
+      .upsert({ client_id: clientId, notification_id: notifId }, { onConflict: 'client_id,notification_id' });
+  } catch (err) {
+    console.warn('Error marking notification read:', err);
+  }
 }
 
-export function markAllRead(clientId: string, notifIds: string[]) {
-  const ids = getReadIds(clientId);
-  notifIds.forEach(id => ids.add(id));
-  try { localStorage.setItem(`ec_crm_notif_read_${clientId}`, JSON.stringify([...ids])); } catch {}
+export async function markAllRead(clientId: string, notifIds: string[]) {
+  const ids = await ensureReadCacheLoaded(clientId);
+  const newIds = notifIds.filter(id => !ids.has(id));
+  if (newIds.length === 0) return;
+  newIds.forEach(id => ids.add(id));
+  readCache.set(clientId, ids);
+  try {
+    const rows = newIds.map(id => ({ client_id: clientId, notification_id: id }));
+    await supabase
+      .from('client_notifications_read')
+      .upsert(rows, { onConflict: 'client_id,notification_id' });
+  } catch (err) {
+    console.warn('Error marking all notifications read:', err);
+  }
 }
 
-/** Remove stale read IDs that no longer match active notifications */
-export function pruneReadIds(clientId: string, activeNotifIds: string[]) {
+export async function pruneReadIds(clientId: string, activeNotifIds: string[]) {
   const activeSet = new Set(activeNotifIds);
-  const stored = getReadIds(clientId);
-  const pruned = [...stored].filter(id => activeSet.has(id));
-  try { localStorage.setItem(`ec_crm_notif_read_${clientId}`, JSON.stringify(pruned)); } catch {}
+  const ids = await ensureReadCacheLoaded(clientId);
+  const staleIds = [...ids].filter(id => !activeSet.has(id));
+  if (staleIds.length === 0) return;
+  staleIds.forEach(id => ids.delete(id));
+  readCache.set(clientId, ids);
+  try {
+    await supabase
+      .from('client_notifications_read')
+      .delete()
+      .eq('client_id', clientId)
+      .in('notification_id', staleIds);
+  } catch (err) {
+    console.warn('Error pruning read IDs:', err);
+  }
 }
 
 export function isNotificationRead(clientId: string, notifId: string): boolean {
-  return getReadIds(clientId).has(notifId);
+  const ids = readCache.get(clientId);
+  return ids ? ids.has(notifId) : false;
 }
 
 export async function getClientNotifications(clientId: string): Promise<ClientNotification[]> {

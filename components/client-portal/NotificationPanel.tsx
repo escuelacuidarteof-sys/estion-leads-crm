@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, MessageSquare, Stethoscope, Pill, Calendar, ClipboardCheck, CheckCheck, X, ChevronRight } from 'lucide-react';
-import { ClientNotification, getClientNotifications, timeAgo, isNotificationRead, markAllRead, pruneReadIds } from '../../services/notificationService';
+import { ClientNotification, getClientNotifications, timeAgo, isNotificationRead, markAllRead, markNotificationRead, pruneReadIds, loadReadIds } from '../../services/notificationService';
 
 interface NotificationPanelProps {
   clientId: string;
@@ -60,25 +60,22 @@ export function NotificationBell({ clientId, onNavigate }: NotificationPanelProp
   }, [isOpen, updatePosition]);
 
   const loadNotifications = async () => {
+    await loadReadIds(clientId);
     const notifs = await getClientNotifications(clientId);
     setNotifications(notifs);
     pruneReadIds(clientId, notifs.map(n => n.id));
     setUnreadCount(notifs.filter(n => !isNotificationRead(clientId, n.id)).length);
   };
 
-  const handleMarkAllRead = () => {
-    markAllRead(clientId, notifications.map(n => n.id));
+  const handleMarkAllRead = async () => {
+    await markAllRead(clientId, notifications.map(n => n.id));
     setUnreadCount(0);
   };
 
-  const handleNotifClick = (n: ClientNotification) => {
+  const handleNavigate = async (n: ClientNotification) => {
     const wasUnread = !isNotificationRead(clientId, n.id);
-    markAllRead(clientId, [n.id]);
+    await markNotificationRead(clientId, n.id);
     if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
-  };
-
-  const handleNavigate = (n: ClientNotification) => {
-    handleNotifClick(n);
     if (n.action) onNavigate(n.action.tab, n.action.view);
     setIsOpen(false);
   };
@@ -159,14 +156,6 @@ export function NotificationBell({ clientId, onNavigate }: NotificationPanelProp
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{timeAgo(n.timestamp)}</p>
                         <div className="flex items-center gap-2">
-                          {!isRead && (
-                            <button
-                              onClick={() => handleNotifClick(n)}
-                              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                              Leído
-                            </button>
-                          )}
                           {hasAction && (
                             <button
                               onClick={() => handleNavigate(n)}

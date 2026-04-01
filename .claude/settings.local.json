@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(git commit:*)",
-      "Bash(find C:UsersjmartDesktopestion-leads-crm -type f \\\\\\(-name .env* -o -name *email* -o -name *config* \\\\\\) ! -path */node_modules/*)"
+      "Bash(find C:UsersjmartDesktopestion-leads-crm -type f \\\\\\(-name .env* -o -name *email* -o -name *config* \\\\\\) ! -path */node_modules/*)",
+      "Bash(grep -l \"CREATE TABLE.*nutrition_plans\\\\|CREATE TABLE.*nutrition_recipes\" database/*.sql)"
     ]
   }
 }
