@@ -408,6 +408,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
           )}
           <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
           <NavItem view="classes" icon={Video} label="Clases Semanales" />
+          <NavItem view="events" icon={Calendar} label="Eventos / Agenda" />
           {checkPermission(user, PERMISSIONS.VIEW_MEDICAL) && (
             <NavItem view="medical-reviews" icon={MessageCircle} label="Preguntas Dra Odile" />
           )}
@@ -515,6 +516,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, activeView, o
               <NavItem view="meditation-library" icon={Headphones} label="Biblioteca Meditación" />
               <NavItem view="internal-protocols" icon={FileText} label="Protocolos Internos" />
               <NavItem view="classes" icon={Video} label="Clases Semanales" />
+              <NavItem view="events" icon={Calendar} label="Eventos / Agenda" />
             </>
           )}
           {checkPermission(user, PERMISSIONS.VIEW_MEDICAL) && (
