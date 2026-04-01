@@ -20,6 +20,7 @@ const RenewalsView = lazy(() => import('./components/RenewalsView'));
 const AdminSettings = lazy(() => import('./components/AdminSettings'));
 const ClientPortalDashboard = lazy(() => import('./components/client-portal/ClientPortalDashboard').then(m => ({ default: m.ClientPortalDashboard })));
 const ClassesManagement = lazy(() => import('./components/ClassesManagement'));
+const EventsManager = lazy(() => import('./components/EventsManager'));
 const ReviewsView = lazy(() => import('./components/ReviewsView'));
 const FoodPlansLibrary = lazy(() => import('./components/FoodPlansLibrary'));
 const MaterialsLibrary = lazy(() => import('./components/MaterialsLibrary'));
@@ -477,7 +478,7 @@ const AppContent: React.FC = () => {
       }
     }
 
-    if (['dashboard', 'clients', 'renewals', 'analytics', 'analytics-webinars', 'analytics-profile', 'analytics-ado', 'analytics-me', 'profile', 'settings', 'client-portal', 'classes', 'reviews', 'food-plans', 'materials-library', 'meditation-library', 'internal-protocols', 'nutrition-management', 'training-management', 'food-calculator', 'invoices', 'testimonials', 'payment-links', 'team-directory', 'medical-reviews', 'new-sale', 'closer-dashboard', 'coach-capacity', 'coach-performance', 'setter-performance', 'closer-performance', 'accounting-dashboard', 'team-announcements', 'contracts', 'support-tickets', 'coach-tasks', 'coach-manual', 'leads', 'chat', 'assessment-manager', 'staff-management', 'role-permissions', 'slack-settings', 'staff-metrics', 'risk-alerts', 'coach-agenda', 'direccion-dashboard', 'me-dashboard', 'me-clients', 'me-closer-performance', 'me-setter-performance', 'doctor-dashboard', 'doctor-invoices', 'doctor-initial-reports', 'create-medical-report', 'doctor-medical-reports'].includes(view)) {
+    if (['dashboard', 'clients', 'renewals', 'analytics', 'analytics-webinars', 'analytics-profile', 'analytics-ado', 'analytics-me', 'profile', 'settings', 'client-portal', 'classes', 'reviews', 'food-plans', 'materials-library', 'meditation-library', 'internal-protocols', 'nutrition-management', 'training-management', 'food-calculator', 'invoices', 'testimonials', 'payment-links', 'team-directory', 'medical-reviews', 'new-sale', 'closer-dashboard', 'coach-capacity', 'coach-performance', 'setter-performance', 'closer-performance', 'accounting-dashboard', 'team-announcements', 'contracts', 'support-tickets', 'coach-tasks', 'coach-manual', 'leads', 'chat', 'assessment-manager', 'staff-management', 'role-permissions', 'slack-settings', 'staff-metrics', 'risk-alerts', 'coach-agenda', 'direccion-dashboard', 'me-dashboard', 'me-clients', 'me-closer-performance', 'me-setter-performance', 'doctor-dashboard', 'doctor-invoices', 'doctor-initial-reports', 'create-medical-report', 'doctor-medical-reports', 'events'].includes(view)) {
       setActiveView(view as any);
       // Si se navega a clients con filtro, establecerlo
       if (view === 'clients' && filter) {
@@ -646,6 +647,8 @@ const AppContent: React.FC = () => {
           />
         ) : activeView === 'renewals' ? (
           <RenewalsView clients={filteredClients} user={user} onNavigateToClient={handleViewClient} coaches={coaches} paymentMethods={paymentMethods} />
+        ) : activeView === 'events' ? (
+          <EventsManager currentUser={user} />
         ) : activeView === 'classes' ? (
           <ClassesManagement currentUser={user} />
         ) : activeView === 'reviews' ? (
