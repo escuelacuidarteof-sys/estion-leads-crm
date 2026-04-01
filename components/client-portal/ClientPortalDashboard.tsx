@@ -49,6 +49,7 @@ import { SymptomInsights } from './SymptomInsights';
 import { MedicationTracker } from './MedicationTracker';
 import { HydrationWidget } from './HydrationWidget';
 import { MedicalHistoryPdf } from './MedicalHistoryPdf';
+import { AgendaView } from './AgendaView';
 import { OnboardingTour, hasCompletedOnboarding, resetOnboarding } from './OnboardingTour';
 import { ThemeProvider, useTheme } from '../../contexts/ThemeContext';
 
@@ -83,7 +84,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
     const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeView, setActiveView] = useState<'dashboard' | 'classes' | 'reviews' | 'checkin' | 'nutrition' | 'medical' | 'materials' | 'contract' | 'reports' | 'cycle' | 'training' | 'diary' | 'meditation' | 'progress_photos'>('dashboard');
-    const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'treatment' | 'consultas' | 'profile'>('home');
+    const [activeTab, setActiveTab] = useState<'home' | 'health' | 'program' | 'agenda' | 'treatment' | 'consultas' | 'profile'>('home');
     const [hasMigratedSecurity, setHasMigratedSecurity] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [coachData, setCoachData] = useState<any>(null);
@@ -1618,6 +1619,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
         { id: 'home' as const, label: 'Inicio', icon: Activity },
         { id: 'health' as const, label: 'Mi Salud', icon: Heart },
         { id: 'program' as const, label: 'Programa', icon: BookOpen },
+        { id: 'agenda' as const, label: 'Agenda', icon: Calendar },
         { id: 'treatment' as const, label: 'Tratamiento', icon: Pill },
         { id: 'consultas' as const, label: 'Consultas', icon: MessageCircle, badge: unreadReviewsCount + (unreadReportsCount > 0 ? 1 : 0) },
         { id: 'profile' as const, label: 'Perfil', icon: User },
@@ -1666,6 +1668,7 @@ export function ClientPortalDashboard({ client, onRefresh }: ClientPortalDashboa
                         {activeTab === 'home' && <HomeTab />}
                         {activeTab === 'health' && <HealthTab />}
                         {activeTab === 'program' && <ProgramTab />}
+                        {activeTab === 'agenda' && <AgendaView clientId={client.id} />}
                         {activeTab === 'treatment' && (
                             <div className="space-y-4">
                                 <TreatmentView clientId={client.id} />

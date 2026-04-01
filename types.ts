@@ -1142,3 +1142,38 @@ export interface HydrationLog {
   glasses: number;
   target_glasses: number;
 }
+
+// ─── Portal Events & Calendar ────────────────────────────────
+export interface PortalEvent {
+  id: string;
+  title: string;
+  description?: string;
+  event_date: string;
+  event_time?: string;
+  end_time?: string;
+  category: string;
+  category_color?: string;
+  location?: string;
+  url?: string;
+  speaker?: string;
+  image_url?: string;
+  is_visible: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CalendarItem {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time?: string;
+  endTime?: string;
+  category: string;
+  color: string;
+  source: 'event' | 'treatment' | 'appointment';
+  url?: string;
+  location?: string;
+  speaker?: string;
+}
